@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل شركة - {{ company.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-edit text-primary"></i>
+            تعديل شركة: {{ company.name }}
+        </h1>
+        <a href="{{ url_for('companies_list') }}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-right"></i> رجوع للقائمة
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">تعديل بيانات الشركة</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="editCompanyForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label">اسم الشركة *</label>
+                                <input type="text" class="form-control" id="name" name="name"
+                                       value="{{ company.name }}" required
+                                       placeholder="أدخل اسم الشركة">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="contact_person" class="form-label">الشخص المسؤول</label>
+                                <input type="text" class="form-control" id="contact_person" name="contact_person"
+                                       value="{{ company.contact_person or '' }}"
+                                       placeholder="أدخل اسم الشخص المسؤول">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="phone" class="form-label">رقم الهاتف</label>
+                                <input type="tel" class="form-control" id="phone" name="phone"
+                                       value="{{ company.phone or '' }}"
+                                       placeholder="أدخل رقم الهاتف">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">البريد الإلكتروني</label>
+                                <input type="email" class="form-control" id="email" name="email"
+                                       value="{{ company.email or '' }}"
+                                       placeholder="أدخل البريد الإلكتروني">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="address" class="form-label">العنوان</label>
+                            <textarea class="form-control" id="address" name="address" rows="3"
+                                      placeholder="أدخل عنوان الشركة">{{ company.address or '' }}</textarea>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_active" name="is_active"
+                                   {% if company.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">شركة نشطة</label>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> حفظ التعديلات
+                            </button>
+                            <a href="{{ url_for('companies_list') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">معلومات الشركة</h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle"></i> معلومات:</h6>
+                        <ul class="mb-0">
+                            <li>تم الإنشاء: {{ company.created_at.strftime('%Y-%m-%d') if company.created_at else 'غير معروف' }}</li>
+                            <li>آخر تحديث: {{ company.updated_at.strftime('%Y-%m-%d') if company.updated_at else 'غير معروف' }}</li>
+                            <li>الحالة الحالية: {% if company.is_active %}نشطة{% else %}غير نشطة{% endif %}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

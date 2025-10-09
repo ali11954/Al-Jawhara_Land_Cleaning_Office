@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-plus text-primary"></i>
+            إضافة تقييم جديد
+        </h1>
+        <a href="{{ url_for('evaluations_list') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right"></i> رجوع
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-map-marker-alt fa-4x text-muted mb-4"></i>
+                    <h3 class="text-muted">لا توجد أماكن متاحة</h3>
+                    <p class="text-muted mb-4">
+                        يجب إنشاء أماكن أولاً قبل إضافة التقييمات.
+                        الأماكن هي الأماكن المادية التي سيتم تقييم نظافتها.
+                    </p>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5>الحل السريع</h5>
+                                    <p>إنشاء أماكن تجريبية تلقائياً</p>
+                                    <a href="{{ url_for('quick_fix_places') }}"
+                                       class="btn btn-primary">
+                                        <i class="fas fa-bolt"></i> إنشاء أماكن تجريبية
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5>الحل المنهجي</h5>
+                                    <p>إدارة الأماكن عبر النظام</p>
+                                    <a href="{{ url_for('companies_list') }}"
+                                       class="btn btn-outline-primary">
+                                        <i class="fas fa-cog"></i> إدارة الشركات والمناطق
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <small class="text-muted">
+                            تلميح: بعد إنشاء الأماكن، يمكنك إضافة التقييمات مباشرة
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

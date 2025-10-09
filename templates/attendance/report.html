@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">تقرير الحضور الشهري</h1>
+
+    <!-- فلترة التقرير -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="form-inline">
+                <div class="form-group mr-3">
+                    <label for="year" class="mr-2">السنة:</label>
+                    <select name="year" id="year" class="form-control">
+                        {% for y in range(2023, 2030) %}
+                            <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group mr-3">
+                    <label for="month" class="mr-2">الشهر:</label>
+                    <select name="month" id="month" class="form-control">
+                        {% for m in range(1, 13) %}
+                            <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ m }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">عرض التقرير</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- معلومات الفترة -->
+    <div class="alert alert-info">
+        <strong>الفترة:</strong> من {{ start_date.strftime('%Y-%m-%d') }} إلى {{ end_date.strftime('%Y-%m-%d') }}
+        ({{ total_days }} يوم)
+    </div>
+
+    <!-- الإحصائيات -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                إجمالي أيام الشهر</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_days }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                عدد الموظفين</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ report_data|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول التقرير التفصيلي -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">التقرير التفصيلي للموظفين</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>اسم الموظف</th>
+                            <th>الوظيفة</th>
+                            <th>أيام الحضور</th>
+                            <th>أيام الغياب</th>
+                            <th>أيام التأخير</th>
+                            <th>معدل الحضور</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in report_data %}
+                        <tr>
+                            <td>{{ item.employee.full_name }}</td>
+                            <td>
+                                {% if item.employee.position == 'supervisor' %}
+                                    مشرف
+                                {% elif item.employee.position == 'monitor' %}
+                                    مراقب
+                                {% else %}
+                                    عامل
+                                {% endif %}
+                            </td>
+                            <td>{{ item.present_days }}</td>
+                            <td>{{ item.absent_days }}</td>
+                            <td>{{ item.late_days }}</td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar {% if item.attendance_rate >= 90 %}bg-success{% elif item.attendance_rate >= 70 %}bg-warning{% else %}bg-danger{% endif %}"
+                                         role="progressbar"
+                                         style="width: {{ item.attendance_rate }}%"
+                                         aria-valuenow="{{ item.attendance_rate }}"
+                                         aria-valuemin="0"
+                                         aria-valuemax="100">
+                                        {{ "%.1f"|format(item.attendance_rate) }}%
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center">لا توجد بيانات للموظفين</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- سجلات الحضور اليومية -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">سجلات الحضور اليومية</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>اسم الموظف</th>
+                            <th>الحالة</th>
+                            <th>وقت الحضور</th>
+                            <th>وقت الانصراف</th>
+                            <th>ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in attendance_data %}
+                        <tr>
+                            <td>{{ item.date.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                {% if item.employee %}
+                                    {{ item.employee.full_name }}
+                                {% else %}
+                                    <span class="text-muted">غير معروف</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.status == 'present' %}
+                                    <span class="badge badge-success">حاضر</span>
+                                {% elif item.status == 'absent' %}
+                                    <span class="badge badge-danger">غائب</span>
+                                {% elif item.status == 'late' %}
+                                    <span class="badge badge-warning">متأخر</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">{{ item.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.check_in %}
+                                    {{ item.check_in.strftime('%H:%M') }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.check_out %}
+                                    {{ item.check_out.strftime('%H:%M') }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.notes or '-' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">لا توجد سجلات حضور لهذا الشهر</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

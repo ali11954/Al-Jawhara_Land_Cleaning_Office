@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}إضافة موظف جديد{% endblock %}
+{% block header %}إضافة موظف جديد{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">بيانات الموظف</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="employeeForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="full_name" class="form-label">الاسم الكامل *</label>
+                            <input type="text" class="form-control" id="full_name" name="full_name" required>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="position" class="form-label">المسمى الوظيفي *</label>
+                            <select class="form-select" id="position" name="position" required>
+                                <option value="">اختر المسمى الوظيفي</option>
+                                <option value="supervisor">مشرف</option>
+                                <option value="monitor">مراقب نظافة</option>
+                                <option value="worker">عامل نظافة</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label">رقم الهاتف</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" placeholder="+966500000000">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="hire_date" class="form-label">تاريخ التعيين *</label>
+                            <input type="date" class="form-control" id="hire_date" name="hire_date" value="{{ today.isoformat() }}" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label for="address" class="form-label">العنوان</label>
+                            <textarea class="form-control" id="address" name="address" rows="3" placeholder="أدخل العنوان الكامل..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="salary" class="form-label">الراتب (ريال يمني)</label>
+                            <input type="number" class="form-control" id="salary" name="salary" step="0.01" placeholder="أدخل الراتب الشهري">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="is_active" class="form-label">الحالة</label>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                                <label class="form-check-label" for="is_active">موظف نشط</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h6 class="mb-3">بيانات حساب المستخدم</h6>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="username" class="form-label">اسم المستخدم *</label>
+                            <input type="text" class="form-control" id="username" name="username" required placeholder="أدخل اسم المستخدم">
+                            <div class="form-text">يستخدم لتسجيل الدخول إلى النظام</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">البريد الإلكتروني *</label>
+                            <input type="email" class="form-control" id="email" name="email" required placeholder="employee@company.com">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="password" class="form-label">كلمة المرور *</label>
+                            <input type="password" class="form-control" id="password" name="password" required placeholder="أدخل كلمة المرور">
+                            <div class="form-text">يجب أن تكون كلمة المرور قوية تحتوي على أحرف وأرقام</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="confirm_password" class="form-label">تأكيد كلمة المرور *</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required placeholder="أعد إدخال كلمة المرور">
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mt-4">
+                        <h6><i class="fas fa-info-circle me-2"></i>معلومات مهمة</h6>
+                        <ul class="mb-0">
+                            <li>جميع الحقول التي تحمل علامة (*) إلزامية</li>
+                            <li>سيتم إنشاء حساب مستخدم للموظف يمكنه من تسجيل الدخول إلى النظام</li>
+                            <li>يتم تحديد صلاحيات الموظف بناءً على المسمى الوظيفي</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a href="{{ url_for('employees_list') }}" class="btn btn-secondary me-md-2">إلغاء والعودة</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>حفظ الموظف
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Password confirmation validation
+        $('#confirm_password').on('keyup', function() {
+            const password = $('#password').val();
+            const confirmPassword = $(this).val();
+
+            if (password !== confirmPassword && confirmPassword !== '') {
+                $(this).removeClass('is-valid').addClass('is-invalid');
+                $('#password').removeClass('is-valid').addClass('is-invalid');
+            } else {
+                $(this).removeClass('is-invalid').addClass('is-valid');
+                $('#password').removeClass('is-invalid').addClass('is-valid');
+            }
+        });
+
+        // Form submission validation
+        $('#employeeForm').on('submit', function(e) {
+            const password = $('#password').val();
+            const confirmPassword = $('#confirm_password').val();
+
+            if (password !== confirmPassword) {
+                e.preventDefault();
+                alert('كلمة المرور وتأكيد كلمة المرور غير متطابقين');
+                return false;
+            }
+
+            if (password.length < 6) {
+                e.preventDefault();
+                alert('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+                return false;
+            }
+        });
+
+        // Check username availability
+        $('#username').on('blur', function() {
+            const username = $(this).val();
+            if (username.length > 3) {
+                $.get(`/api/check-username/${username}`, function(data) {
+                    if (!data.available) {
+                        $('#username').removeClass('is-valid').addClass('is-invalid');
+                        $('.username-feedback').remove();
+                        $('#username').after('<div class="invalid-feedback username-feedback">اسم المستخدم موجود مسبقاً</div>');
+                    } else {
+                        $('#username').removeClass('is-invalid').addClass('is-valid');
+                        $('.username-feedback').remove();
+                    }
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

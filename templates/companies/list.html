@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة الشركات{% endblock %}
+{% block header %}إدارة الشركات{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">قائمة الشركات</h6>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addCompanyModal">
+                    <i class="fas fa-plus me-1"></i>إضافة شركة جديدة
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for company in companies %}
+                    <div class="col-xl-4 col-md-6 mb-4">
+                        <div class="card border-left-{{ 'success' if company.is_active else 'secondary' }} shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-{{ 'success' if company.is_active else 'secondary' }} text-uppercase mb-1">
+                                            {{ company.name }}
+                                        </div>
+                                        <div class="mb-1 text-muted">
+                                            <small><i class="fas fa-user me-1"></i>{{ company.contact_person or '---' }}</small>
+                                        </div>
+                                        <div class="mb-1 text-muted">
+                                            <small><i class="fas fa-phone me-1"></i>{{ company.phone or '---' }}</small>
+                                        </div>
+                                        <div class="mb-2 text-muted">
+                                            <small><i class="fas fa-envelope me-1"></i>{{ company.email or '---' }}</small>
+                                        </div>
+                                        <div class="mt-3">
+                                            <span class="badge bg-{{ 'success' if company.is_active else 'secondary' }}">
+                                                {{ 'نشط' if company.is_active else 'غير نشط' }}
+                                            </span>
+                                            <span class="badge bg-info">
+                                                {{ company.areas|length }} مناطق
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-building fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+
+                                <!-- أزرار الإدارة الجديدة -->
+                                <div class="mt-3">
+                                    <div class="btn-group w-100 mb-2" role="group">
+                                        <a href="{{ url_for('company_areas', company_id=company.id) }}"
+                                           class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-map-marker-alt"></i> المناطق
+                                        </a>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between">
+                                        <button class="btn btn-sm btn-outline-info"
+                                                onclick="viewCompany({{ company.id }})"
+                                                title="عرض التفاصيل">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning"
+                                                onclick="editCompany({{ company.id }})"
+                                                title="تعديل">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        {% if company.is_active %}
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                onclick="toggleCompanyStatus({{ company.id }})"
+                                                title="إلغاء التفعيل">
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-sm btn-outline-success"
+                                                onclick="toggleCompanyStatus({{ company.id }})"
+                                                title="تفعيل">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="col-12">
+                        <div class="text-center py-5">
+                            <i class="fas fa-building fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">لا توجد شركات مسجلة</h5>
+                            <p class="text-muted">يمكنك إضافة شركات جديدة باستخدام الزر أعلاه</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Company Modal -->
+<div class="modal fade" id="addCompanyModal" tabindex="-1" aria-labelledby="addCompanyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCompanyModalLabel">إضافة شركة جديدة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addCompanyForm" method="post" action="{{ url_for('add_company') }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="company_name" class="form-label">اسم الشركة *</label>
+                            <input type="text" class="form-control" id="company_name" name="name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="contact_person" class="form-label">الشخص المسؤول</label>
+                            <input type="text" class="form-control" id="contact_person" name="contact_person">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="company_phone" class="form-label">رقم الهاتف</label>
+                            <input type="tel" class="form-control" id="company_phone" name="phone">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="company_email" class="form-label">البريد الإلكتروني</label>
+                            <input type="email" class="form-control" id="company_email" name="email">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="company_address" class="form-label">العنوان</label>
+                        <textarea class="form-control" id="company_address" name="address" rows="3"></textarea>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="company_active" name="is_active" checked>
+                        <label class="form-check-label" for="company_active">شركة نشطة</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ الشركة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// دوال JavaScript للإجراءات
+function viewCompany(companyId) {
+    // عرض تفاصيل الشركة
+    window.location.href = `/api/companies/${companyId}`;
+}
+
+function editCompany(companyId) {
+    // تعديل الشركة
+    window.location.href = `/companies/edit/${companyId}`;
+}
+
+function toggleCompanyStatus(companyId) {
+    const action = confirm('هل أنت متأكد من تغيير حالة الشركة؟');
+    if (action) {
+        fetch(`/companies/toggle-status/${companyId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('حدث خطأ أثناء تغيير الحالة', 'error');
+        });
+    }
+}
+
+function showAlert(message, type) {
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            <i class="fas ${icon} me-2"></i> ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+
+    // إزالة أي تنبيهات سابقة
+    $('.alert').remove();
+
+    // إضافة التنبيه الجديد
+    $('.card-body').prepend(alertHtml);
+
+    // إخفاء التنبيه تلقائياً بعد 5 ثواني
+    setTimeout(() => {
+        $('.alert').alert('close');
+    }, 5000);
+}
+
+// تحسين النموذج
+$(document).ready(function() {
+    $('#addCompanyForm').on('submit', function(e) {
+        const companyName = $('#company_name').val().trim();
+        if (!companyName) {
+            e.preventDefault();
+            showAlert('يرجى إدخال اسم الشركة', 'error');
+            $('#company_name').focus();
+            return false;
+        }
+        return true;
+    });
+});
+</script>
+
+<style>
+.card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+}
+
+.btn-group .btn {
+    border-radius: 0.375rem;
+}
+
+.border-left-success {
+    border-left: 4px solid #1cc88a !important;
+}
+
+.border-left-secondary {
+    border-left: 4px solid #858796 !important;
+}
+
+.badge {
+    font-size: 0.7rem;
+}
+</style>
+{% endblock %}

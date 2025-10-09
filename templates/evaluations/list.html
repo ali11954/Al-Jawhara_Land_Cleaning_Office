@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}التقييمات - أرض الجوهرة للنظافة{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="text-primary mb-1">التقييمات</h2>
+                    <p class="text-muted mb-0">عرض جميع تقييمات النظافة</p>
+                </div>
+                <a href="/evaluations/add" class="btn btn-success">
+                    <i class="fas fa-plus me-1"></i>إضافة تقييم
+                </a>
+            </div>
+
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="table-responsive">
+                      <table class="table table-bordered table-hover">
+    <thead>
+        <tr>
+            <th>التاريخ</th>
+            <th>المكان</th>
+            <th>الموظف المقيّم</th>
+            {% if current_user.role == 'owner' %}
+            <th>المقيم</th>
+            {% endif %}
+            <th>النتيجة</th>
+            <th>الإجراءات</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for evaluation in evaluations %}
+        <tr>
+            <td>{{ evaluation.date.strftime('%Y-%m-%d') }}</td>
+            <td>{{ evaluation.place.name if evaluation.place else 'غير محدد' }}</td>
+            <td>{{ evaluation.evaluated_employee.full_name if evaluation.evaluated_employee else 'غير محدد' }}</td>
+            {% if current_user.role == 'owner' %}
+            <td>{{ evaluation.evaluator.full_name if evaluation.evaluator else 'غير محدد' }}</td>
+            {% endif %}
+            <td>
+                <span class="badge badge-{{ 'success' if evaluation.overall_score >= 4 else 'warning' if evaluation.overall_score >= 3 else 'danger' }}">
+                    {{ "%.1f"|format(evaluation.overall_score) }}/5
+                </span>
+            </td>
+            <td>
+                <button class="btn btn-info btn-sm view-evaluation" data-id="{{ evaluation.id }}">
+                    <i class="fas fa-eye"></i> عرض
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Evaluation Details -->
+<div class="modal fade" id="evaluationDetailsModal" tabindex="-1" aria-labelledby="evaluationDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="evaluationDetailsModalLabel">تفاصيل التقييم</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="evaluationDetailsContent">
+                <!-- Content will be loaded here by JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewEvaluation(evaluationId) {
+    showLoading();
+    fetch(`/api/evaluation/${evaluationId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const evaluation = data.data;
+                const modalContent = `
+                    <div class="row">
+                        <div class="col-12">
+                            <h5>تفاصيل التقييم</h5>
+                            <hr>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <strong>التاريخ:</strong> ${evaluation.date}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>المقيّم:</strong> ${evaluation.evaluator || 'غير محدد'}
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <strong>المكان:</strong> ${evaluation.place || 'غير محدد'}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>الموظف المقيّم:</strong> ${evaluation.evaluated_employee || 'غير محدد'}
+                                </div>
+                            </div>
+                            ${evaluation.company ? `
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <strong>الشركة:</strong> ${evaluation.company}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>المنطقة:</strong> ${evaluation.area || 'غير محدد'}
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <strong>الموقع:</strong> ${evaluation.location || 'غير محدد'}
+                                </div>
+                            </div>
+                            ` : ''}
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <strong>النظافة:</strong>
+                                    <span class="badge bg-${evaluation.cleanliness >= 4 ? 'success' : evaluation.cleanliness >= 3 ? 'warning' : 'danger'}">
+                                        ${evaluation.cleanliness}/5
+                                    </span>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>التنظيم:</strong>
+                                    <span class="badge bg-${evaluation.organization >= 4 ? 'success' : evaluation.organization >= 3 ? 'warning' : 'danger'}">
+                                        ${evaluation.organization}/5
+                                    </span>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>حالة المعدات:</strong>
+                                    <span class="badge bg-${evaluation.equipment_condition >= 4 ? 'success' : evaluation.equipment_condition >= 3 ? 'warning' : 'danger'}">
+                                        ${evaluation.equipment_condition}/5
+                                    </span>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>إجراءات السلامة:</strong>
+                                    <span class="badge bg-${evaluation.safety_measures >= 4 ? 'success' : evaluation.safety_measures >= 3 ? 'warning' : 'danger'}">
+                                        ${evaluation.safety_measures}/5
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <strong>التقييم العام:</strong>
+                                    <span class="badge bg-${evaluation.overall_score >= 4 ? 'success' : evaluation.overall_score >= 3 ? 'warning' : 'danger'} fs-6">
+                                        ${evaluation.overall_score.toFixed(1)}/5
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <strong>التعليقات:</strong>
+                                    <p class="mt-2 p-3 bg-light rounded">${evaluation.comments || 'لا توجد تعليقات'}</p>
+                                </div>
+                            </div>
+                            ${evaluation.created_at ? `
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <small class="text-muted">تم الإنشاء في: ${evaluation.created_at}</small>
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                document.getElementById('evaluationDetailsContent').innerHTML = modalContent;
+                const modal = new bootstrap.Modal(document.getElementById('evaluationDetailsModal'));
+                modal.show();
+            } else {
+                throw new Error(data.message || 'Failed to fetch evaluation data');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching evaluation data:', error);
+            alert('حدث خطأ أثناء جلب بيانات التقييم: ' + error.message);
+        })
+        .finally(() => {
+            hideLoading();
+        });
+}
+</script>
+{% endblock %}

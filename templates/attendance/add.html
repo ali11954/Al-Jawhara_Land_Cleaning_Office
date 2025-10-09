@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}إضافة حضور{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- رسائل التنبيه -->
+    <div id="alert-container"></div>
+
+    <!-- عنوان الصفحة -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-clipboard-check text-primary"></i>
+            إضافة سجل حضور
+        </h1>
+        <a href="{{ url_for('attendance_index') }}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-right"></i> العودة إلى قائمة الحضور
+        </a>
+    </div>
+
+    <!-- بطاقة إضافة الحضور -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">بيانات الحضور</h6>
+        </div>
+        <div class="card-body">
+            <form id="attendanceForm" method="POST">
+                <div class="row">
+                    <!-- الموظف -->
+                    <div class="col-md-6 mb-3">
+                        <label for="employee_id" class="form-label">الموظف *</label>
+                        <select class="form-select" id="employee_id" name="employee_id" required>
+                            <option value="">اختر الموظف</option>
+                            {% for employee in employees %}
+                            <option value="{{ employee.id }}">{{ employee.full_name }} - {{ employee.position }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">يرجى اختيار الموظف</div>
+                    </div>
+
+                    <!-- التاريخ -->
+                    <div class="col-md-6 mb-3">
+                        <label for="date" class="form-label">التاريخ *</label>
+                        <input type="date" class="form-control" id="date" name="date"
+                               value="{{ default_date }}" required>
+                        <div class="invalid-feedback">يرجى إدخال التاريخ</div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- حالة الحضور -->
+                    <div class="col-md-4 mb-3">
+                        <label for="status" class="form-label">حالة الحضور *</label>
+                        <select class="form-select" id="status" name="status" required>
+                            <option value="">اختر الحالة</option>
+                            <option value="present">حاضر</option>
+                            <option value="absent">غائب</option>
+                            <option value="late">متأخر</option>
+                        </select>
+                        <div class="invalid-feedback">يرجى اختيار حالة الحضور</div>
+                    </div>
+<!-- في قسم النموذج، أضف حقل الوردية -->
+<div class="form-group">
+    <label for="shift_type">نوع الوردية *</label>
+    <select class="form-control" id="shift_type" name="shift_type" required>
+        <option value="">اختر نوع الوردية</option>
+        <option value="morning">صباحية</option>
+        <option value="evening">مسائية</option>
+    </select>
+</div>
+                    <!-- وقت الحضور -->
+                    <div class="col-md-4 mb-3">
+                        <label for="check_in" class="form-label">وقت الحضور</label>
+                        <input type="time" class="form-control" id="check_in" name="check_in">
+                        <small class="text-muted">اختياري - للتسجيل الدقيق للوقت</small>
+                    </div>
+
+                    <!-- وقت الانصراف -->
+                    <div class="col-md-4 mb-3">
+                        <label for="check_out" class="form-label">وقت الانصراف</label>
+                        <input type="time" class="form-control" id="check_out" name="check_out">
+                        <small class="text-muted">اختياري - للتسجيل الدقيق للوقت</small>
+                    </div>
+                </div>
+
+                <!-- الملاحظات -->
+                <div class="mb-3">
+                    <label for="notes" class="form-label">ملاحظات</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="3"
+                              placeholder="أي ملاحظات إضافية حول الحضور..."></textarea>
+                </div>
+
+                <!-- أزرار -->
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary" onclick="history.back()">
+                        <i class="fas fa-times"></i> إلغاء
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <i class="fas fa-save"></i> حفظ الحضور
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- بطاقة التعليمات -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-info">
+                <i class="fas fa-info-circle"></i> تعليمات
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>الحقول الإلزامية:</h6>
+                    <ul>
+                        <li><strong>الموظف:</strong> اختيار الموظف من القائمة</li>
+                        <li><strong>التاريخ:</strong> تاريخ الحضور</li>
+                        <li><strong>حالة الحضور:</strong> حاضر، غائب، أو متأخر</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>الحقول الاختيارية:</h6>
+                    <ul>
+                        <li><strong>وقت الحضور والانصراف:</strong> للتسجيل الدقيق</li>
+                        <li><strong>الملاحظات:</strong> أي معلومات إضافية</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // التعامل مع إرسال النموذج
+    $('#attendanceForm').on('submit', function(e) {
+        e.preventDefault();
+
+        // إظهار حالة التحميل
+        const submitBtn = $('#submitBtn');
+        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...');
+
+        // إرسال البيانات
+        $.ajax({
+            url: "{{ url_for('add_attendance') }}",
+            type: 'POST',
+            data: $(this).serialize(),
+            success: function(response) {
+                if (response.success) {
+                    showAlert('تم إضافة سجل الحضور بنجاح', 'success');
+                    // إعادة تعيين النموذج بعد نجاح الإضافة
+                    setTimeout(() => {
+                        $('#attendanceForm')[0].reset();
+                        $('#date').val('{{ default_date }}');
+                        submitBtn.prop('disabled', false).html('<i class="fas fa-save"></i> حفظ الحضور');
+                    }, 1500);
+                } else {
+                    showAlert(response.message, 'error');
+                    submitBtn.prop('disabled', false).html('<i class="fas fa-save"></i> حفظ الحضور');
+                }
+            },
+            error: function(xhr) {
+                let message = 'حدث خطأ أثناء حفظ البيانات';
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    message = response.message || message;
+                } catch (e) {
+                    // استخدام الرسالة الافتراضية
+                }
+                showAlert(message, 'error');
+                submitBtn.prop('disabled', false).html('<i class="fas fa-save"></i> حفظ الحضور');
+            }
+        });
+    });
+
+    // التحقق من صحة النموذج
+    $('#attendanceForm select, #attendanceForm input[required]').on('change', function() {
+        if (this.checkValidity()) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+        }
+    });
+
+    // التحقق من أوقات الحضور والانصراف
+    $('#check_in, #check_out').on('change', function() {
+        const checkIn = $('#check_in').val();
+        const checkOut = $('#check_out').val();
+
+        if (checkIn && checkOut && checkOut <= checkIn) {
+            showAlert('وقت الانصراف يجب أن يكون بعد وقت الحضور', 'warning');
+            $('#check_out').val('');
+        }
+    });
+
+    // دالة لعرض التنبيهات
+    function showAlert(message, type) {
+        const alertClass = type === 'success' ? 'alert-success' :
+                          type === 'error' ? 'alert-danger' :
+                          type === 'warning' ? 'alert-warning' : 'alert-info';
+
+        const alertHtml = `
+            <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                <strong>${type === 'success' ? 'نجاح!' : type === 'error' ? 'خطأ!' : 'تنبيه!'}</strong> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+
+        $('#alert-container').html(alertHtml);
+
+        // إخفاء التنبيه تلقائياً بعد 5 ثوانٍ
+        setTimeout(() => {
+            $('.alert').alert('close');
+        }, 5000);
+    }
+
+    // إضافة تأثيرات للعناصر
+    $('.form-control, .form-select').on('focus', function() {
+        $(this).parent().addClass('focused');
+    }).on('blur', function() {
+        $(this).parent().removeClass('focused');
+    });
+});
+</script>
+
+<style>
+.form-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+.card {
+    border: none;
+    border-radius: 0.35rem;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-bottom: none;
+    color: white;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    padding: 0.5rem 1.5rem;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+    transform: translateY(-1px);
+}
+
+.focused .form-label {
+    color: #4e73df;
+    transition: color 0.3s ease;
+}
+
+.invalid-feedback {
+    display: block;
+}
+
+/* تحسين مظهر select */
+.form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+}
+</style>
+{% endblock %}

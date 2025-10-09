@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+
+{% block title %}تقرير التقييمات اليومية{% endblock %}
+{% block header %}تقرير التقييمات اليومية{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-dark">تقرير التقييمات اليومية</h6>
+                <div class="d-flex gap-2">
+                    <input type="date" class="form-control" id="reportDate" value="{{ report_date }}">
+                    <button class="btn btn-outline-primary" onclick="loadDailyReport()">
+                        <i class="fas fa-search me-1"></i>عرض
+                    </button>
+                    <button class="btn btn-success" onclick="printReport()">
+                        <i class="fas fa-print me-1"></i>طباعة
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <h6 class="card-title">إجمالي التقييمات</h6>
+                                <h4 class="mb-0">{{ evaluations|length }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h6 class="card-title">متوسط التقييم</h6>
+                                <h4 class="mb-0">
+                                    {% set total_score = evaluations|sum(attribute='overall_score') %}
+                                    {% if evaluations %}
+                                        {{ "%.1f"|format(total_score / evaluations|length) }}
+                                    {% else %}
+                                        0.0
+                                    {% endif %}
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <h6 class="card-title">أعلى تقييم</h6>
+                                <h4 class="mb-0">
+                                    {% if evaluations %}
+                                        {{ "%.1f"|format(evaluations|map(attribute='overall_score')|max) }}
+                                    {% else %}
+                                        0.0
+                                    {% endif %}
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-dark">
+                            <div class="card-body">
+                                <h6 class="card-title">أدنى تقييم</h6>
+                                <h4 class="mb-0">
+                                    {% if evaluations %}
+                                        {{ "%.1f"|format(evaluations|map(attribute='overall_score')|min) }}
+                                    {% else %}
+                                        0.0
+                                    {% endif %}
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped" id="dailyReportTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="text-dark">الوقت</th>
+                                <th class="text-dark">الشركة</th>
+                                <th class="text-dark">المنطقة</th>
+                                <th class="text-dark">المكان</th>
+                                <th class="text-dark">المقيّم</th>
+                                <th class="text-dark">النظافة</th>
+                                <th class="text-dark">التنظيم</th>
+                                <th class="text-dark">المعدات</th>
+                                <th class="text-dark">السلامة</th>
+                                <th class="text-dark">التقييم العام</th>
+                                <th class="text-dark">الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for evaluation in evaluations %}
+                            <tr>
+                                <td class="text-dark">{{ evaluation.created_at.strftime('%H:%M') }}</td>
+                                <td class="text-dark">{{ evaluation.place.location.area.company.name }}</td>
+                                <td class="text-dark">{{ evaluation.place.location.area.name }}</td>
+                                <td class="text-dark">{{ evaluation.place.name }}</td>
+                                <td class="text-dark">{{ evaluation.evaluator.full_name }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if evaluation.cleanliness >= 4 else 'warning' if evaluation.cleanliness >= 3 else 'danger' }} text-dark">
+                                        {{ evaluation.cleanliness }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if evaluation.organization >= 4 else 'warning' if evaluation.organization >= 3 else 'danger' }} text-dark">
+                                        {{ evaluation.organization }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if evaluation.equipment_condition >= 4 else 'warning' if evaluation.equipment_condition >= 3 else 'danger' }} text-dark">
+                                        {{ evaluation.equipment_condition }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if evaluation.safety_measures >= 4 else 'warning' if evaluation.safety_measures >= 3 else 'danger' }} text-dark">
+                                        {{ evaluation.safety_measures }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{
+                                        'success' if evaluation.overall_score >= 4.5
+                                        else 'info' if evaluation.overall_score >= 4
+                                        else 'warning' if evaluation.overall_score >= 3
+                                        else 'danger'
+                                    }} text-white fs-6">
+                                        {{ "%.1f"|format(evaluation.overall_score) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if evaluation.overall_score >= 4 %}
+                                        <span class="badge bg-success text-white">ممتاز</span>
+                                    {% elif evaluation.overall_score >= 3 %}
+                                        <span class="badge bg-warning text-dark">جيد</span>
+                                    {% else %}
+                                        <span class="badge bg-danger text-white">يحتاج تحسين</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="11" class="text-center text-dark py-4">
+                                    <i class="fas fa-clipboard-list fa-2x mb-3 text-muted"></i>
+                                    <br>
+                                    <span class="text-dark">لا توجد تقييمات لهذا التاريخ</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if evaluations %}
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card border-dark">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0 text-dark">توزيع التقييمات</h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="scoreDistributionChart" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-dark">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0 text-dark">ملخص الأداء</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <strong class="text-dark">المقاييس التي تحتاج تحسين:</strong>
+                                    <ul class="mt-2">
+                                        {% set low_scores = [] %}
+                                        {% for eval in evaluations %}
+                                            {% if eval.cleanliness < 3 %}{% set _ = low_scores.append('النظافة') %}{% endif %}
+                                            {% if eval.organization < 3 %}{% set _ = low_scores.append('التنظيم') %}{% endif %}
+                                            {% if eval.equipment_condition < 3 %}{% set _ = low_scores.append('المعدات') %}{% endif %}
+                                            {% if eval.safety_measures < 3 %}{% set _ = low_scores.append('السلامة') %}{% endif %}
+                                        {% endfor %}
+                                        {% if low_scores %}
+                                            {% for item in low_scores|unique %}
+                                            <li class="text-dark">{{ item }}</li>
+                                            {% endfor %}
+                                        {% else %}
+                                            <li class="text-muted">لا توجد مقاييس تحتاج تحسين</li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                                <div>
+                                    <strong class="text-dark">التوصيات:</strong>
+                                    <p class="mt-2 text-dark">
+                                        {% set avg_score = total_score / evaluations|length if evaluations else 0 %}
+                                        {% if avg_score >= 4.5 %}
+                                            أداء ممتاز، استمر في الحفاظ على هذا المستوى
+                                        {% elif avg_score >= 4 %}
+                                            أداء جيد جداً، يمكن تحسين بعض النقاط البسيطة
+                                        {% elif avg_score >= 3 %}
+                                            أداء مقبول، يحتاج إلى تحسين في بعض المجالات
+                                        {% else %}
+                                            أداء يحتاج إلى تحسين فوري
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    function loadDailyReport() {
+        const date = document.getElementById('reportDate').value;
+        window.location.href = `/reports/daily-evaluations?date=${date}`;
+    }
+
+    function printReport() {
+        window.print();
+    }
+
+    $(document).ready(function() {
+        // Initialize DataTable
+        $('#dailyReportTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json'
+            },
+            order: [[0, 'desc']],
+            dom: 'Bfrtip',
+            buttons: [
+                'copy', 'excel', 'pdf'
+            ]
+        });
+
+        // Initialize chart if evaluations exist
+        {% if evaluations %}
+        const ctx = document.getElementById('scoreDistributionChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['النظافة', 'التنظيم', 'المعدات', 'السلامة', 'المتوسط'],
+                datasets: [{
+                    label: 'متوسط التقييم',
+                    data: [
+                        {{ evaluations|sum(attribute='cleanliness') / evaluations|length }},
+                        {{ evaluations|sum(attribute='organization') / evaluations|length }},
+                        {{ evaluations|sum(attribute='equipment_condition') / evaluations|length }},
+                        {{ evaluations|sum(attribute='safety_measures') / evaluations|length }},
+                        {{ total_score / evaluations|length }}
+                    ],
+                    backgroundColor: [
+                        '#4e73df',
+                        '#1cc88a',
+                        '#36b9cc',
+                        '#f6c23e',
+                        '#e74a3b'
+                    ],
+                    borderColor: [
+                        '#2e59d9',
+                        '#17a673',
+                        '#2c9faf',
+                        '#dda20a',
+                        '#be2617'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 5,
+                        ticks: {
+                            color: '#333'
+                        },
+                        grid: {
+                            color: 'rgba(0,0,0,0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#333'
+                        },
+                        grid: {
+                            color: 'rgba(0,0,0,0.1)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#333'
+                        }
+                    }
+                }
+            }
+        });
+        {% endif %}
+    });
+</script>
+
+<style>
+    /* تحسين الألوان للخلفية البيضاء */
+    .card {
+        background: #ffffff;
+        border: 1px solid #e3e6f0;
+    }
+
+    .card-header {
+        background: #f8f9fc !important;
+        border-bottom: 1px solid #e3e6f0;
+    }
+
+    .card-header h6 {
+        color: #333 !important;
+        font-weight: 600;
+    }
+
+    .table th {
+        background: #f8f9fa !important;
+        color: #333 !important;
+        font-weight: 600;
+        border-bottom: 2px solid #e3e6f0;
+    }
+
+    .table td {
+        color: #333 !important;
+        border-color: #e3e6f0;
+    }
+
+    .text-dark {
+        color: #333 !important;
+    }
+
+    .text-muted {
+        color: #6c757d !important;
+    }
+
+    .badge.text-dark {
+        color: #333 !important;
+        font-weight: 600;
+    }
+
+    .badge.text-white {
+        color: #fff !important;
+        font-weight: 600;
+    }
+
+    .btn-outline-primary {
+        color: #4e73df;
+        border-color: #4e73df;
+    }
+
+    .btn-outline-primary:hover {
+        background-color: #4e73df;
+        color: white;
+    }
+
+    /* تحسين مظهر البطاقات الإحصائية */
+    .card.bg-primary,
+    .card.bg-success,
+    .card.bg-info {
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+
+    .card.bg-warning {
+        background: linear-gradient(45deg, #f6c23e, #f8d568) !important;
+        color: #333 !important;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+
+    .card.bg-warning .card-title {
+        color: #333 !important;
+    }
+
+    .card.bg-warning h4 {
+        color: #333 !important;
+    }
+
+    @media print {
+        .navbar, .sidebar, .card-header .btn, .dataTables_length, .dataTables_filter,
+        .dataTables_info, .dataTables_paginate {
+            display: none !important;
+        }
+
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .card-header {
+            background: white !important;
+            color: black !important;
+            border-bottom: 2px solid #000 !important;
+        }
+
+        .table {
+            border: 1px solid #000 !important;
+        }
+
+        .table th {
+            background: #f8f9fa !important;
+            color: #000 !important;
+            border: 1px solid #000 !important;
+        }
+
+        .table td {
+            border: 1px solid #000 !important;
+            color: #000 !important;
+        }
+
+        .text-dark {
+            color: #000 !important;
+        }
+    }
+</style>
+{% endblock %}

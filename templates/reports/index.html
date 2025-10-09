@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}التقارير - أرض الجوهرة للنظافة{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="text-primary mb-1">التقارير والإحصائيات</h2>
+                    <p class="text-muted mb-0">تقارير شاملة عن أداء النظام</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary" onclick="generateReport()">
+                        <i class="fas fa-download me-1"></i>تصدير تقرير
+                    </button>
+                </div>
+            </div>
+
+            <!-- إحصائيات التقارير -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        إجمالي الموظفين
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.get('total_employees', 0) }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-users fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        عدد الشركات
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.get('total_companies', 0) }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-building fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        إجمالي التقييمات
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.get('total_evaluations', 0) }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-clipboard-check fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        متوسط التقييم
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        {{ "%.1f"|format(stats.get('avg_score', 0.0)) }}/5
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-star fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- خيارات التقارير -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-chart-bar me-2"></i>تقارير سريعة
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="list-group">
+                                <a href="/reports/daily-evaluations" class="list-group-item list-group-item-action">
+                                    <i class="fas fa-calendar-day me-2 text-primary"></i>
+                                    تقرير التقييمات اليومية
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action" onclick="showComingSoon('تقرير أداء الموظفين')">
+                                    <i class="fas fa-user-chart me-2 text-success"></i>
+                                    تقرير أداء الموظفين
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action" onclick="showComingSoon('تقرير الشركات')">
+                                    <i class="fas fa-building me-2 text-info"></i>
+                                    تقرير الشركات والمناطق
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action" onclick="showComingSoon('تقرير الحضور')">
+                                    <i class="fas fa-calendar-check me-2 text-warning"></i>
+                                    تقرير الحضور والانصراف
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-cog me-2"></i>خيارات متقدمة
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">الفترة الزمنية</label>
+                                <select class="form-select" id="reportPeriod">
+                                    <option value="today">اليوم</option>
+                                    <option value="week" selected>هذا الأسبوع</option>
+                                    <option value="month">هذا الشهر</option>
+                                    <option value="quarter">هذا الربع</option>
+                                    <option value="year">هذه السنة</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">نوع التقرير</label>
+                                <select class="form-select" id="reportType">
+                                    <option value="summary">ملخص عام</option>
+                                    <option value="detailed">تقرير مفصل</option>
+                                    <option value="analytical">تحليل إحصائي</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary w-100" onclick="generateCustomReport()">
+                                <i class="fas fa-chart-line me-1"></i>إنشاء تقرير مخصص
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function generateReport() {
+    showLoading();
+    setTimeout(() => {
+        hideLoading();
+        alert('سيتم تحميل التقرير قريباً...');
+    }, 1000);
+}
+
+function generateCustomReport() {
+    const period = document.getElementById('reportPeriod').value;
+    const type = document.getElementById('reportType').value;
+    showLoading();
+    setTimeout(() => {
+        hideLoading();
+        alert(`سيتم إنشاء تقرير ${type} للفترة ${period}`);
+    }, 1000);
+}
+</script>
+{% endblock %}

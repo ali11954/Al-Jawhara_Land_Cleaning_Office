@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1>تصحيح البيانات - الأماكن</h1>
+
+    <!-- الشركات -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>الشركات ({{ companies|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% for company in companies %}
+            <div class="mb-3 p-3 border rounded">
+                <strong>{{ company.name }}</strong> -
+                نشطة: {{ company.is_active }} -
+                المناطق: {{ company.areas|length }}
+            </div>
+            {% else %}
+            <p class="text-muted">لا توجد شركات</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- المناطق -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>المناطق ({{ areas|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% for area in areas %}
+            <div class="mb-3 p-3 border rounded">
+                <strong>{{ area.name }}</strong> -
+                الشركة: {{ area.company.name }} -
+                المشرف: {{ area.supervisor.full_name if area.supervisor else 'لا يوجد' }} -
+                المواقع: {{ area.locations|length }}
+            </div>
+            {% else %}
+            <p class="text-muted">لا توجد مناطق</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- المواقع -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>المواقع ({{ locations|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% for location in locations %}
+            <div class="mb-3 p-3 border rounded">
+                <strong>{{ location.name }}</strong> -
+                المنطقة: {{ location.area.name }} -
+                المراقب: {{ location.monitor.full_name if location.monitor else 'لا يوجد' }} -
+                الأماكن: {{ location.places|length }}
+            </div>
+            {% else %}
+            <p class="text-muted">لا توجد مواقع</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- الأماكن -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>الأماكن ({{ places|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% for place in places %}
+            <div class="mb-3 p-3 border rounded">
+                <strong>{{ place.name }}</strong> -
+                الموقع: {{ place.location.name }} -
+                العامل: {{ place.worker.full_name if place.worker else 'لا يوجد' }} -
+                نشط: {{ place.is_active }}
+            </div>
+            {% else %}
+            <p class="text-muted">لا توجد أماكن</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

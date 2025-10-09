@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}إضافة شركة جديدة{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-plus-circle text-primary"></i>
+            إضافة شركة جديدة
+        </h1>
+        <a href="{{ url_for('companies_list') }}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-right"></i> رجوع للقائمة
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">بيانات الشركة</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="addCompanyForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label">اسم الشركة *</label>
+                                <input type="text" class="form-control" id="name" name="name" required
+                                       placeholder="أدخل اسم الشركة">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="contact_person" class="form-label">الشخص المسؤول</label>
+                                <input type="text" class="form-control" id="contact_person" name="contact_person"
+                                       placeholder="أدخل اسم الشخص المسؤول">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="phone" class="form-label">رقم الهاتف</label>
+                                <input type="tel" class="form-control" id="phone" name="phone"
+                                       placeholder="أدخل رقم الهاتف">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">البريد الإلكتروني</label>
+                                <input type="email" class="form-control" id="email" name="email"
+                                       placeholder="أدخل البريد الإلكتروني">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="address" class="form-label">العنوان</label>
+                            <textarea class="form-control" id="address" name="address" rows="3"
+                                      placeholder="أدخل عنوان الشركة"></textarea>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_active" name="is_active" checked>
+                            <label class="form-check-label" for="is_active">شركة نشطة</label>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> حفظ الشركة
+                            </button>
+                            <a href="{{ url_for('companies_list') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">تعليمات</h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle"></i> معلومات مهمة:</h6>
+                        <ul class="mb-0">
+                            <li>الحقول marked ب * إلزامية</li>
+                            <li>اسم الشركة يجب أن يكون فريداً</li>
+                            <li>يمكنك تعطيل الشركة لاحقاً إذا لزم الأمر</li>
+                            <li>سيتم إضافة الشركة كشركة نشطة افتراضياً</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // التحقق من النموذج قبل الإرسال
+    $('#addCompanyForm').on('submit', function(e) {
+        const name = $('#name').val().trim();
+        if (!name) {
+            e.preventDefault();
+            alert('يرجى إدخال اسم الشركة');
+            $('#name').focus();
+            return false;
+        }
+        return true;
+    });
+});
+</script>
+{% endblock %}

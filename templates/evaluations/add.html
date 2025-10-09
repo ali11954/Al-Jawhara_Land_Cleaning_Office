@@ -1,0 +1,384 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-clipboard-check text-primary"></i>
+            إضافة تقييم جديد
+        </h1>
+        <div>
+            <a href="{{ url_for('evaluations_list') }}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-right"></i> رجوع للتقييمات
+            </a>
+        </div>
+    </div>
+
+    <!-- رسائل التنبيه -->
+    <div id="alertContainer"></div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">بيانات التقييم</h6>
+                </div>
+                <div class="card-body">
+                    <form id="evaluationForm" method="POST">
+                        <!-- التاريخ -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="date" class="form-label">تاريخ التقييم <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="date" name="date"
+                                       value="{{ today.isoformat() }}" max="{{ today.isoformat() }}" required>
+                            </div>
+                        </div>
+
+                        <!-- الهيكل التنظيمي -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="company_id" class="form-label">الشركة <span class="text-danger">*</span></label>
+                                <select class="form-select" id="company_id" name="company_id" required onchange="loadAreas()">
+                                    <option value="">اختر الشركة...</option>
+                                    {% for company in companies %}
+                                    <option value="{{ company.id }}">{{ company.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="area_id" class="form-label">المنطقة</label>
+                                <select class="form-select" id="area_id" name="area_id" onchange="loadLocations()" disabled>
+                                    <option value="">اختر المنطقة...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="location_id" class="form-label">الموقع</label>
+                                <select class="form-select" id="location_id" name="location_id" onchange="loadPlaces()" disabled>
+                                    <option value="">اختر الموقع...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="place_id" class="form-label">المكان <span class="text-danger">*</span></label>
+                                <select class="form-select" id="place_id" name="place_id" required disabled>
+                                    <option value="">اختر المكان...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- الموظفين -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="evaluated_employee_id" class="form-label">الموظف المقيّم <span class="text-danger">*</span></label>
+                                <select class="form-select" id="evaluated_employee_id" name="evaluated_employee_id" required>
+                                    <option value="">اختر الموظف...</option>
+                                    {% for employee in employees %}
+                                    <option value="{{ employee.id }}">
+                                        {{ employee.full_name }} - ({{ 'مشرف' if employee.position == 'supervisor' else 'مراقب' if employee.position == 'monitor' else 'عامل' }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                        <!-- نقاط التقييم -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">نقاط التقييم (من 1 إلى 5) <span class="text-danger">*</span></h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="cleanliness" class="form-label">النظافة</label>
+                                <select class="form-select" id="cleanliness" name="cleanliness" required>
+                                    <option value="">اختر درجة النظافة...</option>
+                                    <option value="1">1 - ضعيف</option>
+                                    <option value="2">2 - مقبول</option>
+                                    <option value="3">3 - جيد</option>
+                                    <option value="4">4 - جيد جداً</option>
+                                    <option value="5">5 - ممتاز</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="organization" class="form-label">التنظيم</label>
+                                <select class="form-select" id="organization" name="organization" required>
+                                    <option value="">اختر درجة التنظيم...</option>
+                                    <option value="1">1 - ضعيف</option>
+                                    <option value="2">2 - مقبول</option>
+                                    <option value="3">3 - جيد</option>
+                                    <option value="4">4 - جيد جداً</option>
+                                    <option value="5">5 - ممتاز</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="equipment_condition" class="form-label">حالة المعدات</label>
+                                <select class="form-select" id="equipment_condition" name="equipment_condition" required>
+                                    <option value="">اختر حالة المعدات...</option>
+                                    <option value="1">1 - ضعيف</option>
+                                    <option value="2">2 - مقبول</option>
+                                    <option value="3">3 - جيد</option>
+                                    <option value="4">4 - جيد جداً</option>
+                                    <option value="5">5 - ممتاز</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="safety_measures" class="form-label">إجراءات السلامة</label>
+                                <select class="form-select" id="safety_measures" name="safety_measures" required>
+                                    <option value="">اختر درجة السلامة...</option>
+                                    <option value="1">1 - ضعيف</option>
+                                    <option value="2">2 - مقبول</option>
+                                    <option value="3">3 - جيد</option>
+                                    <option value="4">4 - جيد جداً</option>
+                                    <option value="5">5 - ممتاز</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- الملاحظات -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label for="comments" class="form-label">ملاحظات إضافية</label>
+                                <textarea class="form-control" id="comments" name="comments" rows="3"
+                                          placeholder="أدخل أي ملاحظات إضافية حول التقييم..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- نتيجة التقييم التلقائية -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>معلومة:</strong> سيتم حساب النتيجة الإجمالية تلقائياً بناءً على نقاط التقييم.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- زر الإرسال -->
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-save me-2"></i>حفظ التقييم
+                                </button>
+                                <a href="{{ url_for('evaluations_list') }}" class="btn btn-secondary btn-lg">
+                                    <i class="fas fa-times me-2"></i>إلغاء
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- لوحة المعلومات -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">تعليمات التقييم</h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>ملاحظة هامة:</strong> يجب تعبئة جميع الحقول المطلوبة (<span class="text-danger">*</span>)
+                    </div>
+
+                    <h6>معايير التقييم:</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-star text-warning me-2"></i><strong>1:</strong> ضعيف - يحتاج تحسين كبير</li>
+                        <li><i class="fas fa-star text-warning me-2"></i><strong>2:</strong> مقبول - يحتاج بعض التحسين</li>
+                        <li><i class="fas fa-star text-warning me-2"></i><strong>3:</strong> جيد - يلبي التوقعات</li>
+                        <li><i class="fas fa-star text-warning me-2"></i><strong>4:</strong> جيد جداً - يتجاوز التوقعات</li>
+                        <li><i class="fas fa-star text-warning me-2"></i><strong>5:</strong> ممتاز - أداء متميز</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// دوال تحميل البيانات الديناميكية
+async function loadAreas() {
+    const companyId = document.getElementById('company_id').value;
+    const areaSelect = document.getElementById('area_id');
+    const locationSelect = document.getElementById('location_id');
+    const placeSelect = document.getElementById('place_id');
+
+    // إعادة تعيين القوائم التابعة
+    areaSelect.innerHTML = '<option value="">اختر المنطقة...</option>';
+    locationSelect.innerHTML = '<option value="">اختر الموقع...</option>';
+    placeSelect.innerHTML = '<option value="">اختر المكان...</option>';
+
+    locationSelect.disabled = true;
+    placeSelect.disabled = true;
+
+    if (!companyId) {
+        areaSelect.disabled = true;
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/areas/${companyId}`);
+        const data = await response.json();
+
+        if (data.success) {
+            areaSelect.innerHTML = '<option value="">اختر المنطقة...</option>';
+            data.data.forEach(area => {
+                areaSelect.innerHTML += `<option value="${area.id}">${area.name}</option>`;
+            });
+            areaSelect.disabled = false;
+        } else {
+            showAlert('❌ ' + data.message, 'error');
+        }
+    } catch (error) {
+        console.error('Error loading areas:', error);
+        showAlert('❌ حدث خطأ في تحميل المناطق', 'error');
+    }
+}
+
+async function loadLocations() {
+    const areaId = document.getElementById('area_id').value;
+    const locationSelect = document.getElementById('location_id');
+    const placeSelect = document.getElementById('place_id');
+
+    // إعادة تعيين القوائم التابعة
+    locationSelect.innerHTML = '<option value="">اختر الموقع...</option>';
+    placeSelect.innerHTML = '<option value="">اختر المكان...</option>';
+
+    placeSelect.disabled = true;
+
+    if (!areaId) {
+        locationSelect.disabled = true;
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/locations/${areaId}`);
+        const data = await response.json();
+
+        if (data.success) {
+            locationSelect.innerHTML = '<option value="">اختر الموقع...</option>';
+            data.data.forEach(location => {
+                locationSelect.innerHTML += `<option value="${location.id}">${location.name}</option>`;
+            });
+            locationSelect.disabled = false;
+        } else {
+            showAlert('❌ ' + data.message, 'error');
+        }
+    } catch (error) {
+        console.error('Error loading locations:', error);
+        showAlert('❌ حدث خطأ في تحميل المواقع', 'error');
+    }
+}
+
+async function loadPlaces() {
+    const locationId = document.getElementById('location_id').value;
+    const placeSelect = document.getElementById('place_id');
+
+    placeSelect.innerHTML = '<option value="">اختر المكان...</option>';
+
+    if (!locationId) {
+        placeSelect.disabled = true;
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/places/${locationId}`);
+        const data = await response.json();
+
+        if (data.success) {
+            placeSelect.innerHTML = '<option value="">اختر المكان...</option>';
+            data.data.forEach(place => {
+                placeSelect.innerHTML += `<option value="${place.id}">${place.name}</option>`;
+            });
+            placeSelect.disabled = false;
+        } else {
+            showAlert('❌ ' + data.message, 'error');
+        }
+    } catch (error) {
+        console.error('Error loading places:', error);
+        showAlert('❌ حدث خطأ في تحميل الأماكن', 'error');
+    }
+}
+
+// دالة لعرض التنبيهات
+function showAlert(message, type) {
+    const alertContainer = document.getElementById('alertContainer');
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="fas ${icon} me-2 fs-5"></i>
+                <div>${message}</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+
+    alertContainer.innerHTML = alertHtml;
+
+    // إخفاء التنبيه تلقائياً بعد 5 ثواني
+    setTimeout(() => {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            alert.remove();
+        });
+    }, 5000);
+}
+
+// التحقق من النموذج قبل الإرسال
+document.getElementById('evaluationForm').addEventListener('submit', function(e) {
+    const placeId = document.getElementById('place_id').value;
+    const evaluatedEmployeeId = document.getElementById('evaluated_employee_id').value;
+
+    if (!placeId || !evaluatedEmployeeId) {
+        e.preventDefault();
+        showAlert('❌ يرجى اختيار المكان والموظف المقيّم', 'error');
+        return;
+    }
+
+    // يمكن إضافة المزيد من التحقق هنا إذا لزم الأمر
+    console.log('✅ النموذج جاهز للإرسال');
+});
+
+// تهيئة الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ صفحة إضافة التقييم جاهزة');
+
+    // إذا كان هناك شركة واحدة فقط، نختارها تلقائياً
+    const companySelect = document.getElementById('company_id');
+    if (companySelect.options.length === 2) { // خيار افتراضي + شركة واحدة
+        companySelect.selectedIndex = 1;
+        loadAreas();
+    }
+});
+</script>
+
+<style>
+.card {
+    border: none;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.form-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+}
+
+.alert {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.list-unstyled li {
+    margin-bottom: 0.5rem;
+}
+</style>
+{% endblock %}

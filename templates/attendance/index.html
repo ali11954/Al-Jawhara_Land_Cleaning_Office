@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة الحضور{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- عنوان الصفحة -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-clipboard-list text-primary"></i>
+            سجلات الحضور
+        </h1>
+        <div>
+            {% if current_user.role in ['owner', 'supervisor', 'monitor'] %}
+            <a href="{{ url_for('add_attendance') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> إضافة حضور
+            </a>
+            {% endif %}
+            <a href="{{ url_for('attendance_report') }}" class="btn btn-info btn-sm">
+                <i class="fas fa-chart-bar"></i> التقارير
+            </a>
+        </div>
+    </div>
+
+    <!-- إحصائيات سريعة -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                إجمالي الموظفين</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_employees }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                الحاضرون</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ present_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                الغائبون</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ absent_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-times fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                نسبة الحضور</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% if total_employees > 0 %}
+                                    {{ "%.1f"|format((present_count / total_employees * 100)) }}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-percentage fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- أدوات التحكم بالتاريخ -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calendar-alt text-primary"></i>
+                        سجلات الحضور ليوم {{ selected_date.strftime('%Y-%m-%d') }}
+                    </h5>
+                </div>
+                <div class="col-md-6 text-end">
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('attendance_index', date=prev_date.isoformat()) }}"
+                           class="btn btn-outline-primary">
+                            <i class="fas fa-chevron-right"></i> اليوم السابق
+                        </a>
+                        <a href="{{ url_for('attendance_index', date=today.isoformat()) }}"
+                           class="btn btn-outline-secondary">
+                            اليوم الحالي
+                        </a>
+                        <a href="{{ url_for('attendance_index', date=next_date.isoformat()) }}"
+                           class="btn btn-outline-primary">
+                            اليوم التالي <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- محدد التاريخ -->
+            <form method="GET" class="row g-3 mt-2">
+                <div class="col-md-4">
+                    <label for="date_selector" class="form-label">اختر تاريخ:</label>
+                    <input type="date" class="form-control" id="date_selector" name="date"
+                           value="{{ selected_date.isoformat() }}" max="{{ today.isoformat() }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">عرض</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- جدول الحضور -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">قائمة الحضور</h6>
+        </div>
+        <div class="card-body">
+            {% if attendance_records %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="attendanceTable" width="100%" cellspacing="0">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="5%">#</th>
+                            <th width="15%">الموظف</th>
+                            <th width="10%">الوظيفة</th>
+                            <th width="10%">الوردية</th>
+                            <th width="10%">حالة الحضور</th>
+                            <th width="10%">وقت الحضور</th>
+                            <th width="10%">وقت الانصراف</th>
+                            <th width="20%">ملاحظات</th>
+                            <th width="10%">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in attendance_records %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <strong>
+                                    {% if record.employee %}
+                                        {{ record.employee.full_name }}
+                                    {% else %}
+                                        <span class="text-danger">موظف محذوف</span>
+                                    {% endif %}
+                                </strong>
+                                {% if record.employee and record.employee.phone %}
+                                <br>
+                                <small class="text-muted">
+                                    <i class="fas fa-phone"></i> {{ record.employee.phone }}
+                                </small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.employee %}
+                                    {% if record.employee.position == 'supervisor' %}
+                                        <span class="badge bg-primary">مشرف</span>
+                                    {% elif record.employee.position == 'monitor' %}
+                                        <span class="badge bg-info">مراقب</span>
+                                    {% elif record.employee.position == 'worker' %}
+                                        <span class="badge bg-secondary">عامل</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark">{{ record.employee.position }}</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.shift_type == 'morning' %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-sun"></i> صباحية
+                                    </span>
+                                {% elif record.shift_type == 'evening' %}
+                                    <span class="badge bg-dark">
+                                        <i class="fas fa-moon"></i> مسائية
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ record.shift_type }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.status == 'present' %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle"></i> حاضر
+                                    </span>
+                                {% elif record.status == 'absent' %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-times-circle"></i> غائب
+                                    </span>
+                                {% elif record.status == 'late' %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-clock"></i> متأخر
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ record.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.check_in %}
+                                    <span class="text-success">
+                                        <i class="fas fa-sign-in-alt"></i> {{ record.check_in.strftime('%H:%M') }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.check_out %}
+                                    <span class="text-info">
+                                        <i class="fas fa-sign-out-alt"></i> {{ record.check_out.strftime('%H:%M') }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.notes %}
+                                    <small class="text-truncate" data-bs-toggle="tooltip" title="{{ record.notes }}">
+                                        {{ record.notes|truncate(40) }}
+                                    </small>
+                                {% else %}
+                                    <span class="text-muted">لا توجد ملاحظات</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-view"
+                                            onclick="viewAttendance({{ record.id }})"
+                                            title="عرض التفاصيل"
+                                            data-bs-toggle="tooltip">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    {% if current_user.role in ['owner', 'supervisor'] %}
+                                    <button class="btn btn-outline-warning btn-edit"
+                                            onclick="editAttendance({{ record.id }})"
+                                            title="تعديل"
+                                            data-bs-toggle="tooltip">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-delete"
+                                            onclick="deleteAttendance({{ record.id }})"
+                                            title="حذف"
+                                            data-bs-toggle="tooltip">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">لا توجد سجلات حضور لهذا اليوم</h5>
+                <p class="text-muted">يمكنك إضافة سجلات حضور جديدة باستخدام الزر أعلاه</p>
+                {% if current_user.role in ['owner', 'supervisor', 'monitor'] %}
+                <a href="{{ url_for('add_attendance') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> إضافة حضور جديد
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // تهيئة جدول البيانات
+    $('#attendanceTable').DataTable({
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json'
+        },
+        order: [[1, 'asc']],
+        responsive: true,
+        pageLength: 25,
+        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>'
+    });
+
+    // تهيئة أدوات التلميح
+    $('[data-bs-toggle="tooltip"]').tooltip();
+
+    // الانتقال للتاريخ المحدد
+    $('#date_selector').on('change', function() {
+        const selectedDate = $(this).val();
+        if (selectedDate) {
+            window.location.href = "{{ url_for('attendance_index') }}?date=" + selectedDate;
+        }
+    });
+
+    // منع اختيار تاريخ في المستقبل
+    $('#date_selector').attr('max', new Date().toISOString().split('T')[0]);
+});
+
+// دوال الإجراءات
+function viewAttendance(attendanceId) {
+    // عرض تفاصيل الحضور
+    window.location.href = `/api/attendance/${attendanceId}`;
+}
+
+function editAttendance(attendanceId) {
+    // تعديل الحضور
+    window.location.href = `/attendance/edit/${attendanceId}`;
+}
+
+function deleteAttendance(attendanceId) {
+    if (confirm('هل أنت متأكد من حذف سجل الحضور هذا؟')) {
+        fetch(`/attendance/delete/${attendanceId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('حدث خطأ أثناء حذف سجل الحضور', 'error');
+        });
+    }
+}
+
+function showAlert(message, type) {
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            <i class="fas ${icon}"></i> ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+
+    // إزالة أي تنبيهات سابقة
+    $('.alert').remove();
+
+    // إضافة التنبيه الجديد
+    $('.container-fluid').prepend(alertHtml);
+
+    // إخفاء التنبيه تلقائياً بعد 5 ثواني
+    setTimeout(() => {
+        $('.alert').alert('close');
+    }, 5000);
+}
+
+// تصدير البيانات
+function exportAttendance() {
+    const selectedDate = "{{ selected_date.strftime('%Y-%m-%d') }}";
+    window.location.href = `/attendance/export?date=${selectedDate}`;
+}
+</script>
+
+<style>
+.badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.6em;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(78, 115, 223, 0.05);
+}
+
+.card {
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-bottom: none;
+    color: white;
+    border-radius: 0.5rem 0.5rem 0 0 !important;
+}
+
+.btn-group .btn {
+    border-radius: 0.25rem;
+    margin: 0 1px;
+}
+
+/* تخصيص الألوان للحالات */
+.bg-success { background-color: #1cc88a !important; }
+.bg-danger { background-color: #e74a3b !important; }
+.bg-warning { background-color: #f6c23e !important; }
+.bg-primary { background-color: #4e73df !important; }
+.bg-info { background-color: #36b9cc !important; }
+.bg-secondary { background-color: #858796 !important; }
+
+/* ألوان الورديات */
+.bg-warning { background-color: #f6c23e !important; }
+.bg-dark { background-color: #5a5c69 !important; }
+
+/* تحسين مظهر الجدول */
+#attendanceTable th {
+    border-bottom: 2px solid #e3e6f0;
+    font-weight: 600;
+}
+
+#attendanceTable td {
+    vertical-align: middle;
+}
+
+/* تحسين أزرار الإجراءات */
+.btn-view:hover { background-color: #4e73df; color: white; }
+.btn-edit:hover { background-color: #f6c23e; color: white; }
+.btn-delete:hover { background-color: #e74a3b; color: white; }
+
+/* تحسين التجاوب */
+@media (max-width: 768px) {
+    .btn-group .btn {
+        margin: 1px 0;
+    }
+
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+
+    #attendanceTable th,
+    #attendanceTable td {
+        padding: 0.5rem;
+    }
+}
+
+/* تنسيق الورديات */
+.badge.bg-warning {
+    background: linear-gradient(45deg, #f6c23e, #f8d568) !important;
+}
+
+.badge.bg-dark {
+    background: linear-gradient(45deg, #5a5c69, #6c6e7e) !important;
+}
+</style>
+{% endblock %}
