@@ -1,7 +1,18 @@
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.pool import StaticPool
+
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime, date
 from werkzeug.security import generate_password_hash, check_password_hash
+
+# دعم SQLite للتنمية المحلية وPostgreSQL للإنتاج
+def get_database_url():
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url:
+        return database_url.replace('postgres://', 'postgresql://')
+    return 'sqlite:///cleaning_company.db'
 
 db = SQLAlchemy()
 
@@ -22,9 +33,11 @@ class User(UserMixin, db.Model):
     employee_profile = db.relationship('Employee', backref='user', uselist=False, foreign_keys='Employee.user_id')
 
     def set_password(self, password):
+        """تعيين كلمة المرور للمستخدم"""
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
+        """التحقق من كلمة المرور"""
         return check_password_hash(self.password_hash, password)
 
     def __repr__(self):
@@ -184,3 +197,12 @@ class Attendance(db.Model):
 
     def __repr__(self):
           return f'<Attendance {self.employee_id} - {self.date}>'
+
+# ✅ دوال مساعدة إضافية لتحسين التوافق
+def initialize_models():
+    """تهيئة النماذج وإضافة أي دوال مساعدة إذا لزم الأمر"""
+    # هذه الدوال موجودة بالفعل في النماذج، لذا لا حاجة لإضافتها هنا
+    pass
+
+# جعل db متاحة للاستيراد من ملفات أخرى
+__all__ = ['db', 'User', 'Employee', 'Company', 'Area', 'Location', 'Place', 'CleaningEvaluation', 'Attendance']

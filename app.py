@@ -6,21 +6,27 @@ from datetime import datetime, date, timedelta
 import json
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import BadRequest
+import os
 
+# ✅ تصحيح: إنشاء تطبيق واحد فقط واستخدام config.py
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Initialize extensions
+# ✅ تصحيح: تهيئة الإضافات مرة واحدة
 db.init_app(app)
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'يجب تسجيل الدخول للوصول إلى هذه الصفحة'
 
-
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
+
+# ✅ بقية الكود يبقى كما هو بدون تغيير...
+# [جميع الدوال والروابط الموجودة حالياً تبقى كما هي]
+
 
 def initialize_database():
     """تهيئة قاعدة البيانات والبيانات الأولية"""
@@ -3405,11 +3411,34 @@ def debug_data():
 
     return result
 
+@app.route('/init-db')
+def init_database():
+    """إعادة تهيئة قاعدة البيانات"""
+    try:
+        with app.app_context():
+            db.drop_all()  # حذف جميع الجداول (اختياري)
+            db.create_all()  # إنشاء جميع الجداول
+            initialize_database()  # إضافة البيانات الأولية
+        return "✅ تم تهيئة قاعدة البيانات بنجاح"
+    except Exception as e:
+        return f"❌ خطأ في تهيئة قاعدة البيانات: {str(e)}"
+@app.route('/check-db')
+def check_database():
+    """فحص حالة قاعدة البيانات"""
+    try:
+        with app.app_context():
+            # محاولة الاستعلام من جدول users
+            users_count = User.query.count()
+            return f"✅ قاعدة البيانات تعمل بشكل صحيح. عدد المستخدمين: {users_count}"
+    except Exception as e:
+        return f"❌ خطأ في قاعدة البيانات: {str(e)}"
 
 if __name__ == '__main__':
     try:
-        # Initialize database on startup
-        initialize_database()
+        # Initialize database first
+        with app.app_context():
+            initialize_database()
+
         print("=" * 50)
         print("🚀 بدء تشغيل تطبيق أرض الجوهرة للنظافة...")
         print("📊 يمكنك الوصول للتطبيق على: http://localhost:5000")
@@ -3418,13 +3447,13 @@ if __name__ == '__main__':
         print("=" * 50)
         print("🔄 بدء تشغيل الخادم...")
 
-        # تشغيل الخادم
+        # تشغيل الخادم خارج context
         app.run(
-            host='127.0.0.1',  # استخدام localhost مباشرة
+            host='0.0.0.0',  # تغيير إلى 0.0.0.0 للسماح بالوصول من الخارج
             port=5000,
-            debug=True,
-            use_reloader=True
+            debug=True
         )
     except Exception as e:
         print(f"❌ خطأ في تشغيل التطبيق: {e}")
-        input("اضغط Enter للإغلاق...")
+        import traceback
+        print(f"🔍 تفاصيل الخطأ: {traceback.format_exc()}")
