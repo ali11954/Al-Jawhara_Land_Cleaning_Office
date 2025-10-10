@@ -11,7 +11,8 @@ import os
 # ✅ تصحيح: إنشاء تطبيق واحد فقط واستخدام config.py
 app = Flask(__name__)
 app.config.from_object(Config)
-
+from flask_migrate import Migrate
+migrate = Migrate(app, db)
 # ✅ تصحيح: تهيئة الإضافات مرة واحدة
 db.init_app(app)
 
@@ -28,134 +29,134 @@ def load_user(user_id):
 # [جميع الدوال والروابط الموجودة حالياً تبقى كما هي]
 
 
-def initialize_database():
-    """تهيئة قاعدة البيانات والبيانات الأولية"""
-    with app.app_context():
-        db.create_all()
+#def initialize_database():
+ #   """تهيئة قاعدة البيانات والبيانات الأولية"""
+  #  with app.app_context():
+        #db.create_all()
 
         # Create default owner if not exists
-        if not User.query.filter_by(role='owner').first():
-            owner = User(
-                username='owner',
-                email='owner@jewel-land.com',
-                role='owner',
-                is_active=True
-            )
-            owner.set_password('admin123')
-            db.session.add(owner)
+       # if not User.query.filter_by(role='owner').first():
+        #    owner = User(
+         #       username='owner',
+          #      email='owner@jewel-land.com',
+           #     role='owner',
+            #    is_active=True
+          #  )
+           # owner.set_password('admin123')
+            #db.session.add(owner)
 
             # Create sample supervisor
-            supervisor_user = User(
-                username='supervisor1',
-                email='supervisor@jewel-land.com',
-                role='supervisor',
-                is_active=True
-            )
-            supervisor_user.set_password('supervisor123')
-            db.session.add(supervisor_user)
-            db.session.flush()
+            #supervisor_user = User(
+             #   username='supervisor1',
+              #  email='supervisor@jewel-land.com',
+               # role='supervisor',
+                #is_active=True
+           # )
+            #supervisor_user.set_password('supervisor123')
+            #db.session.add(supervisor_user)
+           # db.session.flush()
 
-            supervisor = Employee(
-                user_id=supervisor_user.id,
-                full_name='محمد أحمد',
-                phone='+966500000001',
-                position='supervisor',
-                salary=8000.0,
-                hire_date=date.today(),
-                is_active=True
-            )
-            db.session.add(supervisor)
+            #supervisor = Employee(
+             #   user_id=supervisor_user.id,
+              #  full_name='محمد أحمد',
+               # phone='+966500000001',
+                #position='supervisor',
+                #salary=8000.0,
+                #hire_date=date.today(),
+                #is_active=True
+           # )
+            #db.session.add(supervisor)
 
             # Create sample monitor
-            monitor_user = User(
-                username='monitor1',
-                email='monitor@jewel-land.com',
-                role='monitor',
-                is_active=True
-            )
-            monitor_user.set_password('monitor123')
-            db.session.add(monitor_user)
-            db.session.flush()
+            #monitor_user = User(
+             #   username='monitor1',
+              #  email='monitor@jewel-land.com',
+               # role='monitor',
+                #is_active=True
+            #)
+            #monitor_user.set_password('monitor123')
+            #db.session.add(monitor_user)
+            #db.session.flush()
 
-            monitor = Employee(
-                user_id=monitor_user.id,
-                full_name='خالد سعيد',
-                phone='+966500000002',
-                position='monitor',
-                salary=5000.0,
-                hire_date=date.today(),
-                is_active=True
-            )
-            db.session.add(monitor)
+            #monitor = Employee(
+             #   user_id=monitor_user.id,
+              #  full_name='خالد سعيد',
+               # phone='+966500000002',
+                #position='monitor',
+                #salary=5000.0,
+                #hire_date=date.today(),
+                #is_active=True
+            #)
+            #db.session.add(monitor)
 
             # Create sample worker
-            worker_user = User(
-                username='worker1',
-                email='worker@jewel-land.com',
-                role='worker',
-                is_active=True
-            )
-            worker_user.set_password('worker123')
-            db.session.add(worker_user)
-            db.session.flush()
+            #worker_user = User(
+             #   username='worker1',
+              #  email='worker@jewel-land.com',
+               # role='worker',
+                #is_active=True
+            #)
+            #worker_user.set_password('worker123')
+            #db.session.add(worker_user)
+            #db.session.flush()
 
-            worker = Employee(
-                user_id=worker_user.id,
-                full_name='علي حسن',
-                phone='+966500000003',
-                position='worker',
-                salary=3000.0,
-                hire_date=date.today(),
-                is_active=True
-            )
-            db.session.add(worker)
+            #worker = Employee(
+             #   user_id=worker_user.id,
+              #  full_name='علي حسن',
+               # phone='+966500000003',
+               # position='worker',
+               # salary=3000.0,
+                #hire_date=date.today(),
+                #is_active=True
+            #)
+            #db.session.add(worker)
 
             # Create sample company and areas
-            company = Company(
-                name='شركة النظافة المثاليه',
-                address='الرياض - المملكة العربية السعودية',
-                contact_person='أحمد محمد',
-                phone='+966500000000',
-                email='info@example.com',
-                is_active=True
-            )
-            db.session.add(company)
-            db.session.flush()
+            #company = Company(
+             #   name='شركة النظافة المثاليه',
+             #   address='الرياض - المملكة العربية السعودية',
+             #   contact_person='أحمد محمد',
+             #   phone='+966500000000',
+             #   email='info@example.com',
+             #   is_active=True
+            #)
+            #db.session.add(company)
+            #db.session.flush()
 
             # Create sample area
-            area = Area(
-                name='المنطقة الرئيسية',
-                company_id=company.id,
-                is_active=True
-            )
-            db.session.add(area)
-            db.session.flush()
+            #area = Area(
+             #   name='المنطقة الرئيسية',
+              #  company_id=company.id,
+              #  is_active=True
+            #)
+            #db.session.add(area)
+            #db.session.flush()
 
             # Create sample location
-            location = Location(
-                name='المبنى الإداري',
-                area_id=area.id,
-                is_active=True
-            )
-            db.session.add(location)
-            db.session.flush()
+            #location = Location(
+             #   name='المبنى الإداري',
+              #  area_id=area.id,
+              #  is_active=True
+            #)
+            #db.session.add(location)
+            #db.session.flush()
 
             # Create sample place
-            place = Place(
-                name='الطابق الأرضي',
-                location_id=location.id,
-                is_active=True
-            )
-            db.session.add(place)
+            #place = Place(
+             #   name='الطابق الأرضي',
+              #  location_id=location.id,
+               # is_active=True
+            #)
+            #db.session.add(place)
 
-            db.session.commit()
+            #db.session.commit()
 
-            print("✅ تم تهيئة قاعدة البيانات والبيانات الأولية بنجاح")
-            print("👥 تم إنشاء 3 موظفين تجريبيين:")
-            print("   - مشرف: supervisor1 / supervisor123")
-            print("   - مراقب: monitor1 / monitor123")
-            print("   - عامل: worker1 / worker123")
-            print("   - مالك: owner / admin123")
+            #print("✅ تم تهيئة قاعدة البيانات والبيانات الأولية بنجاح")
+            #print("👥 تم إنشاء 3 موظفين تجريبيين:")
+            #print("   - مشرف: supervisor1 / supervisor123")
+            #print("   - مراقب: monitor1 / monitor123")
+            #print("   - عامل: worker1 / worker123")
+            #print("   - مالك: owner / admin123")
 
 
 @app.context_processor
@@ -853,7 +854,9 @@ def employees_list():
         flash('غير مصرح بالوصول إلى هذه الصفحة', 'error')
         return redirect(url_for('dashboard'))
 
-    employees_list = Employee.query.all()
+    employees_list = Employee.query.options(
+        db.joinedload(Employee.user)
+    ).all()
     return render_template('employees/list.html', employees=employees_list)
 
 
@@ -906,6 +909,139 @@ def add_employee():
 
     return render_template('employees/add.html', today=date.today())
 
+
+@app.route('/employees/edit/<int:employee_id>', methods=['GET', 'POST'])
+@login_required
+def edit_employee(employee_id):
+    """تعديل بيانات موظف"""
+    if current_user.role != 'owner':
+        flash('غير مصرح بالوصول إلى هذه الصفحة', 'error')
+        return redirect(url_for('dashboard'))
+
+    employee = Employee.query.options(
+        db.joinedload(Employee.user)
+    ).get_or_404(employee_id)
+
+    if request.method == 'POST':
+        try:
+            # تحديث بيانات المستخدم
+            employee.user.username = request.form['username']
+            employee.user.email = request.form['email']
+            employee.user.role = request.form['position']
+
+            # تحديث كلمة المرور إذا تم تقديمها
+            if request.form.get('password'):
+                employee.user.set_password(request.form['password'])
+
+            # تحديث بيانات الموظف
+            employee.full_name = request.form['full_name']
+            employee.phone = request.form.get('phone')
+            employee.address = request.form.get('address')
+            employee.position = request.form['position']
+            employee.salary = float(request.form.get('salary', 0))
+            employee.hire_date = datetime.strptime(request.form['hire_date'], '%Y-%m-%d').date()
+            employee.is_active = request.form.get('is_active') == 'on'
+            employee.updated_at = datetime.utcnow()
+
+            db.session.commit()
+            flash('تم تحديث بيانات الموظف بنجاح', 'success')
+            return redirect(url_for('employees_list'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'حدث خطأ أثناء تحديث الموظف: {str(e)}', 'error')
+
+    return render_template('employees/edit.html', employee=employee, today=date.today())
+
+
+@app.route('/employees/toggle-status/<int:employee_id>', methods=['POST'])
+@login_required
+def toggle_employee_status(employee_id):
+    """تفعيل/تعطيل حالة الموظف"""
+    if current_user.role != 'owner':
+        return jsonify({
+            'success': False,
+            'message': 'غير مصرح بهذا الإجراء'
+        }), 403
+
+    try:
+        employee = Employee.query.get_or_404(employee_id)
+        employee.is_active = not employee.is_active
+        employee.updated_at = datetime.utcnow()
+
+        # تعطيل/تفعيل حساب المستخدم أيضاً
+        employee.user.is_active = employee.is_active
+
+        db.session.commit()
+
+        status = "تفعيل" if employee.is_active else "تعطيل"
+        return jsonify({
+            'success': True,
+            'message': f'تم {status} الموظف بنجاح',
+            'is_active': employee.is_active
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error in toggle_employee_status: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'حدث خطأ أثناء تغيير حالة الموظف'
+        }), 500
+
+
+@app.route('/employees/delete/<int:employee_id>', methods=['POST'])
+@login_required
+def delete_employee(employee_id):
+    """حذف موظف"""
+    if current_user.role != 'owner':
+        return jsonify({
+            'success': False,
+            'message': 'غير مصرح بهذا الإجراء'
+        }), 403
+
+    try:
+        employee = Employee.query.get_or_404(employee_id)
+        user = employee.user
+
+        # التحقق من عدم وجود بيانات مرتبطة بالموظف
+        # المناطق التي يشرف عليها
+        has_supervised_areas = Area.query.filter_by(supervisor_id=employee_id).first()
+        # المواقع التي يراقبها
+        has_monitored_locations = Location.query.filter_by(monitor_id=employee_id).first()
+        # الأماكن التي يعمل بها
+        has_assigned_places = Place.query.filter_by(worker_id=employee_id).first()
+        # التقييمات التي أجراها أو تلقاها
+        has_evaluations = CleaningEvaluation.query.filter(
+            (CleaningEvaluation.evaluated_employee_id == employee_id) |
+            (CleaningEvaluation.evaluator_id == employee_id)
+        ).first()
+
+        if any([has_supervised_areas, has_monitored_locations, has_assigned_places, has_evaluations]):
+            return jsonify({
+                'success': False,
+                'message': 'لا يمكن حذف الموظف لأنه مرتبط ببيانات في النظام'
+            }), 400
+
+        # الحذف (أو التعطيل كبديل آمن)
+        employee.is_active = False
+        user.is_active = False
+        employee.updated_at = datetime.utcnow()
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'تم حذف الموظف بنجاح'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error in delete_employee: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'حدث خطأ أثناء حذف الموظف'
+        }), 500
 
 from datetime import datetime, date, timedelta
 from flask import request, jsonify, render_template, flash
@@ -1607,18 +1743,42 @@ def is_valid_email(email):
 def company_areas(company_id):
     """عرض مناطق شركة محددة"""
     try:
-        company = Company.query.get_or_404(company_id)
+        print(f"🎯 بدء تحميل مناطق الشركة {company_id}")
 
-        # التحقق من الصلاحيات
-        if current_user.role != 'owner' and not (
-                current_user.role == 'supervisor' and
-                current_user.employee_profile and
-                any(area.supervisor_id == current_user.employee_profile.id for area in company.areas)
-        ):
-            flash('غير مصرح بالوصول إلى هذه الصفحة', 'error')
+        # التحقق من وجود الشركة
+        company = Company.query.get(company_id)
+        if not company:
+            print(f"❌ الشركة {company_id} غير موجودة")
+            flash('الشركة غير موجودة', 'error')
             return redirect(url_for('companies_list'))
 
-        areas = Area.query.filter_by(company_id=company_id).order_by(Area.name).all()
+        print(f"✅ الشركة: {company.name}")
+
+        # التحقق من الصلاحيات بشكل مبسط
+        if current_user.role != 'owner':
+            # إذا كان مشرفاً، تحقق إذا كان مشرفاً على أي منطقة في هذه الشركة
+            if current_user.role == 'supervisor' and current_user.employee_profile:
+                supervisor_areas = Area.query.filter_by(
+                    supervisor_id=current_user.employee_profile.id,
+                    company_id=company_id
+                ).first()
+                if not supervisor_areas:
+                    flash('غير مصرح بالوصول إلى هذه الصفحة', 'error')
+                    return redirect(url_for('companies_list'))
+            else:
+                flash('غير مصرح بالوصول إلى هذه الصفحة', 'error')
+                return redirect(url_for('companies_list'))
+
+        # جلب المناطق مع العلاقات
+        areas = Area.query.filter_by(company_id=company_id) \
+            .order_by(Area.name) \
+            .options(
+            db.joinedload(Area.supervisor),
+            db.joinedload(Area.locations)
+        ) \
+            .all()
+
+        print(f"📊 عدد المناطق: {len(areas)}")
 
         # الموظفون الذين يمكن تعيينهم كمشرفين
         available_supervisors = Employee.query.filter_by(
@@ -1626,16 +1786,21 @@ def company_areas(company_id):
             is_active=True
         ).all()
 
+        print(f"👥 عدد المشرفين المتاحين: {len(available_supervisors)}")
+
         return render_template('companies/areas.html',
                                company=company,
                                areas=areas,
                                available_supervisors=available_supervisors)
 
     except Exception as e:
+        print(f"❌ خطأ في تحميل المناطق: {str(e)}")
+        import traceback
+        print(f"🔍 تفاصيل الخطأ: {traceback.format_exc()}")
+
         app.logger.error(f"Error in company_areas: {str(e)}")
         flash('حدث خطأ في تحميل المناطق', 'error')
         return redirect(url_for('companies_list'))
-
 
 @app.route('/companies/<int:company_id>/areas/add', methods=['GET', 'POST'])
 @login_required
@@ -1719,6 +1884,107 @@ def add_area(company_id):
             'success': False,
             'message': f'حدث خطأ: {str(e)}'
         }), 500
+
+
+@app.route('/areas/<int:area_id>/edit', methods=['POST'])
+@login_required
+def edit_area(area_id):
+    """تعديل منطقة"""
+    try:
+        area = Area.query.get_or_404(area_id)
+
+        # التحقق من الصلاحيات
+        if current_user.role != 'owner':
+            return jsonify({
+                'success': False,
+                'message': 'غير مصرح بهذا الإجراء'
+            }), 403
+
+        name = request.form.get('name', '').strip()
+        supervisor_id = request.form.get('supervisor_id', '').strip() or None
+
+        # التحقق من البيانات
+        if not name:
+            return jsonify({
+                'success': False,
+                'message': 'اسم المنطقة مطلوب'
+            }), 400
+
+        # التحقق من التكرار (استثناء المنطقة الحالية)
+        existing_area = Area.query.filter(
+            Area.name.ilike(name),
+            Area.company_id == area.company_id,
+            Area.id != area_id
+        ).first()
+
+        if existing_area:
+            return jsonify({
+                'success': False,
+                'message': f'المنطقة "{name}" موجودة مسبقاً'
+            }), 400
+
+        # تحديث المنطقة
+        area.name = name
+        area.supervisor_id = supervisor_id
+        area.updated_at = datetime.utcnow()
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'تم تحديث المنطقة بنجاح',
+            'area_name': area.name
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error in edit_area: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'حدث خطأ أثناء تحديث المنطقة'
+        }), 500
+
+
+@app.route('/areas/<int:area_id>/delete', methods=['POST'])
+@login_required
+def delete_area(area_id):
+    """حذف منطقة"""
+    try:
+        area = Area.query.get_or_404(area_id)
+
+        # التحقق من الصلاحيات
+        if current_user.role != 'owner':
+            return jsonify({
+                'success': False,
+                'message': 'غير مصرح بهذا الإجراء'
+            }), 403
+
+        # التحقق من وجود مواقع مرتبطة بالمنطقة
+        has_locations = Location.query.filter_by(area_id=area_id, is_active=True).first()
+        if has_locations:
+            return jsonify({
+                'success': False,
+                'message': 'لا يمكن حذف المنطقة لأنها تحتوي على مواقع مرتبطة بها'
+            }), 400
+
+        # تعطيل المنطقة بدلاً من الحذف الفعلي
+        area.is_active = False
+        area.updated_at = datetime.utcnow()
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'تم حذف المنطقة بنجاح'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error in delete_area: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'حدث خطأ أثناء حذف المنطقة'
+        }), 500
+
 # Location Management
 @app.route('/areas/<int:area_id>/locations')
 @login_required
@@ -2040,91 +2306,6 @@ def add_place(location_id):
         return jsonify({
             'success': False,
             'message': f'حدث خطأ أثناء إضافة المكان: {str(e)}'
-        }), 500
-# دوال التعديل والحذف للمناطق
-@app.route('/areas/<int:area_id>/edit', methods=['POST'])
-@login_required
-def edit_area(area_id):
-    """تعديل منطقة"""
-    try:
-        area = Area.query.get_or_404(area_id)
-
-        # التحقق من الصلاحيات
-        if current_user.role != 'owner':
-            return jsonify({
-                'success': False,
-                'message': 'غير مصرح بهذا الإجراء'
-            }), 403
-
-        name = request.form['name'].strip()
-        supervisor_id = request.form.get('supervisor_id')
-
-        # التحقق من البيانات
-        if not name:
-            return jsonify({
-                'success': False,
-                'message': 'اسم المنطقة مطلوب'
-            }), 400
-
-        # تحديث المنطقة
-        area.name = name
-        area.supervisor_id = supervisor_id if supervisor_id else None
-        area.updated_at = datetime.utcnow()
-
-        db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'message': 'تم تحديث المنطقة بنجاح'
-        })
-
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Error in edit_area: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': 'حدث خطأ أثناء تحديث المنطقة'
-        }), 500
-
-
-@app.route('/areas/<int:area_id>/delete', methods=['POST'])
-@login_required
-def delete_area(area_id):
-    """حذف منطقة"""
-    try:
-        area = Area.query.get_or_404(area_id)
-
-        # التحقق من الصلاحيات
-        if current_user.role != 'owner':
-            return jsonify({
-                'success': False,
-                'message': 'غير مصرح بهذا الإجراء'
-            }), 403
-
-        # التحقق من وجود مواقع مرتبطة بالمنطقة
-        has_locations = Location.query.filter_by(area_id=area_id).first()
-        if has_locations:
-            return jsonify({
-                'success': False,
-                'message': 'لا يمكن حذف المنطقة لأنها تحتوي على مواقع مرتبطة بها'
-            }), 400
-
-        # تعطيل المنطقة بدلاً من الحذف الفعلي
-        area.is_active = False
-        area.updated_at = datetime.utcnow()
-        db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'message': 'تم حذف المنطقة بنجاح'
-        })
-
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Error in delete_area: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': 'حدث خطأ أثناء حذف المنطقة'
         }), 500
 
 
@@ -3411,17 +3592,18 @@ def debug_data():
 
     return result
 
-@app.route('/init-db')
-def init_database():
-    """إعادة تهيئة قاعدة البيانات"""
-    try:
-        with app.app_context():
-            db.drop_all()  # حذف جميع الجداول (اختياري)
-            db.create_all()  # إنشاء جميع الجداول
-            initialize_database()  # إضافة البيانات الأولية
-        return "✅ تم تهيئة قاعدة البيانات بنجاح"
-    except Exception as e:
-        return f"❌ خطأ في تهيئة قاعدة البيانات: {str(e)}"
+#@app.route('/init-db')
+#def init_database():
+  #  """إعادة تهيئة قاعدة البيانات"""
+   # try:
+    #    with app.app_context():
+     #       db.drop_all()  # حذف جميع الجداول (اختياري)
+      #      db.create_all()  # إنشاء جميع الجداول
+       #     initialize_database()  # إضافة البيانات الأولية
+        #return "✅ تم تهيئة قاعدة البيانات بنجاح"
+    #except Exception as e:
+     #   return f"❌ خطأ في تهيئة قاعدة البيانات: {str(e)}"
+
 @app.route('/check-db')
 def check_database():
     """فحص حالة قاعدة البيانات"""
@@ -3436,8 +3618,8 @@ def check_database():
 if __name__ == '__main__':
     try:
         # Initialize database first
-        with app.app_context():
-            initialize_database()
+     #   with app.app_context():
+      #      initialize_database()
 
         print("=" * 50)
         print("🚀 بدء تشغيل تطبيق أرض الجوهرة للنظافة...")

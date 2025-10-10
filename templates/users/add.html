@@ -3,170 +3,160 @@
 {% block title %}إضافة مستخدم - أرض الجوهرة للنظافة{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2 class="text-primary mb-1">إضافة مستخدم جديد</h2>
-                    <p class="text-muted mb-0">إضافة حساب مستخدم جديد إلى النظام</p>
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-user-plus text-primary"></i>
+            إضافة مستخدم جديد
+        </h1>
+        <a href="{{ url_for('users_list') }}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-right me-2"></i>رجوع للمستخدمين
+        </a>
+    </div>
+
+    <!-- رسائل التنبيه -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-{{ 'exclamation-circle' if category == 'error' else 'check-circle' }} me-2"></i>
+                    <div>{{ message }}</div>
                 </div>
-                <a href="/users" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-right me-1"></i>العودة للقائمة
-                </a>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 
-            <div class="card shadow">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">بيانات المستخدم الجديد</h6>
+                </div>
                 <div class="card-body">
-                    <form method="POST" action="/users/add">
+                    <form method="POST" id="addUserForm">
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="username" class="form-label">اسم المستخدم <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="username" name="username" required
-                                           placeholder="أدخل اسم المستخدم">
-                                    <div class="form-text">اسم المستخدم يجب أن يكون فريداً</div>
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="username" class="form-label">اسم المستخدم <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="username" name="username"
+                                       value="{{ request.form.username }}" required
+                                       placeholder="أدخل اسم المستخدم">
+                                <div class="form-text">يجب أن يكون اسم المستخدم فريداً</div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="email" class="form-label">البريد الإلكتروني <span class="text-danger">*</span></label>
-                                    <input type="email" class="form-control" id="email" name="email" required
-                                           placeholder="example@jewel-land.com">
-                                </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">البريد الإلكتروني <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="email" name="email"
+                                       value="{{ request.form.email }}" required
+                                       placeholder="example@company.com">
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="password" class="form-label">كلمة المرور <span class="text-danger">*</span></label>
-                                    <input type="password" class="form-control" id="password" name="password" required
-                                           placeholder="أدخل كلمة المرور">
-                                    <div class="form-text">كلمة المرور يجب أن تكون على الأقل 6 أحرف</div>
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="password" class="form-label">كلمة المرور <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="password" name="password" required
+                                       placeholder="أدخل كلمة المرور">
+                                <div class="form-text">يجب أن تكون كلمة المرور قوية</div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="confirm_password" class="form-label">تأكيد كلمة المرور <span class="text-danger">*</span></label>
-                                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required
-                                           placeholder="أعد إدخال كلمة المرور">
-                                </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="confirm_password" class="form-label">تأكيد كلمة المرور <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required
+                                       placeholder="أعد إدخال كلمة المرور">
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="role" class="form-label">الدور <span class="text-danger">*</span></label>
-                                    <select class="form-select" id="role" name="role" required>
-                                        <option value="">اختر الدور...</option>
-                                        <option value="owner">مالك النظام</option>
-                                        <option value="supervisor">مشرف</option>
-                                        <option value="monitor">مراقب</option>
-                                        <option value="worker">عامل</option>
-                                    </select>
-                                    <div class="form-text">
-                                        <small>
-                                            <strong>الأدوار:</strong><br>
-                                            • المالك: صلاحيات كاملة<br>
-                                            • المشرف: إدارة الموظفين والتقييمات<br>
-                                            • المراقب: مراقبة وتقييم المواقع<br>
-                                            • العامل: صلاحيات محدودة
-                                        </small>
-                                    </div>
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="role" class="form-label">الدور <span class="text-danger">*</span></label>
+                                <select class="form-select" id="role" name="role" required>
+                                    <option value="">اختر الدور</option>
+                                    <option value="owner" {% if request.form.role == 'owner' %}selected{% endif %}>مالك</option>
+                                    <option value="supervisor" {% if request.form.role == 'supervisor' %}selected{% endif %}>مشرف</option>
+                                    <option value="monitor" {% if request.form.role == 'monitor' %}selected{% endif %}>مراقب</option>
+                                    <option value="worker" {% if request.form.role == 'worker' %}selected{% endif %}>عامل</option>
+                                </select>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">الحالة</label>
-                                    <div class="form-check form-switch mt-2">
-                                        <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
-                                        <label class="form-check-label" for="is_active">مفعل</label>
-                                    </div>
-                                    <div class="form-text">يمكنك تعطيل الحساب مؤقتاً</div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">الحالة</label>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
+                                           {% if request.form.get('is_active') or not request.form %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_active">
+                                        حساب نشط
+                                    </label>
                                 </div>
+                                <div class="form-text">يمكن تعطيل الحساب مؤقتاً</div>
                             </div>
                         </div>
 
                         <div class="row mt-4">
                             <div class="col-12">
-                                <div class="d-flex justify-content-end gap-2">
-                                    <a href="/users" class="btn btn-secondary">إلغاء</a>
-                                    <button type="submit" class="btn btn-success">
-                                        <i class="fas fa-save me-1"></i>حفظ المستخدم
-                                    </button>
-                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>حفظ المستخدم
+                                </button>
+                                <a href="{{ url_for('users_list') }}" class="btn btn-secondary">
+                                    <i class="fas fa-times me-2"></i>إلغاء
+                                </a>
                             </div>
                         </div>
                     </form>
                 </div>
             </div>
+        </div>
 
-            <!-- معلومات إضافية -->
-            <div class="card shadow mt-4">
-                <div class="card-header bg-light">
-                    <h6 class="mb-0"><i class="fas fa-info-circle me-2 text-info"></i>معلومات مهمة</h6>
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">معلومات الأدوار</h6>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>إرشادات إضافة المستخدمين:</h6>
-                            <ul class="text-muted">
-                                <li>تأكد من اختيار الدور المناسب للمستخدم</li>
-                                <li>استخدم كلمات مرور قوية</li>
-                                <li>حافظ على تفعيل الحسابات الجديدة</li>
-                                <li>يمكنك تعديل المعلومات لاحقاً</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>صلاحيات الأدوار:</h6>
-                            <ul class="text-muted">
-                                <li><strong>المالك:</strong> جميع الصلاحيات</li>
-                                <li><strong>المشرف:</strong> إدارة الموظفين والتقييمات</li>
-                                <li><strong>المراقب:</strong> إضافة التقييمات والمتابعة</li>
-                                <li><strong>العامل:</strong> عرض البيانات الأساسية</li>
-                            </ul>
-                        </div>
+                    <div class="mb-3">
+                        <h6 class="text-primary">👑 مالك</h6>
+                        <p class="text-muted small">صلاحيات كاملة على النظام، يمكنه إدارة جميع المستخدمين والشركات والمناطق</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-warning">👨‍💼 مشرف</h6>
+                        <p class="text-muted small">إدارة المناطق والمواقع والأماكن التابعة له، متابعة التقييمات</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-info">👀 مراقب</h6>
+                        <p class="text-muted small">إدارة المواقع والأماكن التابعة له، إدخال التقييمات</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-secondary">👷 عامل</h6>
+                        <p class="text-muted small">عرض التقييمات الخاصة به، لا يمتلك صلاحيات إدارية</p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('form');
-    const password = document.getElementById('password');
-    const confirmPassword = document.getElementById('confirm_password');
+document.getElementById('addUserForm').addEventListener('submit', function(e) {
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
 
-    form.addEventListener('submit', function(e) {
-        // التحقق من تطابق كلمات المرور
-        if (password.value !== confirmPassword.value) {
-            e.preventDefault();
-            alert('كلمات المرور غير متطابقة!');
-            confirmPassword.focus();
-            return false;
-        }
+    if (password !== confirmPassword) {
+        e.preventDefault();
+        alert('⚠️ كلمتا المرور غير متطابقتين');
+        document.getElementById('confirm_password').focus();
+        return false;
+    }
 
-        // التحقق من طول كلمة المرور
-        if (password.value.length < 6) {
-            e.preventDefault();
-            alert('كلمة المرور يجب أن تكون على الأقل 6 أحرف!');
-            password.focus();
-            return false;
-        }
-
-        return true;
-    });
-
-    // إظهار/إخفاء كلمة المرور
-    const togglePassword = (fieldId) => {
-        const field = document.getElementById(fieldId);
-        const type = field.type === 'password' ? 'text' : 'password';
-        field.type = type;
-    };
+    if (password.length < 6) {
+        e.preventDefault();
+        alert('⚠️ كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+        document.getElementById('password').focus();
+        return false;
+    }
 });
 </script>
 {% endblock %}

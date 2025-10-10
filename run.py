@@ -1,9 +1,8 @@
-from app import app, initialize_database
+from app import app  # فقط استدعاء التطبيق، بدون initialize_database
+import os
+from datetime import timedelta
 
 if __name__ == '__main__':
-    # Initialize database
-    initialize_database()
-
     print("=" * 60)
     print("🚀 بدء تشغيل تطبيق أرض الجوهرة للنظافة...")
     print("📊 يمكنك الوصول للتطبيق على: http://localhost:5000")

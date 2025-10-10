@@ -60,7 +60,8 @@ class Employee(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # العلاقات
-    supervised_areas = db.relationship('Area', backref='supervisor', foreign_keys='Area.supervisor_id')
+    # ✅ إصلاح العلاقات - استخدام قائمة بدلاً من نص
+    supervised_areas = db.relationship('Area', backref='supervisor', foreign_keys='[Area.supervisor_id]')
     monitored_locations = db.relationship('Location', backref='monitor', foreign_keys='Location.monitor_id')
     assigned_places = db.relationship('Place', backref='worker', foreign_keys='Place.worker_id')
 

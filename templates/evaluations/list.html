@@ -20,29 +20,29 @@
                 <div class="card-body">
                     <div class="table-responsive">
                       <table class="table table-bordered table-hover">
-    <thead>
+    <thead class="table-light">
         <tr>
-            <th>التاريخ</th>
-            <th>المكان</th>
-            <th>الموظف المقيّم</th>
+            <th class="text-dark fw-bold">التاريخ</th>
+            <th class="text-dark fw-bold">المكان</th>
+            <th class="text-dark fw-bold">الموظف المقيّم</th>
             {% if current_user.role == 'owner' %}
-            <th>المقيم</th>
+            <th class="text-dark fw-bold">المقيم</th>
             {% endif %}
-            <th>النتيجة</th>
-            <th>الإجراءات</th>
+            <th class="text-dark fw-bold">النتيجة</th>
+            <th class="text-dark fw-bold">الإجراءات</th>
         </tr>
     </thead>
     <tbody>
         {% for evaluation in evaluations %}
-        <tr>
-            <td>{{ evaluation.date.strftime('%Y-%m-%d') }}</td>
-            <td>{{ evaluation.place.name if evaluation.place else 'غير محدد' }}</td>
-            <td>{{ evaluation.evaluated_employee.full_name if evaluation.evaluated_employee else 'غير محدد' }}</td>
+        <tr class="evaluation-row">
+            <td class="text-dark">{{ evaluation.date.strftime('%Y-%m-%d') }}</td>
+            <td class="text-dark">{{ evaluation.place.name if evaluation.place else 'غير محدد' }}</td>
+            <td class="text-dark">{{ evaluation.evaluated_employee.full_name if evaluation.evaluated_employee else 'غير محدد' }}</td>
             {% if current_user.role == 'owner' %}
-            <td>{{ evaluation.evaluator.full_name if evaluation.evaluator else 'غير محدد' }}</td>
+            <td class="text-dark">{{ evaluation.evaluator.full_name if evaluation.evaluator else 'غير محدد' }}</td>
             {% endif %}
             <td>
-                <span class="badge badge-{{ 'success' if evaluation.overall_score >= 4 else 'warning' if evaluation.overall_score >= 3 else 'danger' }}">
+                <span class="badge bg-{{ 'success' if evaluation.overall_score >= 4 else 'warning' if evaluation.overall_score >= 3 else 'danger' }} fs-6">
                     {{ "%.1f"|format(evaluation.overall_score) }}/5
                 </span>
             </td>
@@ -66,9 +66,9 @@
 <div class="modal fade" id="evaluationDetailsModal" tabindex="-1" aria-labelledby="evaluationDetailsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="evaluationDetailsModalLabel">تفاصيل التقييم</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="evaluationDetailsContent">
                 <!-- Content will be loaded here by JavaScript -->
@@ -80,7 +80,148 @@
     </div>
 </div>
 
+<style>
+/* تخصيص الألوان لتحسين الوضوح */
+.table-light {
+    background-color: #f8f9fa !important;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table-light th {
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 12px 8px;
+}
+
+.evaluation-row:hover {
+    background-color: #f8f9fa !important;
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+}
+
+.evaluation-row td {
+    border-color: #dee2e6 !important;
+    padding: 10px 8px;
+    vertical-align: middle;
+}
+
+.badge-success {
+    background-color: #28a745 !important;
+    color: white !important;
+    font-weight: 600;
+}
+
+.badge-warning {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+    font-weight: 600;
+}
+
+.badge-danger {
+    background-color: #dc3545 !important;
+    color: white !important;
+    font-weight: 600;
+}
+
+.text-dark {
+    color: #343a40 !important;
+    font-weight: 500;
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+
+.card {
+    border: 1px solid #e3e6f0;
+    border-radius: 10px;
+}
+
+.card-body {
+    background-color: #ffffff;
+    border-radius: 10px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.08);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-info {
+    background-color: #17a2b8;
+    border-color: #17a2b8;
+    color: white;
+    font-weight: 500;
+    border-radius: 6px;
+    padding: 6px 12px;
+}
+
+.btn-info:hover {
+    background-color: #138496;
+    border-color: #117a8b;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* تحسين مظهر الجدول */
+.table {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-top: none;
+    font-size: 0.95rem;
+}
+
+.table td {
+    border-top: 1px solid #f0f0f0;
+}
+
+/* تحسين التباين للألوان */
+.text-dark {
+    color: #2c3e50 !important;
+}
+
+.table-light th {
+    color: #2c3e50 !important;
+}
+
+/* تحسين responsive */
+@media (max-width: 768px) {
+    .table-responsive {
+        border-radius: 8px;
+    }
+
+    .table th,
+    .table td {
+        padding: 8px 6px;
+        font-size: 0.9rem;
+    }
+
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 0.8rem;
+    }
+}
+</style>
+
 <script>
+// إضافة event listeners للأزرار
+document.addEventListener('DOMContentLoaded', function() {
+    // إضافة event listener لأزرار العرض
+    const viewButtons = document.querySelectorAll('.view-evaluation');
+    viewButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const evaluationId = this.getAttribute('data-id');
+            viewEvaluation(evaluationId);
+        });
+    });
+});
+
 function viewEvaluation(evaluationId) {
     showLoading();
     fetch(`/api/evaluation/${evaluationId}`)
@@ -96,77 +237,86 @@ function viewEvaluation(evaluationId) {
                 const modalContent = `
                     <div class="row">
                         <div class="col-12">
-                            <h5>تفاصيل التقييم</h5>
+                            <h5 class="text-primary mb-3">تفاصيل التقييم</h5>
                             <hr>
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <strong>التاريخ:</strong> ${evaluation.date}
+                                    <strong class="text-dark">التاريخ:</strong>
+                                    <span class="text-dark">${evaluation.date}</span>
                                 </div>
                                 <div class="col-md-6">
-                                    <strong>المقيّم:</strong> ${evaluation.evaluator || 'غير محدد'}
+                                    <strong class="text-dark">المقيّم:</strong>
+                                    <span class="text-dark">${evaluation.evaluator || 'غير محدد'}</span>
                                 </div>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <strong>المكان:</strong> ${evaluation.place || 'غير محدد'}
+                                    <strong class="text-dark">المكان:</strong>
+                                    <span class="text-dark">${evaluation.place || 'غير محدد'}</span>
                                 </div>
                                 <div class="col-md-6">
-                                    <strong>الموظف المقيّم:</strong> ${evaluation.evaluated_employee || 'غير محدد'}
+                                    <strong class="text-dark">الموظف المقيّم:</strong>
+                                    <span class="text-dark">${evaluation.evaluated_employee || 'غير محدد'}</span>
                                 </div>
                             </div>
                             ${evaluation.company ? `
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <strong>الشركة:</strong> ${evaluation.company}
+                                    <strong class="text-dark">الشركة:</strong>
+                                    <span class="text-dark">${evaluation.company}</span>
                                 </div>
                                 <div class="col-md-6">
-                                    <strong>المنطقة:</strong> ${evaluation.area || 'غير محدد'}
+                                    <strong class="text-dark">المنطقة:</strong>
+                                    <span class="text-dark">${evaluation.area || 'غير محدد'}</span>
                                 </div>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <strong>الموقع:</strong> ${evaluation.location || 'غير محدد'}
+                                    <strong class="text-dark">الموقع:</strong>
+                                    <span class="text-dark">${evaluation.location || 'غير محدد'}</span>
                                 </div>
                             </div>
                             ` : ''}
                             <div class="row mb-3">
                                 <div class="col-md-3">
-                                    <strong>النظافة:</strong>
-                                    <span class="badge bg-${evaluation.cleanliness >= 4 ? 'success' : evaluation.cleanliness >= 3 ? 'warning' : 'danger'}">
+                                    <strong class="text-dark">النظافة:</strong><br>
+                                    <span class="badge bg-${evaluation.cleanliness >= 4 ? 'success' : evaluation.cleanliness >= 3 ? 'warning' : 'danger'} mt-1">
                                         ${evaluation.cleanliness}/5
                                     </span>
                                 </div>
                                 <div class="col-md-3">
-                                    <strong>التنظيم:</strong>
-                                    <span class="badge bg-${evaluation.organization >= 4 ? 'success' : evaluation.organization >= 3 ? 'warning' : 'danger'}">
+                                    <strong class="text-dark">التنظيم:</strong><br>
+                                    <span class="badge bg-${evaluation.organization >= 4 ? 'success' : evaluation.organization >= 3 ? 'warning' : 'danger'} mt-1">
                                         ${evaluation.organization}/5
                                     </span>
                                 </div>
                                 <div class="col-md-3">
-                                    <strong>حالة المعدات:</strong>
-                                    <span class="badge bg-${evaluation.equipment_condition >= 4 ? 'success' : evaluation.equipment_condition >= 3 ? 'warning' : 'danger'}">
+                                    <strong class="text-dark">حالة المعدات:</strong><br>
+                                    <span class="badge bg-${evaluation.equipment_condition >= 4 ? 'success' : evaluation.equipment_condition >= 3 ? 'warning' : 'danger'} mt-1">
                                         ${evaluation.equipment_condition}/5
                                     </span>
                                 </div>
                                 <div class="col-md-3">
-                                    <strong>إجراءات السلامة:</strong>
-                                    <span class="badge bg-${evaluation.safety_measures >= 4 ? 'success' : evaluation.safety_measures >= 3 ? 'warning' : 'danger'}">
+                                    <strong class="text-dark">إجراءات السلامة:</strong><br>
+                                    <span class="badge bg-${evaluation.safety_measures >= 4 ? 'success' : evaluation.safety_measures >= 3 ? 'warning' : 'danger'} mt-1">
                                         ${evaluation.safety_measures}/5
                                     </span>
                                 </div>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-12">
-                                    <strong>التقييم العام:</strong>
-                                    <span class="badge bg-${evaluation.overall_score >= 4 ? 'success' : evaluation.overall_score >= 3 ? 'warning' : 'danger'} fs-6">
+                                    <strong class="text-dark">التقييم العام:</strong>
+                                    <span class="badge bg-${evaluation.overall_score >= 4 ? 'success' : evaluation.overall_score >= 3 ? 'warning' : 'danger'} fs-6 mt-1">
                                         ${evaluation.overall_score.toFixed(1)}/5
                                     </span>
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col-12">
-                                    <strong>التعليقات:</strong>
-                                    <p class="mt-2 p-3 bg-light rounded">${evaluation.comments || 'لا توجد تعليقات'}</p>
+                                    <strong class="text-dark">التعليقات:</strong>
+                                    <div class="mt-2 p-3 bg-light rounded border">
+                                        <p class="mb-0 text-dark">${evaluation.comments || 'لا توجد تعليقات'}</p>
+                                    </div>
                                 </div>
                             </div>
                             ${evaluation.created_at ? `

@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% block title %}المناطق - {{ company.name }}{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
@@ -8,9 +10,6 @@
             إدارة المناطق - {{ company.name }}
         </h1>
         <div>
-            <button class="btn btn-info btn-sm me-2" onclick="testRoute()">
-                <i class="fas fa-bug"></i> اختبار المسار
-            </button>
             <a href="{{ url_for('companies_list') }}" class="btn btn-secondary btn-sm me-2">
                 <i class="fas fa-arrow-right"></i> رجوع للشركات
             </a>
@@ -23,7 +22,21 @@
     </div>
 
     <!-- رسائل التنبيه -->
-    <div id="alertContainer"></div>
+    <div id="alertContainer">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-{{ 'exclamation-circle' if category == 'error' else 'check-circle' }} me-2"></i>
+                        <div>{{ message }}</div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
 
     <!-- إحصائيات -->
     <div class="row">
@@ -48,57 +61,110 @@
                 </div>
             </div>
         </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                        مناطق بدون مشرف</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                        {{ areas|rejectattr('supervisor')|list|length }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                        إجمالي المواقع</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                        {% set total_locations = [] %}
+                        {% for area in areas %}
+                            {% if total_locations.append(area.locations|length) %}{% endif %}
+                        {% endfor %}
+                        {{ total_locations|sum }}
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- جدول المناطق -->
-    <div class="card shadow">
+    <div class="card shadow mb-4">
         <div class="card-header py-3">
             <h6 class="m-0 font-weight-bold text-primary">قائمة المناطق</h6>
         </div>
         <div class="card-body">
             {% if areas %}
             <div class="table-responsive">
-                <table class="table table-bordered table-hover" id="areasTable">
+                <table class="table table-bordered table-hover" id="areasTable" width="100%" cellspacing="0">
                     <thead class="table-light">
                         <tr>
-                            <th width="25%">اسم المنطقة</th>
-                            <th width="25%">المشرف المسؤول</th>
-                            <th width="15%">عدد المواقع</th>
-                            <th width="15%">الحالة</th>
-                            <th width="20%">الإجراءات</th>
+                            <th>اسم المنطقة</th>
+                            <th>المشرف المسؤول</th>
+                            <th>عدد المواقع</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for area in areas %}
-                        <tr id="area-{{ area.id }}">
+                        <tr>
                             <td>
-                                <strong>{{ area.name }}</strong>
+                                <strong class="text-dark">{{ area.name }}</strong>
+                                {% if not area.is_active %}
+                                <br><small class="text-muted">(غير نشطة)</small>
+                                {% endif %}
                             </td>
                             <td>
                                 {% if area.supervisor %}
-                                    {{ area.supervisor.full_name }}
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-user-shield text-primary me-2"></i>
+                                        <span>{{ area.supervisor.full_name }}</span>
+                                    </div>
                                 {% else %}
-                                    <span class="text-muted">غير محدد</span>
+                                    <span class="text-muted">
+                                        <i class="fas fa-user-times me-2"></i>غير محدد
+                                    </span>
                                 {% endif %}
                             </td>
-                            <td>{{ area.locations|length }}</td>
+                            <td>
+                                <span class="badge bg-info text-dark fs-6">
+                                    {{ area.locations|length if area.locations else 0 }}
+                                </span>
+                            </td>
                             <td>
                                 {% if area.is_active %}
-                                    <span class="badge bg-success">نشطة</span>
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle me-1"></i>نشطة
+                                    </span>
                                 {% else %}
-                                    <span class="badge bg-secondary">غير نشطة</span>
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-times-circle me-1"></i>غير نشطة
+                                    </span>
                                 {% endif %}
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <a href="{{ url_for('area_locations', area_id=area.id) }}"
-                                       class="btn btn-outline-primary">
-                                        <i class="fas fa-eye"></i> المواقع
+                                       class="btn btn-outline-primary" title="عرض المواقع">
+                                        <i class="fas fa-map-marker-alt"></i>
                                     </a>
                                     {% if current_user.role == 'owner' %}
-                                    <button class="btn btn-outline-warning"
-                                            onclick="editArea({{ area.id }}, '{{ area.name }}', {{ area.supervisor.id if area.supervisor else 'null' }})">
+                                    <button class="btn btn-outline-warning edit-area-btn"
+                                            data-id="{{ area.id }}"
+                                            data-name="{{ area.name }}"
+                                            data-supervisor="{{ area.supervisor_id if area.supervisor else '' }}"
+                                            title="تعديل المنطقة">
                                         <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger delete-area-btn"
+                                            data-id="{{ area.id }}"
+                                            data-name="{{ area.name }}"
+                                            title="حذف المنطقة">
+                                        <i class="fas fa-trash"></i>
                                     </button>
                                     {% endif %}
                                 </div>
@@ -113,6 +179,11 @@
                 <i class="fas fa-map-marker-alt fa-3x text-muted mb-3"></i>
                 <h5 class="text-muted">لا توجد مناطق مسجلة</h5>
                 <p class="text-muted">يمكنك إضافة مناطق جديدة باستخدام الزر أعلاه</p>
+                {% if current_user.role == 'owner' %}
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAreaModal">
+                    <i class="fas fa-plus me-2"></i>إضافة أول منطقة
+                </button>
+                {% endif %}
             </div>
             {% endif %}
         </div>
@@ -129,8 +200,8 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <form id="addAreaForm">
+            <form id="addAreaForm">
+                <div class="modal-body">
                     <div class="mb-3">
                         <label for="areaName" class="form-label">اسم المنطقة <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="areaName" name="name" required
@@ -144,17 +215,59 @@
                             <option value="{{ supervisor.id }}">{{ supervisor.full_name }}</option>
                             {% endfor %}
                         </select>
+                        <div class="form-text">يمكنك ترك هذا الحقل فارغاً وتعيين المشرف لاحقاً</div>
                     </div>
-                </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>إلغاء
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>حفظ المنطقة
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal تعديل منطقة -->
+<div class="modal fade" id="editAreaModal" tabindex="-1" aria-labelledby="editAreaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="editAreaModalLabel">
+                    <i class="fas fa-edit me-2"></i>تعديل المنطقة
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-2"></i>إلغاء
-                </button>
-                <button type="button" class="btn btn-primary" id="submitAreaBtn" onclick="submitAreaForm()">
-                    <i class="fas fa-save me-2"></i>حفظ المنطقة
-                </button>
-            </div>
+            <form id="editAreaForm">
+                <input type="hidden" id="editAreaId" name="area_id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editAreaName" class="form-label">اسم المنطقة <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editAreaName" name="name" required
+                               placeholder="أدخل اسم المنطقة">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editSupervisorSelect" class="form-label">المشرف المسؤول</label>
+                        <select class="form-select" id="editSupervisorSelect" name="supervisor_id">
+                            <option value="">اختر المشرف</option>
+                            {% for supervisor in available_supervisors %}
+                            <option value="{{ supervisor.id }}">{{ supervisor.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>إلغاء
+                    </button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-save me-2"></i>تحديث المنطقة
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -162,75 +275,6 @@
 
 {% block scripts %}
 <script>
-// دالة لإرسال النموذج
-function submitAreaForm() {
-    console.log('🔍 بدء إرسال نموذج إضافة منطقة');
-
-    // جمع البيانات من النموذج
-    const formData = {
-        name: document.getElementById('areaName').value.trim(),
-        supervisor_id: document.getElementById('supervisorSelect').value
-    };
-
-    console.log('📤 البيانات المجمعة:', formData);
-
-    // التحقق من البيانات
-    if (!formData.name) {
-        showAlert('يرجى إدخال اسم المنطقة', 'error');
-        document.getElementById('areaName').focus();
-        return;
-    }
-
-    const submitBtn = document.getElementById('submitAreaBtn');
-
-    // تعطيل الزر أثناء الإرسال
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...';
-
-    // إرسال البيانات كـ POST
-    fetch("{{ url_for('add_area', company_id=company.id) }}", {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams(formData)
-    })
-    .then(response => {
-        console.log('📡 حالة الاستجابة:', response.status, response.statusText);
-        if (!response.ok) {
-            if (response.status === 405) {
-                throw new Error('الخادم يرفض طريقة POST. تحقق من تعريف المسار.');
-            }
-            throw new Error(`خطأ في الخادم: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('📊 نتيجة الاستجابة:', data);
-
-        if (data.success) {
-            showAlert('✅ ' + data.message, 'success');
-            $('#addAreaModal').modal('hide');
-            document.getElementById('addAreaForm').reset();
-
-            setTimeout(() => {
-                location.reload();
-            }, 1500);
-        } else {
-            showAlert('❌ ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('❌ خطأ في الاتصال:', error);
-        showAlert('❌ ' + error.message, 'error');
-    })
-    .finally(() => {
-        // إعادة تفعيل الزر
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>حفظ المنطقة';
-    });
-}
-
 // دالة لعرض التنبيهات
 function showAlert(message, type) {
     const alertContainer = document.getElementById('alertContainer');
@@ -240,7 +284,7 @@ function showAlert(message, type) {
     const alertHtml = `
         <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
             <div class="d-flex align-items-center">
-                <i class="fas ${icon} me-2 fs-5"></i>
+                <i class="fas ${icon} me-2"></i>
                 <div>${message}</div>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -251,80 +295,191 @@ function showAlert(message, type) {
 
     // إخفاء التنبيه تلقائياً بعد 5 ثواني
     setTimeout(() => {
-        const alerts = document.querySelectorAll('.alert');
-        alerts.forEach(alert => {
+        const alert = alertContainer.querySelector('.alert');
+        if (alert) {
             alert.remove();
-        });
+        }
     }, 5000);
 }
 
-// دالة لاختبار المسار
-function testRoute() {
-    console.log('🧪 اختبار المسار...');
-
-    fetch("{{ url_for('add_area', company_id=company.id) }}", {
-        method: 'GET'
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('نتيجة اختبار المسار:', data);
-        if (data.debug) {
-            showAlert('✅ المسار يعمل بشكل صحيح', 'success');
-        }
-    })
-    .catch(error => {
-        console.error('خطأ في اختبار المسار:', error);
-        showAlert('❌ مشكلة في المسار: ' + error.message, 'error');
-    });
+// ✅ إضافة تصحيح الأخطاء لزر التعديل
+function debugEditButton(areaId, areaName, supervisorId) {
+    console.log('🔧 تصحيح زر التعديل:');
+    console.log('   - areaId:', areaId);
+    console.log('   - areaName:', areaName);
+    console.log('   - supervisorId:', supervisorId);
+    console.log('   - modal موجود:', document.getElementById('editAreaModal') !== null);
+    console.log('   - form موجود:', document.getElementById('editAreaForm') !== null);
 }
 
-// دالة اختبار مباشرة
-function testDirectPost() {
-    const formData = new URLSearchParams();
-    formData.append('name', 'منطقة الاختبار المباشر');
-    formData.append('supervisor_id', '1');
+// إضافة منطقة
+document.getElementById('addAreaForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+
+    // تعطيل الزر أثناء الإرسال
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...';
 
     fetch("{{ url_for('add_area', company_id=company.id) }}", {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
         body: formData
     })
     .then(response => response.json())
     .then(data => {
-        console.log('نتيجة الاختبار المباشر:', data);
         if (data.success) {
-            showAlert('✅ الاختبار المباشر نجح: ' + data.message, 'success');
+            showAlert('✅ ' + data.message, 'success');
+            $('#addAreaModal').modal('hide');
+            this.reset();
+            setTimeout(() => location.reload(), 1500);
         } else {
-            showAlert('❌ الاختبار المباشر فشل: ' + data.message, 'error');
+            showAlert('❌ ' + data.message, 'error');
         }
     })
     .catch(error => {
-        console.error('خطأ في الاختبار المباشر:', error);
-        showAlert('❌ خطأ في الاختبار المباشر: ' + error.message, 'error');
+        console.error('❌ خطأ في الاتصال:', error);
+        showAlert('❌ حدث خطأ أثناء إضافة المنطقة', 'error');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>حفظ المنطقة';
     });
-}
+});
 
-// دالة للتعديل
-function editArea(areaId, areaName, supervisorId) {
-    console.log('تعديل المنطقة:', areaId, areaName, supervisorId);
-    // يمكنك إضافة منطق التعديل هنا لاحقاً
+// ✅ إصلاح حدث التعديل
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎯 تهيئة أزرار التعديل...');
+
+    // أزرار التعديل
+    const editButtons = document.querySelectorAll('.edit-area-btn');
+    console.log('   - عدد أزرار التعديل:', editButtons.length);
+
+    editButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const areaId = this.getAttribute('data-id');
+            const areaName = this.getAttribute('data-name');
+            const supervisorId = this.getAttribute('data-supervisor');
+
+            console.log('🎯 نقر على زر التعديل:');
+            console.log('   - areaId:', areaId);
+            console.log('   - areaName:', areaName);
+            console.log('   - supervisorId:', supervisorId);
+
+            // تعبئة البيانات في النموذج
+            document.getElementById('editAreaId').value = areaId;
+            document.getElementById('editAreaName').value = areaName;
+            document.getElementById('editSupervisorSelect').value = supervisorId || '';
+
+            // عرض الـ modal
+            const editModal = new bootstrap.Modal(document.getElementById('editAreaModal'));
+            editModal.show();
+
+            console.log('✅ تم تعبئة النموذج وعرض الـ modal');
+        });
+    });
+
+    // أزرار الحذف
+    document.querySelectorAll('.delete-area-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const areaId = this.getAttribute('data-id');
+            const areaName = this.getAttribute('data-name');
+
+            if (confirm(`هل أنت متأكد من حذف المنطقة "${areaName}"؟`)) {
+                fetch(`/areas/${areaId}/delete`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('✅ ' + data.message, 'success');
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showAlert('❌ ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ خطأ في الحذف:', error);
+                    showAlert('❌ حدث خطأ أثناء حذف المنطقة', 'error');
+                });
+            }
+        });
+    });
+
+    // إضافة event listener للنموذج
+    document.getElementById('editAreaForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const areaId = document.getElementById('editAreaId').value;
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+
+        console.log('🎯 إرسال نموذج التعديل:', areaId);
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري التحديث...';
+
+        fetch(`/areas/${areaId}/edit`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('✅ ' + data.message, 'success');
+                $('#editAreaModal').modal('hide');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('❌ ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('❌ خطأ في التعديل:', error);
+            showAlert('❌ حدث خطأ أثناء تعديل المنطقة', 'error');
+        })
+        .finally(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>تحديث المنطقة';
+        });
+    });
+});
+
+// ✅ اختبار يدوي لزر التعديل
+function testEditButton() {
+    console.log('🧪 اختبار زر التعديل يدوياً');
+    const firstEditButton = document.querySelector('.edit-area-btn');
+    if (firstEditButton) {
+        firstEditButton.click();
+    } else {
+        console.log('❌ لم يتم العثور على أزرار التعديل');
+    }
 }
 
 // جعل الدوال متاحة للاختبار
-window.testRoute = testRoute;
-window.testDirectPost = testDirectPost;
+window.testEditButton = testEditButton;
+window.debugEditButton = debugEditButton;
 
-console.log('🎯 للمساعدة في التصحيح، استخدم:');
-console.log('   - testRoute() لاختبار المسار');
-console.log('   - testDirectPost() لاختبار الإضافة المباشرة');
-console.log('   - submitAreaForm() لإرسال النموذج يدوياً');
+console.log('🎯 للمساعدة في التصحيح:');
+console.log('   - testEditButton() لاختبار زر التعديل');
+console.log('   - تحقق من console عند النقر على زر التعديل');
 </script>
 
 <style>
-.table-hover tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.075);
+.table-light th {
+    background-color: #f8f9fa;
+    color: #2c3e50;
+    font-weight: 700;
+    border-bottom: 2px solid #e3e6f0;
+}
+
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.badge {
+    font-weight: 500;
 }
 
 .card {
@@ -332,18 +487,18 @@ console.log('   - submitAreaForm() لإرسال النموذج يدوياً');
     box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
 }
 
-.btn-group-sm > .btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
+.border-left-primary { border-left: 0.25rem solid #4e73df !important; }
+.border-left-success { border-left: 0.25rem solid #1cc88a !important; }
+.border-left-info { border-left: 0.25rem solid #36b9cc !important; }
+.border-left-warning { border-left: 0.25rem solid #f6c23e !important; }
+
+/* تحسين مظهر الـ modal */
+.modal-header {
+    border-bottom: 1px solid #dee2e6;
 }
 
-.badge {
-    font-size: 0.75em;
-}
-
-.alert {
-    border: none;
-    border-radius: 0.5rem;
+.modal-footer {
+    border-top: 1px solid #dee2e6;
 }
 </style>
 {% endblock %}

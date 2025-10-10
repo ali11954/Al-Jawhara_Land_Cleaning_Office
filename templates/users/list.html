@@ -3,92 +3,241 @@
 {% block title %}إدارة المستخدمين - أرض الجوهرة للنظافة{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2 class="text-primary mb-1">إدارة المستخدمين</h2>
-                    <p class="text-muted mb-0">عرض وإدارة جميع حسابات المستخدمين</p>
-                </div>
-                <a href="/users/add" class="btn btn-success">
-                    <i class="fas fa-plus me-1"></i>إضافة مستخدم
-                </a>
-            </div>
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-users text-primary"></i>
+            إدارة المستخدمين
+        </h1>
+        <a href="{{ url_for('add_user') }}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus me-2"></i>إضافة مستخدم
+        </a>
+    </div>
 
-            <div class="card shadow">
+    <!-- رسائل التنبيه -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-{{ 'exclamation-circle' if category == 'error' else 'check-circle' }} me-2"></i>
+                    <div>{{ message }}</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- إحصائيات -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>اسم المستخدم</th>
-                                    <th>البريد الإلكتروني</th>
-                                    <th>الدور</th>
-                                    <th>الحالة</th>
-                                    <th>تاريخ الإنشاء</th>
-                                    <th>الإجراءات</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for user in users %}
-                                <tr>
-                                    <td>{{ user.username }}</td>
-                                    <td>{{ user.email }}</td>
-                                    <td>
-                                        {% if user.role == 'owner' %}
-                                        <span class="badge bg-danger">مالك</span>
-                                        {% elif user.role == 'supervisor' %}
-                                        <span class="badge bg-warning">مشرف</span>
-                                        {% elif user.role == 'monitor' %}
-                                        <span class="badge bg-info">مراقب</span>
-                                        {% else %}
-                                        <span class="badge bg-secondary">عامل</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if user.is_active %}
-                                        <span class="badge bg-success">مفعل</span>
-                                        {% else %}
-                                        <span class="badge bg-danger">معطل</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="/users/edit/{{ user.id }}" class="btn btn-outline-warning">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            {% if user.id != current_user.id %}
-                                            <button class="btn btn-outline-danger" onclick="confirmDelete({{ user.id }})">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td colspan="6" class="text-center text-muted py-4">
-                                        <i class="fas fa-users fa-2x mb-3 d-block"></i>
-                                        لا توجد مستخدمين
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                        إجمالي المستخدمين</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ users|length }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                        المستخدمين النشطين</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                        {{ users|selectattr('is_active')|list|length }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                        المالكين</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                        {{ users|selectattr('role', 'equalto', 'owner')|list|length }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                        المشرفين</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                        {{ users|selectattr('role', 'equalto', 'supervisor')|list|length }}
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
+    <!-- جدول المستخدمين -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">قائمة المستخدمين</h6>
+        </div>
+        <div class="card-body">
+            {% if users %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="usersTable" width="100%" cellspacing="0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>اسم المستخدم</th>
+                            <th>البريد الإلكتروني</th>
+                            <th>الدور</th>
+                            <th>الحالة</th>
+                            <th>تاريخ الإنشاء</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>
+                                <strong class="text-dark">{{ user.username }}</strong>
+                            </td>
+                            <td>{{ user.email }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'danger' if user.role == 'owner' else 'warning' if user.role == 'supervisor' else 'info' if user.role == 'monitor' else 'secondary' }}">
+                                    {% if user.role == 'owner' %}
+                                        مالك
+                                    {% elif user.role == 'supervisor' %}
+                                        مشرف
+                                    {% elif user.role == 'monitor' %}
+                                        مراقب
+                                    {% else %}
+                                        عامل
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                {% if user.is_active %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle me-1"></i>نشط
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-times-circle me-1"></i>غير نشط
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('edit_user', user_id=user.id) }}"
+                                       class="btn btn-outline-warning" title="تعديل المستخدم">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% if user.id != current_user.id %}
+                                    <button class="btn btn-outline-danger delete-user-btn"
+                                            data-id="{{ user.id }}"
+                                            data-username="{{ user.username }}"
+                                            title="حذف المستخدم">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    {% else %}
+                                    <button class="btn btn-outline-secondary" disabled title="لا يمكن حذف حسابك">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">لا توجد مستخدمين مسجلين</h5>
+                <p class="text-muted">يمكنك إضافة مستخدمين جديدين باستخدام الزر أعلاه</p>
+                <a href="{{ url_for('add_user') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>إضافة أول مستخدم
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
 <script>
-function confirmDelete(userId) {
-    if (confirm('هل أنت متأكد من حذف هذا المستخدم؟')) {
-        window.location.href = '/users/delete/' + userId;
-    }
+// حذف المستخدم
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-user-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const userId = this.getAttribute('data-id');
+            const username = this.getAttribute('data-username');
+
+            if (confirm(`هل أنت متأكد من حذف المستخدم "${username}"؟`)) {
+                // يمكنك إضافة دالة حذف هنا إذا كنت تريد حذفاً مباشراً
+                // أو استخدام redirect للصفحة
+                showAlert('⚠️ هذه الخاصية تحت التطوير', 'warning');
+            }
+        });
+    });
+});
+
+function showAlert(message, type) {
+    const alertClass = type === 'success' ? 'alert-success' : type === 'warning' ? 'alert-warning' : 'alert-danger';
+    const icon = type === 'success' ? 'fa-check-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-exclamation-circle';
+
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="fas ${icon} me-2"></i>
+                <div>${message}</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+
+    // إضافة التنبيه في أعلى الصفحة
+    document.querySelector('.container-fluid').insertAdjacentHTML('afterbegin', alertHtml);
+
+    setTimeout(() => {
+        const alert = document.querySelector('.alert');
+        if (alert) {
+            alert.remove();
+        }
+    }, 5000);
 }
 </script>
+
+<style>
+.table-light th {
+    background-color: #f8f9fa;
+    color: #2c3e50;
+    font-weight: 700;
+    border-bottom: 2px solid #e3e6f0;
+}
+
+.btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.badge {
+    font-weight: 500;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.border-left-primary { border-left: 0.25rem solid #4e73df !important; }
+.border-left-success { border-left: 0.25rem solid #1cc88a !important; }
+.border-left-info { border-left: 0.25rem solid #36b9cc !important; }
+.border-left-warning { border-left: 0.25rem solid #f6c23e !important; }
+</style>
 {% endblock %}

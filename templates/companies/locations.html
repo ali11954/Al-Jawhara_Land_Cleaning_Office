@@ -116,19 +116,28 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{{ url_for('location_places', location_id=location.id) }}"
-                                       class="btn btn-outline-primary">
-                                        <i class="fas fa-eye"></i> الأماكن
-                                    </a>
-                                    {% if current_user.role == 'owner' or (current_user.role == 'supervisor' and current_user.employee_profile and area.supervisor_id == current_user.employee_profile.id) %}
-                                    <button class="btn btn-outline-warning"
-                                            onclick="editLocation({{ location.id }}, '{{ location.name }}', {{ location.monitor.id if location.monitor else 'null' }})">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    {% endif %}
-                                </div>
-                            </td>
+    <div class="btn-group btn-group-sm">
+        <a href="{{ url_for('location_places', location_id=location.id) }}"
+           class="btn btn-outline-primary" title="عرض الأماكن">
+            <i class="fas fa-map-marker-alt"></i>
+        </a>
+        {% if current_user.role == 'owner' or (current_user.role == 'supervisor' and current_user.employee_profile and area.supervisor_id == current_user.employee_profile.id) %}
+        <button class="btn btn-outline-warning edit-location-btn"
+                data-id="{{ location.id }}"
+                data-name="{{ location.name }}"
+                data-monitor="{{ location.monitor_id if location.monitor else '' }}"
+                title="تعديل الموقع">
+            <i class="fas fa-edit"></i>
+        </button>
+        <button class="btn btn-outline-danger delete-location-btn"
+                data-id="{{ location.id }}"
+                data-name="{{ location.name }}"
+                title="حذف الموقع">
+            <i class="fas fa-trash"></i>
+        </button>
+        {% endif %}
+    </div>
+</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -184,79 +193,49 @@
         </div>
     </div>
 </div>
+<!-- Modal تعديل موقع -->
+<div class="modal fade" id="editLocationModal" tabindex="-1" aria-labelledby="editLocationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="editLocationModalLabel">
+                    <i class="fas fa-edit me-2"></i>تعديل الموقع
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editLocationForm">
+                <input type="hidden" id="editLocationId" name="location_id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editLocationName" class="form-label">اسم الموقع <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editLocationName" name="name" required
+                               placeholder="أدخل اسم الموقع">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editMonitorSelect" class="form-label">المراقب المسؤول</label>
+                        <select class="form-select" id="editMonitorSelect" name="monitor_id">
+                            <option value="">اختر المراقب</option>
+                            {% for monitor in available_monitors %}
+                            <option value="{{ monitor.id }}">{{ monitor.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>إلغاء
+                    </button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-save me-2"></i>تحديث الموقع
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
-
 {% block scripts %}
 <script>
-// دالة لإرسال نموذج الموقع
-function submitLocationForm() {
-    console.log('🔍 بدء إرسال نموذج إضافة موقع');
-
-    // جمع البيانات من النموذج
-    const formData = {
-        name: document.getElementById('locationName').value.trim(),
-        monitor_id: document.getElementById('monitorSelect').value
-    };
-
-    console.log('📤 البيانات المجمعة:', formData);
-
-    // التحقق من البيانات
-    if (!formData.name) {
-        showAlert('يرجى إدخال اسم الموقع', 'error');
-        document.getElementById('locationName').focus();
-        return;
-    }
-
-    const submitBtn = document.getElementById('submitLocationBtn');
-
-    // تعطيل الزر أثناء الإرسال
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...';
-
-    // إرسال البيانات كـ POST
-    fetch("{{ url_for('add_location', area_id=area.id) }}", {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams(formData)
-    })
-    .then(response => {
-        console.log('📡 حالة الاستجابة:', response.status, response.statusText);
-        if (!response.ok) {
-            if (response.status === 405) {
-                throw new Error('الخادم يرفض طريقة POST. تحقق من تعريف المسار.');
-            }
-            throw new Error(`خطأ في الخادم: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('📊 نتيجة الاستجابة:', data);
-
-        if (data.success) {
-            showAlert('✅ ' + data.message, 'success');
-            $('#addLocationModal').modal('hide');
-            document.getElementById('addLocationForm').reset();
-
-            setTimeout(() => {
-                location.reload();
-            }, 1500);
-        } else {
-            showAlert('❌ ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('❌ خطأ في الاتصال:', error);
-        showAlert('❌ ' + error.message, 'error');
-    })
-    .finally(() => {
-        // إعادة تفعيل الزر
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>حفظ الموقع';
-    });
-}
-
 // دالة لعرض التنبيهات
 function showAlert(message, type) {
     const alertContainer = document.getElementById('alertContainer');
@@ -266,7 +245,7 @@ function showAlert(message, type) {
     const alertHtml = `
         <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
             <div class="d-flex align-items-center">
-                <i class="fas ${icon} me-2 fs-5"></i>
+                <i class="fas ${icon} me-2"></i>
                 <div>${message}</div>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -277,11 +256,155 @@ function showAlert(message, type) {
 
     // إخفاء التنبيه تلقائياً بعد 5 ثواني
     setTimeout(() => {
-        const alerts = document.querySelectorAll('.alert');
-        alerts.forEach(alert => {
+        const alert = alertContainer.querySelector('.alert');
+        if (alert) {
             alert.remove();
-        });
+        }
     }, 5000);
+}
+
+// إضافة موقع
+document.getElementById('addLocationForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+
+    // تعطيل الزر أثناء الإرسال
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...';
+
+    fetch("{{ url_for('add_location', area_id=area.id) }}", {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('✅ ' + data.message, 'success');
+            $('#addLocationModal').modal('hide');
+            this.reset();
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('❌ ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('❌ خطأ في الاتصال:', error);
+        showAlert('❌ حدث خطأ أثناء إضافة الموقع', 'error');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>حفظ الموقع';
+    });
+});
+
+// ✅ إصلاح حدث التعديل للمواقع
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎯 تهيئة أزرار التعديل للمواقع...');
+
+    // أزرار التعديل
+    const editButtons = document.querySelectorAll('.edit-location-btn');
+    console.log('   - عدد أزرار التعديل:', editButtons.length);
+
+    editButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const locationId = this.getAttribute('data-id');
+            const locationName = this.getAttribute('data-name');
+            const monitorId = this.getAttribute('data-monitor');
+
+            console.log('🎯 نقر على زر تعديل الموقع:');
+            console.log('   - locationId:', locationId);
+            console.log('   - locationName:', locationName);
+            console.log('   - monitorId:', monitorId);
+
+            // تعبئة البيانات في النموذج
+            document.getElementById('editLocationId').value = locationId;
+            document.getElementById('editLocationName').value = locationName;
+            document.getElementById('editMonitorSelect').value = monitorId || '';
+
+            // عرض الـ modal
+            const editModal = new bootstrap.Modal(document.getElementById('editLocationModal'));
+            editModal.show();
+
+            console.log('✅ تم تعبئة نموذج التعديل وعرض الـ modal');
+        });
+    });
+
+    // أزرار الحذف
+    document.querySelectorAll('.delete-location-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const locationId = this.getAttribute('data-id');
+            const locationName = this.getAttribute('data-name');
+
+            if (confirm(`هل أنت متأكد من حذف الموقع "${locationName}"؟`)) {
+                fetch(`/locations/${locationId}/delete`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('✅ ' + data.message, 'success');
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showAlert('❌ ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ خطأ في الحذف:', error);
+                    showAlert('❌ حدث خطأ أثناء حذف الموقع', 'error');
+                });
+            }
+        });
+    });
+
+    // إضافة event listener لنموذج التعديل
+    document.getElementById('editLocationForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const locationId = document.getElementById('editLocationId').value;
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+
+        console.log('🎯 إرسال نموذج تعديل الموقع:', locationId);
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري التحديث...';
+
+        fetch(`/locations/${locationId}/edit`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('✅ ' + data.message, 'success');
+                $('#editLocationModal').modal('hide');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('❌ ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('❌ خطأ في التعديل:', error);
+            showAlert('❌ حدث خطأ أثناء تعديل الموقع', 'error');
+        })
+        .finally(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>تحديث الموقع';
+        });
+    });
+});
+
+// ✅ اختبار يدوي لزر التعديل
+function testEditButton() {
+    console.log('🧪 اختبار زر التعديل يدوياً');
+    const firstEditButton = document.querySelector('.edit-location-btn');
+    if (firstEditButton) {
+        firstEditButton.click();
+    } else {
+        console.log('❌ لم يتم العثور على أزرار التعديل');
+    }
 }
 
 // دالة لاختبار المسار
@@ -304,48 +427,14 @@ function testRoute() {
     });
 }
 
-// دالة اختبار مباشرة
-function testDirectPost() {
-    const formData = new URLSearchParams();
-    formData.append('name', 'موقع الاختبار المباشر');
-    formData.append('monitor_id', '2');
-
-    fetch("{{ url_for('add_location', area_id=area.id) }}", {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('نتيجة الاختبار المباشر:', data);
-        if (data.success) {
-            showAlert('✅ الاختبار المباشر نجح: ' + data.message, 'success');
-        } else {
-            showAlert('❌ الاختبار المباشر فشل: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('خطأ في الاختبار المباشر:', error);
-        showAlert('❌ خطأ في الاختبار المباشر: ' + error.message, 'error');
-    });
-}
-
-// دالة للتعديل
-function editLocation(locationId, locationName, monitorId) {
-    console.log('تعديل الموقع:', locationId, locationName, monitorId);
-    // يمكنك إضافة منطق التعديل هنا لاحقاً
-}
-
 // جعل الدوال متاحة للاختبار
+window.testEditButton = testEditButton;
 window.testRoute = testRoute;
-window.testDirectPost = testDirectPost;
 
-console.log('🎯 للمساعدة في التصحيح، استخدم:');
-console.log('   - testRoute() لاختبار مسار المواقع');
-console.log('   - testDirectPost() لاختبار الإضافة المباشرة');
-console.log('   - submitLocationForm() لإرسال النموذج يدوياً');
+console.log('🎯 للمساعدة في التصحيح:');
+console.log('   - testEditButton() لاختبار زر التعديل');
+console.log('   - testRoute() لاختبار المسار');
+console.log('   - تحقق من console عند النقر على زر التعديل');
 </script>
 
 <style>
@@ -365,11 +454,31 @@ console.log('   - submitLocationForm() لإرسال النموذج يدوياً'
 
 .badge {
     font-size: 0.75em;
+    font-weight: 500;
 }
 
 .alert {
     border: none;
     border-radius: 0.5rem;
+}
+
+.table-light th {
+    background-color: #f8f9fa;
+    color: #2c3e50;
+    font-weight: 700;
+    border-bottom: 2px solid #e3e6f0;
+}
+
+.border-left-primary { border-left: 0.25rem solid #4e73df !important; }
+.border-left-success { border-left: 0.25rem solid #1cc88a !important; }
+
+/* تحسين مظهر الـ modal */
+.modal-header {
+    border-bottom: 1px solid #dee2e6;
+}
+
+.modal-footer {
+    border-top: 1px solid #dee2e6;
 }
 </style>
 {% endblock %}

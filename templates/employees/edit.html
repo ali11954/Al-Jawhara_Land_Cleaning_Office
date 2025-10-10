@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}تعديل مستخدم - أرض الجوهرة للنظافة{% endblock %}
+{% block title %}تعديل موظف - أرض الجوهرة للنظافة{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">
             <i class="fas fa-user-edit text-primary"></i>
-            تعديل المستخدم - {{ user.username }}
+            تعديل الموظف - {{ employee.full_name }}
         </h1>
-        <a href="{{ url_for('users_list') }}" class="btn btn-secondary btn-sm">
-            <i class="fas fa-arrow-right me-2"></i>رجوع للمستخدمين
+        <a href="{{ url_for('employees_list') }}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-right me-2"></i>رجوع للموظفين
         </a>
     </div>
 
@@ -33,49 +33,85 @@
         <div class="col-lg-8">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">بيانات المستخدم</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">بيانات الموظف</h6>
                 </div>
                 <div class="card-body">
-                    <form method="POST" id="editUserForm">
+                    <form method="POST" id="editEmployeeForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="full_name" class="form-label">الاسم الكامل <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="full_name" name="full_name"
+                                       value="{{ employee.full_name }}" required
+                                       placeholder="أدخل الاسم الكامل">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="position" class="form-label">المسمى الوظيفي <span class="text-danger">*</span></label>
+                                <select class="form-select" id="position" name="position" required>
+                                    <option value="supervisor" {% if employee.position == 'supervisor' %}selected{% endif %}>مشرف</option>
+                                    <option value="monitor" {% if employee.position == 'monitor' %}selected{% endif %}>مراقب</option>
+                                    <option value="worker" {% if employee.position == 'worker' %}selected{% endif %}>عامل</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="username" class="form-label">اسم المستخدم <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="username" name="username"
-                                       value="{{ user.username }}" required
+                                       value="{{ employee.user.username }}" required
                                        placeholder="أدخل اسم المستخدم">
-                                <div class="form-text">يجب أن يكون اسم المستخدم فريداً</div>
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label for="email" class="form-label">البريد الإلكتروني <span class="text-danger">*</span></label>
                                 <input type="email" class="form-control" id="email" name="email"
-                                       value="{{ user.email }}" required
+                                       value="{{ employee.user.email }}" required
                                        placeholder="example@company.com">
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="role" class="form-label">الدور <span class="text-danger">*</span></label>
-                                <select class="form-select" id="role" name="role" required>
-                                    <option value="owner" {% if user.role == 'owner' %}selected{% endif %}>مالك</option>
-                                    <option value="supervisor" {% if user.role == 'supervisor' %}selected{% endif %}>مشرف</option>
-                                    <option value="monitor" {% if user.role == 'monitor' %}selected{% endif %}>مراقب</option>
-                                    <option value="worker" {% if user.role == 'worker' %}selected{% endif %}>عامل</option>
-                                </select>
+                                <label for="phone" class="form-label">رقم الهاتف</label>
+                                <input type="tel" class="form-control" id="phone" name="phone"
+                                       value="{{ employee.phone or '' }}"
+                                       placeholder="05XXXXXXXX">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="salary" class="form-label">الراتب (ريال سعودي)</label>
+                                <input type="number" class="form-control" id="salary" name="salary"
+                                       value="{{ employee.salary }}" step="0.01"
+                                       placeholder="0.00">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="hire_date" class="form-label">تاريخ التعيين <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="hire_date" name="hire_date"
+                                       value="{{ employee.hire_date }}" required
+                                       max="{{ today }}">
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">الحالة</label>
                                 <div class="form-check mt-2">
                                     <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
-                                           {% if user.is_active %}checked{% endif %}>
+                                           {% if employee.is_active %}checked{% endif %}>
                                     <label class="form-check-label" for="is_active">
-                                        حساب نشط
+                                        موظف نشط
                                     </label>
                                 </div>
-                                <div class="form-text">يمكن تعطيل الحساب مؤقتاً</div>
+                                <div class="form-text">يمكن تعطيل الموظف مؤقتاً</div>
                             </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="address" class="form-label">العنوان</label>
+                            <textarea class="form-control" id="address" name="address" rows="3"
+                                      placeholder="أدخل العنوان الكامل">{{ employee.address or '' }}</textarea>
                         </div>
 
                         <div class="row mt-4">
@@ -108,9 +144,9 @@
                         <div class="row mt-4">
                             <div class="col-12">
                                 <button type="submit" class="btn btn-warning">
-                                    <i class="fas fa-save me-2"></i>تحديث المستخدم
+                                    <i class="fas fa-save me-2"></i>تحديث البيانات
                                 </button>
-                                <a href="{{ url_for('users_list') }}" class="btn btn-secondary">
+                                <a href="{{ url_for('employees_list') }}" class="btn btn-secondary">
                                     <i class="fas fa-times me-2"></i>إلغاء
                                 </a>
                             </div>
@@ -128,29 +164,40 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <strong>تاريخ الإنشاء:</strong><br>
-                        <span class="text-muted">{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                        <span class="text-muted">{{ employee.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
                     </div>
                     <div class="mb-3">
                         <strong>آخر تحديث:</strong><br>
-                        <span class="text-muted">{{ user.updated_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                        <span class="text-muted">{{ employee.updated_at.strftime('%Y-%m-%d %H:%M') }}</span>
                     </div>
                     <div class="mb-3">
                         <strong>الحالة الحالية:</strong><br>
-                        <span class="badge bg-{{ 'success' if user.is_active else 'secondary' }}">
-                            {{ 'نشط' if user.is_active else 'غير نشط' }}
+                        <span class="badge bg-{{ 'success' if employee.is_active else 'secondary' }}">
+                            {{ 'نشط' if employee.is_active else 'غير نشط' }}
                         </span>
                     </div>
                     <div class="mb-3">
-                        <strong>الدور الحالي:</strong><br>
-                        <span class="badge bg-{{ 'danger' if user.role == 'owner' else 'warning' if user.role == 'supervisor' else 'info' if user.role == 'monitor' else 'secondary' }}">
-                            {% if user.role == 'owner' %}
-                                مالك
-                            {% elif user.role == 'supervisor' %}
+                        <strong>المسمى الوظيفي:</strong><br>
+                        <span class="badge bg-{{ 'warning' if employee.position == 'supervisor' else 'info' if employee.position == 'monitor' else 'secondary' }}">
+                            {% if employee.position == 'supervisor' %}
                                 مشرف
-                            {% elif user.role == 'monitor' %}
+                            {% elif employee.position == 'monitor' %}
                                 مراقب
                             {% else %}
                                 عامل
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>مدة الخدمة:</strong><br>
+                        <span class="text-muted">
+                            {% set days = (today - employee.hire_date).days %}
+                            {% if days >= 365 %}
+                                {{ (days / 365)|round|int }} سنة
+                            {% elif days >= 30 %}
+                                {{ (days / 30)|round|int }} شهر
+                            {% else %}
+                                {{ days }} يوم
                             {% endif %}
                         </span>
                     </div>
@@ -159,24 +206,20 @@
 
             <div class="card shadow">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">معلومات الأدوار</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">معلومات المسميات الوظيفية</h6>
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <h6 class="text-primary">👑 مالك</h6>
-                        <p class="text-muted small">صلاحيات كاملة على النظام</p>
-                    </div>
-                    <div class="mb-3">
                         <h6 class="text-warning">👨‍💼 مشرف</h6>
-                        <p class="text-muted small">إدارة المناطق والمواقع والأماكن</p>
+                        <p class="text-muted small">إدارة المناطق والمواقع والأماكن التابعة له، متابعة التقييمات</p>
                     </div>
                     <div class="mb-3">
                         <h6 class="text-info">👀 مراقب</h6>
-                        <p class="text-muted small">إدارة المواقع والأماكن</p>
+                        <p class="text-muted small">إدارة المواقع والأماكن التابعة له، إدخال التقييمات</p>
                     </div>
                     <div class="mb-3">
                         <h6 class="text-secondary">👷 عامل</h6>
-                        <p class="text-muted small">عرض التقييمات فقط</p>
+                        <p class="text-muted small">تنفيذ أعمال النظافة، عرض التقييمات الخاصة به</p>
                     </div>
                 </div>
             </div>
@@ -187,7 +230,7 @@
 
 {% block scripts %}
 <script>
-document.getElementById('editUserForm').addEventListener('submit', function(e) {
+document.getElementById('editEmployeeForm').addEventListener('submit', function(e) {
     const password = document.getElementById('password').value;
     const confirmPassword = document.getElementById('confirm_password').value;
 
@@ -205,6 +248,9 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
         return false;
     }
 });
+
+// تعيين الحد الأقصى لتاريخ اليوم
+document.getElementById('hire_date').max = new Date().toISOString().split('T')[0];
 </script>
 
 <style>
