@@ -3617,10 +3617,6 @@ def check_database():
 
 if __name__ == '__main__':
     try:
-        # Initialize database first
-     #   with app.app_context():
-      #      initialize_database()
-
         print("=" * 50)
         print("🚀 بدء تشغيل تطبيق أرض الجوهرة للنظافة...")
         print("📊 يمكنك الوصول للتطبيق على: http://localhost:5000")
@@ -3629,12 +3625,20 @@ if __name__ == '__main__':
         print("=" * 50)
         print("🔄 بدء تشغيل الخادم...")
 
-        # تشغيل الخادم خارج context
+        import os
+
+        # 🔹 استخدم المنفذ الذي توفره Render تلقائيًا
+        port = int(os.environ.get("PORT", 5000))
+
+        # 🔹 استخدم وضع DEBUG من البيئة
+        debug_mode = os.environ.get("DEBUG", "True").lower() == "true"
+
         app.run(
-            host='0.0.0.0',  # تغيير إلى 0.0.0.0 للسماح بالوصول من الخارج
-            port=5000,
-            debug=True
+            host='0.0.0.0',
+            port=port,
+            debug=debug_mode
         )
+
     except Exception as e:
         print(f"❌ خطأ في تشغيل التطبيق: {e}")
         import traceback
