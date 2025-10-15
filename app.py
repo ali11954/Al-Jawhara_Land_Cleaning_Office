@@ -7,12 +7,119 @@ import json
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import BadRequest
 import os
+import humanize
+from babel.dates import format_timedelta
+import arabic_reshaper
+from bidi.algorithm import get_display
+
+# تفعيل العربية في humanize
 
 # ✅ تصحيح: إنشاء تطبيق واحد فقط واستخدام config.py
 app = Flask(__name__)
 app.config.from_object(Config)
 from flask_migrate import Migrate
 migrate = Migrate(app, db)
+
+from datetime import datetime, date
+from flask import Flask
+import humanize
+from babel.dates import format_timedelta
+import arabic_reshaper
+from bidi.algorithm import get_display
+
+
+def register_template_filters(app):
+    """تسجيل الفلاتر المخصصة في Jinja2"""
+
+    @app.template_filter('time_ago')
+    def time_ago_filter(value):
+        """تحويل التاريخ إلى صيغة 'منذ وقت'"""
+        if not value:
+            return ""
+
+        try:
+            now = datetime.now()
+            if isinstance(value, date):
+                value = datetime.combine(value, datetime.min.time())
+
+            diff = now - value
+
+            # استخدام humanize للترجمة العربية
+            try:
+                # تثبيت: pip install humanize
+                humanize.activate('ar')
+                return humanize.naturaltime(diff)
+            except:
+                # بديل إذا لم يكن humanize متوفراً
+                if diff.days > 365:
+                    years = diff.days // 365
+                    return f"منذ {years} سنة" if years > 1 else "منذ سنة"
+                elif diff.days > 30:
+                    months = diff.days // 30
+                    return f"منذ {months} شهر" if months > 1 else "منذ شهر"
+                elif diff.days > 0:
+                    return f"منذ {diff.days} يوم" if diff.days > 1 else "منذ يوم"
+                elif diff.seconds > 3600:
+                    hours = diff.seconds // 3600
+                    return f"منذ {hours} ساعة" if hours > 1 else "منذ ساعة"
+                elif diff.seconds > 60:
+                    minutes = diff.seconds // 60
+                    return f"منذ {minutes} دقيقة" if minutes > 1 else "منذ دقيقة"
+                else:
+                    return "الآن"
+
+        except Exception as e:
+            app.logger.error(f"Error in time_ago filter: {str(e)}")
+            return str(value)
+
+    @app.template_filter('arabic_date')
+    def arabic_date_filter(value, format='%Y-%m-%d'):
+        """تنسيق التاريخ مع دعم العربية"""
+        if not value:
+            return ""
+        try:
+            if isinstance(value, str):
+                value = datetime.strptime(value, '%Y-%m-%d')
+            return value.strftime(format)
+        except Exception:
+            return str(value)
+
+    @app.template_filter('format_time')
+    def format_time_filter(value):
+        """تنسيق الوقت"""
+        if not value:
+            return "-"
+        try:
+            if isinstance(value, str):
+                return value
+            return value.strftime('%H:%M')
+        except Exception:
+            return str(value)
+
+    @app.template_filter('status_badge')
+    def status_badge_filter(status):
+        """عرض حالة الحضور كبادجة"""
+        badges = {
+            'present': '<span class="badge bg-success">حاضر</span>',
+            'absent': '<span class="badge bg-danger">غائب</span>',
+            'late': '<span class="badge bg-warning">متأخر</span>',
+            'active': '<span class="badge bg-success">نشط</span>',
+            'inactive': '<span class="badge bg-secondary">غير نشط</span>'
+        }
+        return badges.get(status, f'<span class="badge bg-secondary">{status}</span>')
+
+    @app.template_filter('shift_name')
+    def shift_name_filter(shift_type):
+        """تحويل نوع الوردية إلى اسم عربي"""
+        names = {
+            'morning': 'صباحية',
+            'evening': 'مسائية'
+        }
+        return names.get(shift_type, shift_type)
+
+
+
+
 # ✅ تصحيح: تهيئة الإضافات مرة واحدة
 db.init_app(app)
 
@@ -231,7 +338,6 @@ def logout():
     logout_user()
     flash('تم تسجيل الخروج بنجاح', 'success')
     return redirect(url_for('login'))
-
 
 
 # User Management (Owner only)
@@ -744,47 +850,334 @@ def toggle_user_status(user_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'حدث خطأ: {str(e)}'})
-# Dashboard
+
+
+from flask import render_template, jsonify
+from datetime import datetime, timedelta, date
+from sqlalchemy import func, and_, or_
+from models import db, Employee, CleaningEvaluation, Attendance, Company, Area
+
+
+def get_dashboard_data():
+    """جلب بيانات لوحة التحكم"""
+
+    # إحصائيات أساسية
+    total_employees = Employee.query.filter_by(is_active=True).count()
+
+    # الحضور اليومي
+    today = date.today()
+    today_attendance = Attendance.query.filter_by(date=today).all()
+    present_today = len([a for a in today_attendance if a.status == 'present'])
+    absent_today = len([a for a in today_attendance if a.status == 'absent'])
+    attendance_rate = (present_today / total_employees * 100) if total_employees > 0 else 0
+
+    # التقييمات
+    today_evaluations = CleaningEvaluation.query.filter_by(date=today).all()
+    avg_evaluation = sum(e.overall_score for e in today_evaluations) / len(
+        today_evaluations) * 20 if today_evaluations else 0
+    max_evaluation = max(e.overall_score for e in today_evaluations) * 20 if today_evaluations else 0
+    min_evaluation = min(e.overall_score for e in today_evaluations) * 20 if today_evaluations else 0
+
+    # الموظفين الجدد (في آخر 30 يوم)
+    thirty_days_ago = datetime.now() - timedelta(days=30)
+    new_employees = Employee.query.filter(
+        Employee.created_at >= thirty_days_ago,
+        Employee.is_active == True
+    ).count()
+
+    # التقييمات التي تحتاج مراجعة (تقييمات أقل من 60%)
+    pending_reviews = CleaningEvaluation.query.filter(
+        CleaningEvaluation.overall_score < 3.0,  # أقل من 60%
+        CleaningEvaluation.date == today
+    ).count()
+
+    # بيانات التغيير (محاكاة - في التطبيق الحقيقي يجب حسابها من البيانات السابقة)
+    evaluation_change = 2.5  # محاكاة
+    attendance_change = 1.2  # محاكاة
+    reviews_change = -3  # محاكاة
+
+    # مؤشرات الأداء (محاكاة - يمكن حسابها من التقييمات والتعليقات)
+    customer_satisfaction = 92.0
+    task_completion = 88.0
+    quality_score = 95.0
+    time_utilization = 78.0
+
+    customer_satisfaction_change = 3.0
+    task_completion_change = 5.0
+    quality_change = 2.0
+    time_utilization_change = -2.0
+
+    stats = {
+        'total_employees': total_employees,
+        'present_today': present_today,
+        'absent_today': absent_today,
+        'attendance_rate': attendance_rate,
+        'avg_evaluation': avg_evaluation,
+        'max_evaluation': max_evaluation,
+        'min_evaluation': min_evaluation,
+        'active_employees': total_employees,
+        'new_employees': new_employees,
+        'pending_reviews': pending_reviews,
+        'evaluation_change': evaluation_change,
+        'attendance_change': attendance_change,
+        'reviews_change': reviews_change,
+        'customer_satisfaction': customer_satisfaction,
+        'task_completion': task_completion,
+        'quality_score': quality_score,
+        'time_utilization': time_utilization,
+        'customer_satisfaction_change': customer_satisfaction_change,
+        'task_completion_change': task_completion_change,
+        'quality_change': quality_change,
+        'time_utilization_change': time_utilization_change
+    }
+
+    return stats
+
+
+def get_evaluation_chart_data():
+    """جلب بيانات الرسم البياني للتقييمات"""
+
+    # محاكاة بيانات التقييم خلال اليوم
+    times = ['8:00', '10:00', '12:00', '14:00', '16:00', '18:00']
+    avg_scores = [88, 90, 92, 94, 95, 94]
+    max_scores = [92, 94, 96, 97, 98, 97]
+    min_scores = [82, 84, 85, 86, 85, 85]
+
+    evaluation_data = {
+        'labels': times,
+        'datasets': [
+            {
+                'label': 'متوسط التقييم',
+                'data': avg_scores,
+                'borderColor': '#4e73df',
+                'backgroundColor': 'rgba(78, 115, 223, 0.1)',
+                'tension': 0.3,
+                'fill': True
+            },
+            {
+                'label': 'الأعلى أداءً',
+                'data': max_scores,
+                'borderColor': '#1cc88a',
+                'backgroundColor': 'rgba(28, 200, 138, 0.1)',
+                'tension': 0.3,
+                'fill': True
+            },
+            {
+                'label': 'الأقل أداءً',
+                'data': min_scores,
+                'borderColor': '#f6c23e',
+                'backgroundColor': 'rgba(246, 194, 62, 0.1)',
+                'tension': 0.3,
+                'fill': True
+            }
+        ]
+    }
+
+    return evaluation_data
+
+
+def get_attendance_chart_data():
+    """جلب بيانات الرسم البياني للحضور"""
+
+    today = date.today()
+    attendance_records = Attendance.query.filter_by(date=today).all()
+
+    present = len([a for a in attendance_records if a.status == 'present'])
+    absent = len([a for a in attendance_records if a.status == 'absent'])
+    vacation = len([a for a in attendance_records if a.status == 'vacation'])
+
+    attendance_data = {
+        'labels': ['حاضرون', 'غائبون', 'إجازة'],
+        'datasets': [{
+            'data': [present, absent, vacation],
+            'backgroundColor': [
+                '#1cc88a',
+                '#e74a3b',
+                '#f6c23e'
+            ],
+            'borderWidth': 2,
+            'borderColor': '#fff'
+        }]
+    }
+
+    return attendance_data
+
+
+def get_companies_chart_data():
+    """جلب بيانات الرسم البياني للشركات"""
+
+    companies = Company.query.filter_by(is_active=True).all()
+    company_names = []
+    company_scores = []
+
+    for company in companies:
+        # حساب متوسط التقييم لكل شركة
+        avg_score = db.session.query(
+            func.avg(CleaningEvaluation.overall_score * 20)
+        ).join(Place).join(Location).join(Area).filter(
+            Area.company_id == company.id,
+            CleaningEvaluation.date == date.today()
+        ).scalar() or 0
+
+        company_names.append(company.name)
+        company_scores.append(round(avg_score, 1))
+
+    companies_data = {
+        'labels': company_names,
+        'datasets': [{
+            'label': 'متوسط التقييم',
+            'data': company_scores,
+            'backgroundColor': [
+                'rgba(78, 115, 223, 0.7)',
+                'rgba(28, 200, 138, 0.7)',
+                'rgba(54, 185, 204, 0.7)',
+                'rgba(246, 194, 62, 0.7)'
+            ],
+            'borderColor': [
+                '#4e73df',
+                '#1cc88a',
+                '#36b9cc',
+                '#f6c23e'
+            ],
+            'borderWidth': 1
+        }]
+    }
+
+    return companies_data
+
+
+def get_areas_chart_data():
+    """جلب بيانات الرسم البياني للمناطق"""
+
+    areas = Area.query.filter_by(is_active=True).all()
+    area_names = []
+    area_scores = []
+
+    for area in areas:
+        # حساب متوسط التقييم لكل منطقة
+        avg_score = db.session.query(
+            func.avg(CleaningEvaluation.overall_score * 20)
+        ).join(Place).join(Location).filter(
+            Location.area_id == area.id,
+            CleaningEvaluation.date == date.today()
+        ).scalar() or 0
+
+        area_names.append(area.name)
+        area_scores.append(round(avg_score, 1))
+
+    areas_data = {
+        'labels': area_names,
+        'datasets': [{
+            'data': area_scores,
+            'backgroundColor': [
+                'rgba(78, 115, 223, 0.7)',
+                'rgba(28, 200, 138, 0.7)',
+                'rgba(54, 185, 204, 0.7)',
+                'rgba(246, 194, 62, 0.7)',
+                'rgba(231, 74, 59, 0.7)'
+            ],
+            'borderWidth': 2,
+            'borderColor': '#fff'
+        }]
+    }
+
+    return areas_data
+
+
+def get_performance_data():
+    """جلب بيانات مؤشرات الأداء"""
+
+    # في التطبيق الحقيقي، يمكن حساب هذه المؤشرات من البيانات الفعلية
+    performance_data = {
+        'customer_satisfaction': 92,
+        'task_completion': 88,
+        'quality_score': 95,
+        'time_utilization': 78
+    }
+
+    return performance_data
+
+
+
+@app.route('/api/dashboard/data')
+def api_dashboard_data():
+    """API لجلب بيانات لوحة التحكم"""
+
+    view = request.args.get('view', 'day')
+    department = request.args.get('department', 'all')
+
+    # يمكنك هنا جلب البيانات حسب view و department
+    stats = get_dashboard_data()
+    evaluation_data = get_evaluation_chart_data()
+    attendance_data = get_attendance_chart_data()
+
+    return jsonify({
+        'stats': stats,
+        'evaluationData': evaluation_data,
+        'attendanceData': attendance_data
+    })
+
+
+# Dashboard - النسخة المحسنة
 @app.route('/')
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # Basic stats
+    # Basic stats - الإحصائيات الأساسية
     total_employees = Employee.query.count()
     active_employees = Employee.query.filter_by(is_active=True).count()
     inactive_employees = total_employees - active_employees
 
-    # Employee position stats
+    # Employee position stats - إحصائيات المناصب
     supervisors_count = Employee.query.filter_by(position='supervisor', is_active=True).count()
     monitors_count = Employee.query.filter_by(position='monitor', is_active=True).count()
     workers_count = Employee.query.filter_by(position='worker', is_active=True).count()
 
-    # Company and area stats
+    # Company and area stats - إحصائيات الشركات والمناطق
     total_companies = Company.query.filter_by(is_active=True).count()
     total_areas = Area.query.filter_by(is_active=True).count()
 
-    # Evaluation stats
+    # Evaluation stats - إحصائيات التقييمات
     total_evaluations_today = CleaningEvaluation.query.filter_by(date=date.today()).count()
     avg_score_today = db.session.query(db.func.avg(CleaningEvaluation.overall_score)) \
                           .filter(CleaningEvaluation.date == date.today()).scalar() or 0
 
-    # This week evaluations
+    # This week evaluations - التقييمات هذا الأسبوع
     week_ago = date.today() - timedelta(days=7)
     evaluations_this_week = CleaningEvaluation.query.filter(
         CleaningEvaluation.date >= week_ago
     ).count()
 
-    # New employees this month
+    # New employees this month - الموظفين الجدد هذا الشهر
     month_ago = date.today() - timedelta(days=30)
     new_employees_this_month = Employee.query.filter(
         Employee.hire_date >= month_ago
     ).count()
 
-    avg_score = db.session.query(db.func.avg(CleaningEvaluation.overall_score)) \
-        .filter(CleaningEvaluation.date == date.today()).scalar()
-    avg_score = avg_score or 0  # إذا لم يكن هناك تقييم، ضع 0
+    # الحضور اليومي - بيانات جديدة
+    today_attendance = Attendance.query.filter_by(date=date.today()).all()
+    present_today = len([a for a in today_attendance if a.status == 'present'])
+    absent_today = len([a for a in today_attendance if a.status == 'absent'])
+    attendance_rate = (present_today / active_employees * 100) if active_employees > 0 else 0
 
+    # التقييمات التي تحتاج مراجعة
+    pending_reviews = CleaningEvaluation.query.filter(
+        CleaningEvaluation.overall_score < 3.0,
+        CleaningEvaluation.date == date.today()
+    ).count()
+
+    # بيانات التقييمات للمخططات
+    today_evaluations = CleaningEvaluation.query.filter_by(date=date.today()).all()
+    if today_evaluations:
+        avg_evaluation = sum(e.overall_score for e in today_evaluations) / len(today_evaluations) * 20
+        max_evaluation = max(e.overall_score for e in today_evaluations) * 20
+        min_evaluation = min(e.overall_score for e in today_evaluations) * 20
+    else:
+        avg_evaluation = max_evaluation = min_evaluation = 0
+
+    # إحصائيات محسنة
     stats = {
+        # الإحصائيات القديمة
         'total_employees': total_employees,
         'active_employees': active_employees,
         'inactive_employees': inactive_employees,
@@ -796,27 +1189,57 @@ def dashboard():
         'supervisors_count': supervisors_count,
         'monitors_count': monitors_count,
         'workers_count': workers_count,
-        'new_employees_this_month': new_employees_this_month
+        'new_employees_this_month': new_employees_this_month,
+
+        # الإحصائيات الجديدة للوحة المحسنة
+        'present_today': present_today,
+        'absent_today': absent_today,
+        'attendance_rate': round(attendance_rate, 1),
+        'avg_evaluation': round(avg_evaluation, 1),
+        'max_evaluation': round(max_evaluation, 1),
+        'min_evaluation': round(min_evaluation, 1),
+        'pending_reviews': pending_reviews,
+
+        # بيانات التغيير (محاكاة - يمكن حسابها من البيانات التاريخية)
+        'evaluation_change': 2.5,
+        'attendance_change': 1.2,
+        'reviews_change': -3,
+
+        # مؤشرات الأداء
+        'customer_satisfaction': 92.0,
+        'task_completion': 88.0,
+        'quality_score': 95.0,
+        'time_utilization': 78.0,
+        'customer_satisfaction_change': 3.0,
+        'task_completion_change': 5.0,
+        'quality_change': 2.0,
+        'time_utilization_change': -2.0
     }
 
-    # Recent evaluations
-    # Recent evaluations - مع التحميل الآمن للعلاقات
+    # بيانات الرسوم البيانية
+    evaluation_data = get_evaluation_chart_data()
+    attendance_data = get_attendance_chart_data()
+    companies_data = get_companies_chart_data()
+    areas_data = get_areas_chart_data()
+    performance_data = get_performance_data()
+
+    # البيانات القديمة للتوافق مع القالب القديم
     from sqlalchemy.orm import joinedload
     recent_evaluations = CleaningEvaluation.query \
         .options(
-            joinedload(CleaningEvaluation.place),
-            joinedload(CleaningEvaluation.evaluator),
-            joinedload(CleaningEvaluation.evaluated_employee)
-        ) \
+        joinedload(CleaningEvaluation.place),
+        joinedload(CleaningEvaluation.evaluator),
+        joinedload(CleaningEvaluation.evaluated_employee)
+    ) \
         .order_by(CleaningEvaluation.created_at.desc()) \
         .limit(10) \
         .all()
-    # Recent employees
+
     recent_employees = Employee.query \
         .order_by(Employee.created_at.desc()) \
         .limit(5) \
         .all()
-    # Top performers - استخدام العلاقات الجديدة
+
     top_performers = db.session.query(
         Employee,
         db.func.avg(CleaningEvaluation.overall_score).label('avg_score'),
@@ -827,7 +1250,6 @@ def dashboard():
         .limit(5) \
         .all()
 
-    # Format top performers data
     formatted_performers = []
     for employee, avg_score, eval_count in top_performers:
         formatted_performers.append({
@@ -838,27 +1260,119 @@ def dashboard():
             'avg_score': float(avg_score) if avg_score else 0,
             'evaluations_count': eval_count
         })
-    return render_template('dashboard/index.html',
+    defaultData = {
+        "evaluationData": [],
+    }
+
+    # استخدام القالب الجديد مع تمرير جميع البيانات
+    return render_template('dashboard.html',  # تغيير إلى القالب الجديد
                            stats=stats,
+                           evaluation_data=evaluation_data,
+                           attendance_data=attendance_data,
+                           companies_data=companies_data,
+                           areas_data=areas_data,
+                           performance_data=performance_data,
+                           # البيانات القديمة للتوافق
                            recent_evaluations=recent_evaluations,
                            recent_employees=recent_employees,
                            top_performers=formatted_performers,
-                           today=date.today())
-
+                           today=date.today,
+                           defaultData=defaultData)
 
 # Employee Management (Owner only)
+from datetime import datetime, date
+
+
 @app.route('/employees')
 @login_required
 def employees_list():
+    # التحقق من الصلاحيات - للمالك فقط
     if current_user.role != 'owner':
         flash('غير مصرح بالوصول إلى هذه الصفحة', 'error')
         return redirect(url_for('dashboard'))
 
-    employees_list = Employee.query.options(
-        db.joinedload(Employee.user)
-    ).all()
-    return render_template('employees/list.html', employees=employees_list)
+    try:
+        # الحصول على معاملات البحث والفلترة
+        search = request.args.get('search', '')
+        position = request.args.get('position', '')
+        status = request.args.get('status', '')
+        show_all = request.args.get('show_all', '')
 
+        # بناء الاستعلام الأساسي
+        query = Employee.query
+
+        # تطبيق الفلترة حسب البحث
+        if search:
+            query = query.filter(
+                db.or_(
+                    Employee.full_name.ilike(f'%{search}%'),
+                    Employee.phone.ilike(f'%{search}%'),
+                    Employee.position.ilike(f'%{search}%')
+                )
+            )
+
+        # فلترة حسب الوظيفة
+        if position and position != 'all':
+            query = query.filter(Employee.position == position)
+
+        # فلترة حسب الحالة
+        if status == 'active':
+            query = query.filter(Employee.is_active == True)
+        elif status == 'inactive':
+            query = query.filter(Employee.is_active == False)
+        elif show_all == 'true':
+            # عرض الكل - لا تطبيق فلترة الحالة
+            pass
+        else:
+            # افتراضي: الموظفين النشطين فقط
+            query = query.filter(Employee.is_active == True)
+
+        # ترتيب النتائج
+        employees_list = query.order_by(Employee.full_name).all()
+
+        # إحصائيات مفصلة
+        total_employees = len(employees_list)
+        active_employees = len([e for e in employees_list if e.is_active])
+        inactive_employees = total_employees - active_employees
+
+        # إحصائيات حسب المناصب
+        positions_stats = {
+            'owner': len([e for e in employees_list if e.position == 'owner']),
+            'supervisor': len([e for e in employees_list if e.position == 'supervisor']),
+            'monitor': len([e for e in employees_list if e.position == 'monitor']),
+            'worker': len([e for e in employees_list if e.position == 'worker'])
+        }
+
+        # تمرير المتغيرات للقالب
+        current_time = datetime.now()
+        today = date.today()
+
+        return render_template('employees/list.html',
+                               employees=employees_list,
+                               today=today,
+                               now=current_time,
+                               search_query=search,
+                               selected_position=position,
+                               selected_status=status,
+                               show_all=show_all,
+                               total_employees=total_employees,
+                               active_employees=active_employees,
+                               inactive_employees=inactive_employees,
+                               positions_stats=positions_stats,
+                               user_role=current_user.role)
+
+    except Exception as e:
+        app.logger.error(f"Error in employees_list: {str(e)}")
+        flash('حدث خطأ في تحميل قائمة الموظفين', 'error')
+        return render_template('employees/list.html',
+                               employees=[],
+                               today=date.today(),
+                               now=datetime.now(),
+                               total_employees=0,
+                               active_employees=0,
+                               inactive_employees=0,
+                               positions_stats={},
+                               user_role=current_user.role)
 
 @app.route('/employees/add', methods=['GET', 'POST'])
 @login_required
@@ -1053,57 +1567,225 @@ from flask import request, jsonify, render_template, flash
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import BadRequest
 
+from sqlalchemy.orm import joinedload
+from flask import jsonify, request, render_template, flash
+from flask_login import login_required, current_user
+from datetime import date, datetime, timedelta
+from models import Attendance, Employee, Company, Area, Location, Place, db
+
+
+def can_record_attendance(user, employee):
+    """التحقق من صلاحية المستخدم لتسجيل حضور موظف معين"""
+
+    if user.role == 'owner':
+        # المالك: يمكنه تسجيل حضور جميع الموظفين
+        return True
+    elif user.role == 'supervisor':
+        # المشرف: يمكنه تسجيل حضور جميع الموظفين في الشركة
+        return True
+    elif user.role == 'monitor':
+        # المراقب: يمكنه تسجيل حضور العمال في موقعه فقط
+        monitor_employee = Employee.query.filter_by(user_id=user.id).first()
+        if not monitor_employee:
+            return False
+
+        # التحقق من أن الموظف عامل في موقع يراقبه هذا المراقب
+        if employee.position != 'worker':
+            return False
+
+        # البحث عن أماكن العمل الخاصة بهذا العامل
+        worker_places = Place.query.filter_by(worker_id=employee.id).all()
+        if not worker_places:
+            return False
+
+        # التحقق من أن أحد هذه الأماكن في موقع يراقبه المراقب
+        for place in worker_places:
+            if place.location.monitor_id == monitor_employee.id:
+                return True
+
+        return False
+
+    return False
+
+
+def get_employees_for_attendance(user, company_id=None, area_id=None, location_id=None):
+    """الحصول على الموظفين المسموح للمستخدم برؤيتهم حسب الصلاحيات"""
+    try:
+        query = Employee.query.filter_by(is_active=True)
+
+        # تطبيق الفلترة حسب صلاحيات المستخدم
+        if user.role == 'owner':
+            # المالك يرى جميع الموظفين
+            pass
+        elif user.role == 'supervisor':
+            # المشرف يرى الموظفين في الشركات/المناطق التي يشرف عليها
+            if user.company_id:
+                query = query.filter(Employee.company_id == user.company_id)
+            if user.area_id:
+                query = query.filter(Employee.area_id == user.area_id)
+        elif user.role == 'monitor':
+            # المراقب يرى الموظفين في المواقع التي يراقبها
+            if user.location_id:
+                query = query.filter(Employee.location_id == user.location_id)
+
+        # تطبيق الفلترة الإضافية إذا تم تحديدها
+        if company_id:
+            query = query.filter(Employee.company_id == company_id)
+        if area_id:
+            query = query.filter(Employee.area_id == area_id)
+        if location_id:
+            query = query.filter(Employee.location_id == location_id)
+
+        # ترتيب النتائج
+        employees = query.order_by(Employee.full_name.asc()).all()
+
+        app.logger.info(f"✅ تم تحميل {len(employees)} موظف للمستخدم {user.id} (دور: {user.role})")
+        if company_id:
+            app.logger.info(f"   - مع فلترة الشركة: {company_id}")
+        if area_id:
+            app.logger.info(f"   - مع فلترة المنطقة: {area_id}")
+        if location_id:
+            app.logger.info(f"   - مع فلترة الموقع: {location_id}")
+
+        return employees
+
+    except Exception as e:
+        app.logger.error(f"❌ خطأ في get_employees_for_attendance: {str(e)}")
+        return []
+
+def can_view_employee(user, employee):
+    """التحقق من صلاحية المستخدم لعرض بيانات موظف معين"""
+
+    if user.role == 'owner':
+        # المالك: يمكنه رؤية جميع الموظفين
+        return True
+
+    elif user.role == 'supervisor':
+        # المشرف: يمكنه رؤية جميع الموظفين في شركته
+        supervisor_employee = Employee.query.filter_by(user_id=user.id).first()
+        if not supervisor_employee:
+            return False
+
+        # إذا كان الموظف في نفس شركة المشرف
+        if employee.company_id == supervisor_employee.company_id:
+            return True
+
+        return False
+
+    elif user.role == 'monitor':
+        # المراقب: يمكنه رؤية العاملين في موقعه فقط
+        monitor_employee = Employee.query.filter_by(user_id=user.id).first()
+        if not monitor_employee:
+            return False
+
+        # التحقق إذا كان الموظف يعمل في موقع يراقبه هذا المراقب
+        worker_places = Place.query.filter_by(worker_id=employee.id).all()
+        authorized = any(place.location.monitor_id == monitor_employee.id for place in worker_places)
+
+        return authorized
+
+    return False
 
 @app.route('/attendance')
 @login_required
 def attendance_index():
     try:
-        # الحصول على التاريخ المطلوب من الباراميتر أو استخدام تاريخ اليوم
+        # الحصول على معاملات الفلترة
         selected_date = request.args.get('date', date.today().isoformat())
+        employee_id = request.args.get('employee_id', type=int)
+        company_id = request.args.get('company_id', type=int)
+        shift_type = request.args.get('shift_type', '')
 
         # التحقق من صحة التاريخ
         try:
             selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
         except ValueError:
             selected_date = date.today()
+            flash('صيغة التاريخ غير صحيحة، تم استخدام تاريخ اليوم', 'warning')
 
         # حساب التواريخ للتنقل بين الأيام
         prev_date = selected_date - timedelta(days=1)
         next_date = selected_date + timedelta(days=1)
 
-        # استعلام آمن للحصول على سجلات الحضور للتاريخ المحدد
-        attendance_records = []
-        total_employees = 0
+        # استعلام الحضور مع الفلترة
+        attendance_query = db.session.query(Attendance).join(
+            Employee, Attendance.employee_id == Employee.id
+        ).options(
+            joinedload(Attendance.employee)
+        ).filter(
+            Attendance.date == selected_date,
+            Employee.is_active == True  # فقط الموظفين النشطين
+        )
+
+        # تطبيق الفلترة الإضافية
+        if employee_id:
+            attendance_query = attendance_query.filter(Attendance.employee_id == employee_id)
+
+        if company_id:
+            attendance_query = attendance_query.filter(Employee.company_id == company_id)
+
+        if shift_type and shift_type != 'all':
+            attendance_query = attendance_query.filter(Attendance.shift_type == shift_type)
+
+        # تنفيذ الاستعلام
+        attendance_records = attendance_query.order_by(
+            Employee.full_name.asc(),
+            Attendance.shift_type.asc()
+        ).all()
+
+        # إحصائيات الحضور
+        total_employees = Employee.query.filter_by(is_active=True).count()
+
+        # إحصائيات مفصلة
+        stats_query = db.session.query(
+            Attendance.status,
+            db.func.count(Attendance.id)
+        ).join(Employee).filter(
+            Attendance.date == selected_date,
+            Employee.is_active == True
+        )
+
+        # تطبيق نفس الفلترة على الإحصائيات
+        if employee_id:
+            stats_query = stats_query.filter(Attendance.employee_id == employee_id)
+        if company_id:
+            stats_query = stats_query.join(Employee).filter(Employee.company_id == company_id)
+        if shift_type and shift_type != 'all':
+            stats_query = stats_query.filter(Attendance.shift_type == shift_type)
+
+        stats = stats_query.group_by(Attendance.status).all()
+
+        # تهيئة العدادات
         present_count = 0
         absent_count = 0
+        late_count = 0
 
-        try:
-            # استعلام مصحح بدون joinedload
-            attendance_records = db.session.query(Attendance).join(Employee).filter(
-                Attendance.date == selected_date
-            ).order_by(Employee.full_name, Attendance.shift_type).all()
+        for status, count in stats:
+            if status == 'present':
+                present_count = count
+            elif status == 'absent':
+                absent_count = count
+            elif status == 'late':
+                late_count = count
 
-            # إحصائيات الحضور
-            total_employees = Employee.query.filter_by(is_active=True).count()
-            present_count = db.session.query(Attendance).filter(
-                Attendance.date == selected_date,
-                Attendance.status == 'present'
-            ).count()
-            absent_count = total_employees - present_count
+        # إذا لم يتم تطبيق فلترة، حساب الغياب بناءً على إجمالي الموظفين
+        if not any([employee_id, company_id, shift_type and shift_type != 'all']):
+            absent_count = total_employees - present_count - late_count
 
-            print(f"✅ تم تحميل {len(attendance_records)} سجل حضور")
-            for record in attendance_records:
-                print(f"   - {record.employee.full_name if record.employee else 'غير معروف'}: {record.status} - {record.shift_type}")
+        # بيانات الفلترة
+        employees_for_filter = Employee.query.filter_by(is_active=True).order_by(Employee.full_name).all()
+        companies = Company.query.filter_by(is_active=True).all()
 
-        except Exception as e:
-            app.logger.error(f"Database error in attendance_index: {str(e)}")
-            flash('حدث خطأ في تحميل بيانات الحضور', 'error')
-            # محاولة بديلة
-            try:
-                attendance_records = Attendance.query.filter_by(date=selected_date).all()
-                print(f"✅ تم تحميل {len(attendance_records)} سجل حضور (الطريقة البديلة)")
-            except Exception as e2:
-                print(f"❌ فشل الطريقة البديلة: {e2}")
+        # الموظف المحدد للفلترة
+        selected_employee = Employee.query.get(employee_id) if employee_id else None
+
+        print(f"✅ تم تحميل {len(attendance_records)} سجل حضور للتاريخ {selected_date}")
+        if employee_id:
+            print(f"   - مع فلترة الموظف: {selected_employee.full_name if selected_employee else employee_id}")
+        if company_id:
+            print(f"   - مع فلترة الشركة: {company_id}")
+        if shift_type:
+            print(f"   - مع فلترة الوردية: {shift_type}")
 
         return render_template('attendance/index.html',
                                today=date.today(),
@@ -1113,19 +1795,34 @@ def attendance_index():
                                attendance_records=attendance_records,
                                total_employees=total_employees,
                                present_count=present_count,
-                               absent_count=absent_count)
+                               absent_count=absent_count,
+                               late_count=late_count,
+                               # بيانات الفلترة
+                               employees=employees_for_filter,
+                               companies=companies,
+                               selected_employee_id=employee_id,
+                               selected_company_id=company_id,
+                               selected_shift_type=shift_type,
+                               selected_employee=selected_employee)
 
     except Exception as e:
         app.logger.error(f"Error in attendance_index: {str(e)}")
         flash('حدث خطأ في تحميل بيانات الحضور', 'error')
+
+        # إرجاع بيانات افتراضية في حالة الخطأ
         return render_template('attendance/index.html',
                                today=date.today(),
                                selected_date=date.today(),
                                attendance_records=[],
                                total_employees=0,
                                present_count=0,
-                               absent_count=0)
-
+                               absent_count=0,
+                               late_count=0,
+                               employees=[],
+                               companies=[],
+                               selected_employee_id=None,
+                               selected_company_id=None,
+                               selected_shift_type='')
 @app.route('/attendance/add', methods=['GET', 'POST'])
 @login_required
 def add_attendance():
@@ -1280,81 +1977,314 @@ def add_attendance():
                 'code': 'INTERNAL_ERROR'
             }), 500
 
-def can_record_attendance(user, employee):
-    """التحقق من صلاحية المستخدم لتسجيل حضور موظف معين"""
 
-    if user.role == 'owner':
-        # المالك: يمكنه تسجيل حضور جميع الموظفين
-        return True
+@app.route('/attendance/prepare', methods=['GET', 'POST'])
+@login_required
+def prepare_attendance():
+    """صفحة التحضير مع عرض جميع الموظفين حسب الصلاحيات"""
 
-    elif user.role == 'supervisor':
-        # المشرف: يمكنه تسجيل حضور جميع الموظفين في الشركة
-        return True
+    # تعريف المتغيرات الأساسية
+    selected_date = date.today()
+    can_select_date = False
+    employees = []
+    companies = []
+    areas = []
+    locations = []
+    existing_attendance = {}
 
-    elif user.role == 'monitor':
-        # المراقب: يمكنه تسجيل حضور العمال في موقعه فقط
-        monitor_employee = Employee.query.filter_by(user_id=user.id).first()
-        if not monitor_employee:
-            return False
+    try:
+        if request.method == 'GET':
+            # الحصول على معاملات الفلترة
+            company_id = request.args.get('company_id', type=int)
+            area_id = request.args.get('area_id', type=int)
+            location_id = request.args.get('location_id', type=int)
+            date_str = request.args.get('date', date.today().isoformat())
 
-        # التحقق من أن الموظف عامل في موقع يراقبه هذا المراقب
-        if employee.position != 'worker':
-            return False
+            # التحقق من صحة التاريخ
+            try:
+                selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                selected_date = date.today()
+                app.logger.warning(f"Invalid date format: {date_str}, using today's date")
 
-        # البحث عن أماكن العمل الخاصة بهذا العامل
-        worker_places = Place.query.filter_by(worker_id=employee.id).all()
-        if not worker_places:
-            return False
+            # تحديد إذا كان يمكن اختيار التاريخ (للمالك فقط)
+            can_select_date = current_user.role == 'owner'
 
-        # التحقق من أن أحد هذه الأماكن في موقع يراقبه المراقب
-        for place in worker_places:
-            if place.location.monitor_id == monitor_employee.id:
-                return True
+            # إذا كان المستخدم مشرف أو مراقب، يتم إجبار التاريخ على اليوم
+            if current_user.role in ['supervisor', 'monitor']:
+                selected_date = date.today()
+                can_select_date = False
 
-        return False
+            # الحصول على الموظفين حسب الصلاحيات والفلترة
+            try:
+                employees = get_employees_for_attendance(
+                    current_user,
+                    company_id,
+                    area_id,
+                    location_id
+                )
+            except Exception as emp_error:
+                app.logger.error(f"Error getting employees: {str(emp_error)}")
+                employees = []
+                flash('حدث خطأ في تحميل بيانات الموظفين', 'error')
 
-    return False
+            # الحصول على سجلات الحضور الحالية لهذا التاريخ
+            try:
+                attendance_records = Attendance.query.filter(
+                    Attendance.date == selected_date
+                ).all()
 
+                for record in attendance_records:
+                    key = f"{record.employee_id}_{record.shift_type}"
+                    existing_attendance[key] = {
+                        'status': record.status,
+                        'check_in': record.check_in,
+                        'check_out': record.check_out,
+                        'notes': record.notes
+                    }
+            except Exception as att_error:
+                app.logger.error(f"Error getting attendance records: {str(att_error)}")
+                existing_attendance = {}
 
-def get_employees_for_attendance(user):
-    """الحصول على قائمة الموظفين المسموح للمستخدم بتسجيل حضورهم"""
+            # الحصول على قائمة الشركات والمناطق والمواقع للفلترة
+            try:
+                companies = Company.query.all()
+                areas = Area.query.all()
+                locations = Location.query.all()
+            except Exception as filter_error:
+                app.logger.error(f"Error getting filter data: {str(filter_error)}")
+                companies = []
+                areas = []
+                locations = []
 
-    if user.role == 'owner':
-        # المالك: جميع الموظفين النشطين
-        return Employee.query.filter_by(is_active=True).order_by(Employee.full_name).all()
+        elif request.method == 'POST':
+            # التحقق من الصلاحيات
+            if current_user.role not in ['owner', 'supervisor', 'monitor']:
+                return jsonify({
+                    'success': False,
+                    'message': 'غير مصرح لك بهذا الإجراء',
+                    'code': 'UNAUTHORIZED'
+                }), 403
 
-    elif user.role == 'supervisor':
-        # المشرف: جميع الموظفين النشطين
-        return Employee.query.filter_by(is_active=True).order_by(Employee.full_name).all()
+            # الحصول على البيانات - الآن البيانات تأتي كقائمة
+            data = request.get_json()
+            if not data or not isinstance(data, list):
+                return jsonify({
+                    'success': False,
+                    'message': 'بيانات غير صالحة - يجب أن تكون قائمة',
+                    'code': 'INVALID_DATA'
+                }), 400
 
-    elif user.role == 'monitor':
-        # المراقب: العمال في موقعه فقط
-        monitor_employee = Employee.query.filter_by(user_id=user.id).first()
-        if not monitor_employee:
-            return []
+            # التحقق من وجود بيانات للحفظ
+            if len(data) == 0:
+                return jsonify({
+                    'success': False,
+                    'message': 'لا توجد بيانات للحفظ',
+                    'code': 'NO_DATA'
+                }), 400
 
-        # الحصول على المواقع التي يراقبها
-        monitored_locations = Location.query.filter_by(monitor_id=monitor_employee.id).all()
-        location_ids = [loc.id for loc in monitored_locations]
+            # إحصائيات عن البيانات المراد حفظها
+            total_records = len(data)
+            present_count = sum(1 for record in data if record.get('status') == 'present')
+            absent_count = sum(1 for record in data if record.get('status') == 'absent')
+            late_count = sum(1 for record in data if record.get('status') == 'late')
 
-        if not location_ids:
-            return []
+            # إذا كان الطلب يحتوي على تأكيد الحفظ
+            confirm_save = request.headers.get('X-Confirm-Save', 'false').lower() == 'true'
 
-        # الحصول على الأماكن في هذه المواقع
-        places = Place.query.filter(Place.location_id.in_(location_ids)).all()
+            if not confirm_save:
+                # إرجاع رسالة تأكيد مع إحصائيات
+                return jsonify({
+                    'success': True,
+                    'require_confirmation': True,
+                    'message': 'يرجى تأكيد حفظ سجلات الحضور',
+                    'statistics': {
+                        'total_records': total_records,
+                        'present_count': present_count,
+                        'absent_count': absent_count,
+                        'late_count': late_count,
+                        'date': data[0].get('date') if data else None
+                    },
+                    'code': 'CONFIRMATION_REQUIRED'
+                }), 200
 
-        # الحصول على العمال في هذه الأماكن
-        worker_ids = [place.worker_id for place in places if place.worker_id]
-        if worker_ids:
-            workers = Employee.query.filter(
-                Employee.id.in_(worker_ids),
-                Employee.is_active == True
-            ).order_by(Employee.full_name).all()
-            return workers
+            # إذا تم تأكيد الحفظ، متابعة عملية الحفظ
+            success_count = 0
+            error_count = 0
+            error_messages = []
 
-        return []
+            # معالجة كل سجل حضور في القائمة
+            for attendance_data in data:
+                try:
+                    employee_id = attendance_data.get('employee_id')
+                    date_str = attendance_data.get('date')
+                    status = attendance_data.get('status')
+                    shift_type = attendance_data.get('shift_type')
+                    check_in_time = attendance_data.get('check_in')
+                    check_out_time = attendance_data.get('check_out')
+                    notes = attendance_data.get('notes', '')
 
-    return []
+                    # التحقق من البيانات المطلوبة
+                    if not all([employee_id, date_str, status, shift_type]):
+                        error_count += 1
+                        error_messages.append(f"بيانات ناقصة للسجل: {attendance_data}")
+                        continue
+
+                    # معالجة التاريخ
+                    try:
+                        attendance_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                    except ValueError:
+                        error_count += 1
+                        error_messages.append(f"تاريخ غير صالح: {date_str}")
+                        continue
+
+                    # للمشرفين والمراقبين: إجبار التاريخ على اليوم
+                    if current_user.role in ['supervisor', 'monitor']:
+                        attendance_date = date.today()
+
+                    # التحقق من وجود الموظف
+                    employee = Employee.query.filter_by(id=employee_id, is_active=True).first()
+                    if not employee:
+                        error_count += 1
+                        error_messages.append(f"موظف غير موجود: {employee_id}")
+                        continue
+
+                    # التحقق من الصلاحيات
+                    if not can_record_attendance(current_user, employee):
+                        error_count += 1
+                        error_messages.append(f"غير مصرح لتسجيل حضور الموظف: {employee_id}")
+                        continue
+
+                    # البحث عن سجل حضور موجود
+                    existing_attendance = Attendance.query.filter(
+                        Attendance.employee_id == employee_id,
+                        Attendance.date == attendance_date,
+                        Attendance.shift_type == shift_type
+                    ).first()
+
+                    # معالجة أوقات الحضور والانصراف
+                    check_in = None
+                    check_out = None
+
+                    if check_in_time:
+                        try:
+                            check_in = datetime.strptime(check_in_time, '%H:%M').time()
+                        except ValueError:
+                            app.logger.warning(f"Invalid check-in time format: {check_in_time}")
+
+                    if check_out_time:
+                        try:
+                            check_out = datetime.strptime(check_out_time, '%H:%M').time()
+                        except ValueError:
+                            app.logger.warning(f"Invalid check-out time format: {check_out_time}")
+
+                    if existing_attendance:
+                        # تحديث السجل الموجود
+                        existing_attendance.status = status
+                        existing_attendance.check_in = check_in
+                        existing_attendance.check_out = check_out
+                        existing_attendance.notes = notes
+                        existing_attendance.updated_at = datetime.now()
+                    else:
+                        # إنشاء سجل جديد
+                        attendance = Attendance(
+                            employee_id=employee_id,
+                            date=attendance_date,
+                            status=status,
+                            shift_type=shift_type,
+                            check_in=check_in,
+                            check_out=check_out,
+                            notes=notes
+                        )
+                        db.session.add(attendance)
+
+                    success_count += 1
+
+                except Exception as e:
+                    app.logger.error(f"Error processing attendance record: {str(e)}")
+                    error_count += 1
+                    error_messages.append(f"خطأ في معالجة السجل: {str(e)}")
+
+            # حفظ جميع التغييرات في قاعدة البيانات
+            try:
+                db.session.commit()
+            except Exception as commit_error:
+                db.session.rollback()
+                app.logger.error(f"Database commit error: {str(commit_error)}")
+                return jsonify({
+                    'success': False,
+                    'message': f'خطأ في حفظ البيانات: {str(commit_error)}',
+                    'code': 'DATABASE_ERROR'
+                }), 500
+
+            if success_count > 0:
+                message = f'تم حفظ {success_count} سجل حضور بنجاح'
+                if error_count > 0:
+                    message += f' وفشل حفظ {error_count} سجل'
+
+                return jsonify({
+                    'success': True,
+                    'message': message,
+                    'saved_count': success_count,
+                    'error_count': error_count,
+                    'code': 'ATTENDANCE_SAVED'
+                }), 200
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': 'فشل حفظ جميع سجلات الحضور',
+                    'error_count': error_count,
+                    'errors': error_messages[:10],  # إرجاع أول 10 أخطاء فقط
+                    'code': 'SAVE_FAILED'
+                }), 400
+
+    except Exception as e:
+        app.logger.error(f"Unexpected error in prepare_attendance: {str(e)}")
+        if request.method == 'POST':
+            db.session.rollback()
+            return jsonify({
+                'success': False,
+                'message': f'حدث خطأ غير متوقع: {str(e)}',
+                'code': 'INTERNAL_ERROR'
+            }), 500
+        else:
+            flash('حدث خطأ في تحميل صفحة التحضير', 'error')
+
+    # في النهاية، إرجاع القالب مع جميع المتغيرات المطلوبة
+    return render_template('attendance/prepare.html',
+                           employees=employees,
+                           selected_date=selected_date,
+                           can_select_date=can_select_date,
+                           existing_attendance=existing_attendance,
+                           companies=companies,
+                           areas=areas,
+                           locations=locations,
+                           selected_company_id=request.args.get('company_id', type=int),
+                           selected_area_id=request.args.get('area_id', type=int),
+                           selected_location_id=request.args.get('location_id', type=int))
+
+@app.route('/api/areas/<int:company_id>')
+@login_required
+def get_areas_by_company(company_id):
+    """الحصول على المناطق التابعة لشركة معينة"""
+    try:
+        areas = Area.query.filter_by(company_id=company_id).all()
+        areas_data = [{'id': area.id, 'name': area.name} for area in areas]
+        return jsonify({'success': True, 'areas': areas_data})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/locations/<int:area_id>')
+@login_required
+def get_locations_by_area(area_id):
+    """الحصول على المواقع التابعة لمنطقة معينة"""
+    try:
+        locations = Location.query.filter_by(area_id=area_id).all()
+        locations_data = [{'id': loc.id, 'name': loc.name} for loc in locations]
+        return jsonify({'success': True, 'locations': locations_data})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
 from sqlalchemy.orm import joinedload
 
 @app.route('/attendance/report')
@@ -1490,6 +2420,147 @@ def my_attendance():
                              records=[],
                              employee=None,
                              stats={})
+
+
+# دوال الموظفين المفقودة
+@app.route('/employees/<int:id>')
+@login_required
+def view_employee(id):
+    """عرض تفاصيل الموظف"""
+    # التحقق من الصلاحيات - للمالك فقط
+    if current_user.role != 'owner':
+        flash('غير مصرح بالوصول إلى هذه الصفحة', 'error')
+        return redirect(url_for('dashboard'))
+
+    try:
+        employee = Employee.query.get_or_404(id)
+
+        # التحقق من الصلاحيات
+        if current_user.role not in ['owner', 'supervisor']:
+            if current_user.role == 'monitor':
+                # المراقب يمكنه رؤية العاملين في موقعه فقط
+                monitor_employee = Employee.query.filter_by(user_id=current_user.id).first()
+                if not monitor_employee:
+                    flash('غير مصرح بالوصول', 'error')
+                    return redirect(url_for('dashboard'))
+
+                # التحقق إذا كان الموظف يعمل في موقع يراقبه هذا المراقب
+                worker_places = Place.query.filter_by(worker_id=employee.id).all()
+                authorized = any(place.location.monitor_id == monitor_employee.id for place in worker_places)
+                if not authorized:
+                    flash('غير مصرح بالوصول إلى بيانات هذا الموظف', 'error')
+                    return redirect(url_for('dashboard'))
+
+        # الحصول على إحصائيات الحضور
+        attendance_stats = db.session.query(
+            db.func.count(Attendance.id),
+            db.func.sum(db.case((Attendance.status == 'present', 1), else_=0)),
+            db.func.sum(db.case((Attendance.status == 'absent', 1), else_=0)),
+            db.func.sum(db.case((Attendance.status == 'late', 1), else_=0))
+        ).filter(Attendance.employee_id == id).first()
+
+        total_records, present_count, absent_count, late_count = attendance_stats or (0, 0, 0, 0)
+
+        # الحصول على آخر 10 سجلات حضور
+        recent_attendance = Attendance.query.filter_by(employee_id=id) \
+            .order_by(Attendance.date.desc()) \
+            .limit(10) \
+            .all()
+
+        return render_template('employees/view.html',
+                               employee=employee,
+                               today=date.today(),
+                               now=datetime.now(),
+                               total_records=total_records,
+                               present_count=present_count,
+                               absent_count=absent_count,
+                               late_count=late_count,
+                               recent_attendance=recent_attendance)
+
+    except Exception as e:
+        app.logger.error(f"Error viewing employee {id}: {str(e)}")
+        flash('حدث خطأ في تحميل بيانات الموظف', 'error')
+        return redirect(url_for('employees_list'))
+
+
+# دوال الحضور المفقودة
+@app.route('/attendance/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_attendance(id):
+    """تعديل سجل حضور"""
+    try:
+        attendance = Attendance.query.get_or_404(id)
+
+        # التحقق من الصلاحيات
+        if current_user.role not in ['owner', 'supervisor', 'monitor']:
+            flash('غير مصرح بتعديل سجل الحضور', 'error')
+            return redirect(url_for('attendance_index'))
+
+        if request.method == 'POST':
+            try:
+                # تحديث البيانات
+                attendance.status = request.form.get('status')
+                attendance.shift_type = request.form.get('shift_type')
+
+                # معالجة أوقات الحضور والانصراف
+                check_in = request.form.get('check_in')
+                check_out = request.form.get('check_out')
+
+                attendance.check_in = datetime.strptime(check_in, '%H:%M').time() if check_in else None
+                attendance.check_out = datetime.strptime(check_out, '%H:%M').time() if check_out else None
+
+                attendance.notes = request.form.get('notes')
+                attendance.updated_at = datetime.now()
+
+                db.session.commit()
+
+                flash('تم تحديث سجل الحضور بنجاح', 'success')
+                return redirect(url_for('attendance_index'))
+
+            except Exception as e:
+                db.session.rollback()
+                flash(f'حدث خطأ أثناء التحديث: {str(e)}', 'error')
+
+        # GET request - عرض نموذج التعديل
+        employees = get_employees_for_attendance(current_user)
+
+        return render_template('attendance/edit.html',
+                               attendance=attendance,
+                               employees=employees,
+                               today=date.today())
+
+    except Exception as e:
+        app.logger.error(f"Error editing attendance {id}: {str(e)}")
+        flash('حدث خطأ في تحميل بيانات الحضور', 'error')
+        return redirect(url_for('attendance_index'))
+
+
+@app.route('/attendance/delete/<int:id>', methods=['POST'])
+@login_required
+def delete_attendance(id):
+    """حذف سجل حضور"""
+    try:
+        attendance = Attendance.query.get_or_404(id)
+
+        # التحقق من الصلاحيات
+        if current_user.role not in ['owner', 'supervisor']:
+            return jsonify({'success': False, 'message': 'غير مصرح بهذا الإجراء'}), 403
+
+        db.session.delete(attendance)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'تم حذف سجل الحضور بنجاح'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error deleting attendance {id}: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'حدث خطأ أثناء الحذف: {str(e)}'
+        }), 500
 
 from flask import request, jsonify, render_template
 from sqlalchemy.exc import SQLAlchemyError

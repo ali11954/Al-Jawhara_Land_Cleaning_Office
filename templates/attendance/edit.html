@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل سجل الحضور{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- رأس الصفحة -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{{ url_for('attendance_index') }}">الحضور</a></li>
+                            <li class="breadcrumb-item active">تعديل سجل الحضور</li>
+                        </ol>
+                    </nav>
+                    <h2 class="text-primary mb-1">
+                        <i class="fas fa-edit me-2"></i>تعديل سجل الحضور
+                    </h2>
+                    <p class="text-muted mb-0">تعديل بيانات سجل الحضور للموظف</p>
+                </div>
+                <a href="{{ url_for('attendance_index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-right me-2"></i>العودة
+                </a>
+            </div>
+
+            <!-- نموذج التعديل -->
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-calendar-check me-2"></i>بيانات سجل الحضور
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row g-3">
+                            <!-- الموظف (غير قابل للتعديل) -->
+                            <div class="col-md-6">
+                                <label class="form-label">الموظف</label>
+                                <input type="text" class="form-control"
+                                       value="{{ attendance.employee.full_name if attendance.employee else 'غير معروف' }}"
+                                       readonly>
+                                <small class="text-muted">لا يمكن تغيير الموظف</small>
+                            </div>
+
+                            <!-- التاريخ (غير قابل للتعديل) -->
+                            <div class="col-md-6">
+                                <label class="form-label">التاريخ</label>
+                                <input type="text" class="form-control"
+                                       value="{{ attendance.date.strftime('%Y-%m-%d') }}"
+                                       readonly>
+                                <small class="text-muted">لا يمكن تغيير التاريخ</small>
+                            </div>
+
+                            <!-- حالة الحضور -->
+                            <div class="col-md-4">
+                                <label for="status" class="form-label">الحالة <span class="text-danger">*</span></label>
+                                <select class="form-control" id="status" name="status" required>
+                                    <option value="present" {% if attendance.status == 'present' %}selected{% endif %}>حاضر</option>
+                                    <option value="absent" {% if attendance.status == 'absent' %}selected{% endif %}>غائب</option>
+                                    <option value="late" {% if attendance.status == 'late' %}selected{% endif %}>متأخر</option>
+                                </select>
+                            </div>
+
+                            <!-- نوع الوردية -->
+                            <div class="col-md-4">
+                                <label for="shift_type" class="form-label">نوع الوردية <span class="text-danger">*</span></label>
+                                <select class="form-control" id="shift_type" name="shift_type" required>
+                                    <option value="morning" {% if attendance.shift_type == 'morning' %}selected{% endif %}>صباحية</option>
+                                    <option value="evening" {% if attendance.shift_type == 'evening' %}selected{% endif %}>مسائية</option>
+                                </select>
+                            </div>
+
+                            <!-- الوقت -->
+                            <div class="col-md-4">
+                                <label class="form-label">الوقت (اختياري)</label>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <input type="time" class="form-control" id="check_in" name="check_in"
+                                               value="{{ attendance.check_in.strftime('%H:%M') if attendance.check_in else '' }}"
+                                               placeholder="الحضور">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="time" class="form-control" id="check_out" name="check_out"
+                                               value="{{ attendance.check_out.strftime('%H:%M') if attendance.check_out else '' }}"
+                                               placeholder="الانصراف">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- الملاحظات -->
+                            <div class="col-12">
+                                <label for="notes" class="form-label">ملاحظات</label>
+                                <textarea class="form-control" id="notes" name="notes"
+                                          rows="3" placeholder="ملاحظات إضافية...">{{ attendance.notes or '' }}</textarea>
+                            </div>
+
+                            <!-- أزرار -->
+                            <div class="col-12">
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <a href="{{ url_for('attendance_index') }}" class="btn btn-secondary">
+                                        <i class="fas fa-times me-2"></i>إلغاء
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>حفظ التعديلات
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// إظهار/إخفاء حقول الوقت حسب الحالة
+document.getElementById('status').addEventListener('change', function() {
+    const timeFields = document.querySelector('.row.g-2').parentElement;
+    if (this.value === 'present') {
+        timeFields.style.opacity = '1';
+    } else {
+        timeFields.style.opacity = '0.5';
+    }
+});
+
+// تفعيل التغيير عند التحميل
+document.addEventListener('DOMContentLoaded', function() {
+    const statusSelect = document.getElementById('status');
+    if (statusSelect) {
+        statusSelect.dispatchEvent(new Event('change'));
+    }
+});
+</script>
+{% endblock %}

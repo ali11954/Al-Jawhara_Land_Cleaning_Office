@@ -1,0 +1,774 @@
+{% extends "base.html" %}
+{% block title %}لوحة تحكم الأداء - أرض الجوهرة للنظافة{% endblock %}
+{% block content %}
+
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --primary-dark: #2e59d9;
+            --success-color: #1cc88a;
+            --info-color: #36b9cc;
+            --warning-color: #f6c23e;
+            --danger-color: #e74a3b;
+            --light-bg: #f8f9fc;
+            --dark-text: #5a5c69;
+            --light-purple: #e0d6ff;
+            --light-blue: #d6e4ff;
+            --light-green: #d6ffdf;
+            --light-yellow: #fff9d6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            line-height: 1.6;
+            color: var(--dark-text);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 0.5rem 1.5rem rgba(58, 59, 69, 0.15);
+        }
+
+        .border-left-primary { border-left: 0.25rem solid var(--primary-color) !important; }
+        .border-left-success { border-left: 0.25rem solid var(--success-color) !important; }
+        .border-left-info { border-left: 0.25rem solid var(--info-color) !important; }
+        .border-left-warning { border-left: 0.25rem solid var(--warning-color) !important; }
+
+        .avatar-circle-sm {
+            width: 30px;
+            height: 30px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .avatar-circle-sm .initials-sm {
+            color: white;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .stat-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .btn {
+            border-radius: 0.375rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .table th {
+            border-top: none;
+            font-weight: 600;
+            background-color: #f8f9fc;
+        }
+
+        #loadingIndicator {
+            display: none !important;
+        }
+
+        /* تخصيصات الرسوم البيانية */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            padding: 15px;
+        }
+
+        .chart-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fc 100%);
+        }
+
+        .performance-indicator {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .indicator-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 8px;
+        }
+
+        .improvement-badge {
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+        }
+
+        .dashboard-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 1.5rem 0;
+            margin-bottom: 2rem;
+            border-radius: 0 0 1rem 1rem;
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .metric-change {
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .metric-change.positive {
+            color: var(--success-color);
+        }
+
+        .metric-change.negative {
+            color: var(--danger-color);
+        }
+
+        @media (max-width: 768px) {
+            .navbar-nav .nav-link {
+                padding: 0.75rem 1rem;
+            }
+
+            .chart-container {
+                height: 250px;
+            }
+        }
+    </style>
+
+    <!-- رأس لوحة التحكم -->
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="h3 mb-2">لوحة تحكم الأداء</h1>
+                    <p class="mb-0">نظرة عامة على أداء الموظفين والحضور والتقييمات</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <div class="btn-group">
+                        <button class="btn btn-light btn-sm active" id="dayView">يومي</button>
+                        <button class="btn btn-outline-light btn-sm" id="weekView">أسبوعي</button>
+                        <button class="btn btn-outline-light btn-sm" id="monthView">شهري</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مؤشرات الأداء السريعة -->
+    <div class="container mb-4">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value text-primary">{{ "%.1f"|format(stats.avg_evaluation or 0) }}%</div>
+                    <div class="metric-label">متوسط التقييم اليومي</div>
+                    <div class="metric-change {{ 'positive' if (stats.evaluation_change or 0) > 0 else 'negative' }}">
+                        <i class="fas fa-arrow-{{ 'up' if (stats.evaluation_change or 0) > 0 else 'down' }} me-1"></i>
+                        {{ "%.1f"|format((stats.evaluation_change or 0)|abs) }}% عن الأمس
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value text-success">{{ "%.1f"|format(stats.attendance_rate or 0) }}%</div>
+                    <div class="metric-label">نسبة الحضور</div>
+                    <div class="metric-change {{ 'positive' if (stats.attendance_change or 0) > 0 else 'negative' }}">
+                        <i class="fas fa-arrow-{{ 'up' if (stats.attendance_change or 0) > 0 else 'down' }} me-1"></i>
+                        {{ "%.1f"|format((stats.attendance_change or 0)|abs) }}% عن الأسبوع الماضي
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value text-info">{{ stats.active_employees or 0 }}</div>
+                    <div class="metric-label">عدد الموظفين النشطين</div>
+                    <div class="metric-change positive">
+                        <i class="fas fa-plus me-1"></i> {{ stats.new_employees or 0 }} موظفين جدد
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value text-warning">{{ stats.pending_reviews or 0 }}</div>
+                    <div class="metric-label">تقييمات تحتاج مراجعة</div>
+                    <div class="metric-change {{ 'positive' if (stats.reviews_change or 0) < 0 else 'negative' }}">
+                        <i class="fas fa-arrow-{{ 'down' if (stats.reviews_change or 0) < 0 else 'up' }} me-1"></i>
+                        {{ (stats.reviews_change or 0)|abs }} عن الأمس
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- قسم الرسوم البيانية -->
+    <div class="container">
+        <div class="row">
+            <!-- تقييم الموظفين اليومي ومستوى التحسن -->
+            <div class="col-lg-8">
+                <div class="card chart-card mb-4">
+                    <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-line text-primary me-2"></i>
+                            تقييم الموظفين اليومي ومستوى التحسن
+                        </h5>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                جميع الأقسام
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" data-department="all">جميع الأقسام</a></li>
+                                <li><a class="dropdown-item" href="#" data-department="supervisor">المشرفون</a></li>
+                                <li><a class="dropdown-item" href="#" data-department="monitor">المراقبون</a></li>
+                                <li><a class="dropdown-item" href="#" data-department="worker">العمال</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="employeeEvaluationChart"></canvas>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-4">
+                                <div class="performance-indicator">
+                                    <span class="indicator-dot" style="background-color: #4e73df;"></span>
+                                    <span>متوسط التقييم: <strong>{{ "%.1f"|format(stats.avg_evaluation or 0) }}%</strong></span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="performance-indicator">
+                                    <span class="indicator-dot" style="background-color: #1cc88a;"></span>
+                                    <span>الأعلى أداءً: <strong>{{ "%.1f"|format(stats.max_evaluation or 0) }}%</strong></span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="performance-indicator">
+                                    <span class="indicator-dot" style="background-color: #f6c23e;"></span>
+                                    <span>الأقل أداءً: <strong>{{ "%.1f"|format(stats.min_evaluation or 0) }}%</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- الحضور اليومي -->
+            <div class="col-lg-4">
+                <div class="card chart-card mb-4">
+                    <div class="card-header bg-transparent">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user-check text-success me-2"></i>
+                            الحضور اليومي
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="attendanceChart"></canvas>
+                        </div>
+                        <div class="row mt-3 text-center">
+                            <div class="col-4">
+                                <div class="metric-value text-success" style="font-size: 1.5rem;">{{ "%.1f"|format(stats.attendance_rate or 0) }}%</div>
+                                <div class="metric-label">نسبة الحضور</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="metric-value text-primary" style="font-size: 1.5rem;">{{ stats.present_today or 0 }}</div>
+                                <div class="metric-label">حاضرون</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="metric-value text-danger" style="font-size: 1.5rem;">{{ stats.absent_today or 0 }}</div>
+                                <div class="metric-label">غائبون</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- الرسوم البيانية حسب الشركات والمناطق -->
+        <div class="row">
+            <!-- حسب الشركات -->
+            <div class="col-lg-6">
+                <div class="card chart-card mb-4">
+                    <div class="card-header bg-transparent">
+                        <h5 class="mb-0">
+                            <i class="fas fa-building text-info me-2"></i>
+                            التقييمات حسب الشركات
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="companiesChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- حسب المناطق -->
+            <div class="col-lg-6">
+                <div class="card chart-card mb-4">
+                    <div class="card-header bg-transparent">
+                        <h5 class="mb-0">
+                            <i class="fas fa-map-marker-alt text-warning me-2"></i>
+                            التقييمات حسب المناطق
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="regionsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- مؤشرات الأداء والتحسينات -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card chart-card mb-4">
+                    <div class="card-header bg-transparent">
+                        <h5 class="mb-0">
+                            <i class="fas fa-tachometer-alt text-primary me-2"></i>
+                            مؤشرات الأداء والتحسينات
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 text-center mb-3">
+                                <div class="p-3 rounded" style="background-color: var(--light-purple);">
+                                    <div class="metric-value text-primary">{{ "%.1f"|format(stats.customer_satisfaction or 0) }}%</div>
+                                    <div class="metric-label">رضا العملاء</div>
+                                    <span class="improvement-badge bg-{{ 'success' if (stats.customer_satisfaction_change or 0) > 0 else 'danger' }} text-white">
+                                        <i class="fas fa-arrow-{{ 'up' if (stats.customer_satisfaction_change or 0) > 0 else 'down' }} me-1"></i>
+                                        {{ "%.1f"|format((stats.customer_satisfaction_change or 0)|abs) }}%
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center mb-3">
+                                <div class="p-3 rounded" style="background-color: var(--light-blue);">
+                                    <div class="metric-value text-info">{{ "%.1f"|format(stats.task_completion or 0) }}%</div>
+                                    <div class="metric-label">إنجاز المهام</div>
+                                    <span class="improvement-badge bg-{{ 'success' if (stats.task_completion_change or 0) > 0 else 'danger' }} text-white">
+                                        <i class="fas fa-arrow-{{ 'up' if (stats.task_completion_change or 0) > 0 else 'down' }} me-1"></i>
+                                        {{ "%.1f"|format((stats.task_completion_change or 0)|abs) }}%
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center mb-3">
+                                <div class="p-3 rounded" style="background-color: var(--light-green);">
+                                    <div class="metric-value text-success">{{ "%.1f"|format(stats.quality_score or 0) }}%</div>
+                                    <div class="metric-label">الجودة</div>
+                                    <span class="improvement-badge bg-{{ 'success' if (stats.quality_change or 0) > 0 else 'danger' }} text-white">
+                                        <i class="fas fa-arrow-{{ 'up' if (stats.quality_change or 0) > 0 else 'down' }} me-1"></i>
+                                        {{ "%.1f"|format((stats.quality_change or 0)|abs) }}%
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center mb-3">
+                                <div class="p-3 rounded" style="background-color: var(--light-yellow);">
+                                    <div class="metric-value text-warning">{{ "%.1f"|format(stats.time_utilization or 0) }}%</div>
+                                    <div class="metric-label">الوقت المستغل</div>
+                                    <span class="improvement-badge bg-{{ 'success' if (stats.time_utilization_change or 0) > 0 else 'danger' }} text-white">
+                                        <i class="fas fa-arrow-{{ 'up' if (stats.time_utilization_change or 0) > 0 else 'down' }} me-1"></i>
+                                        {{ "%.1f"|format((stats.time_utilization_change or 0)|abs) }}%
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- السكريبتات -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // البيانات الافتراضية في حالة عدم وجود بيانات من الخادم
+        const defaultData = {
+            evaluationData: {
+                labels: ['8:00', '10:00', '12:00', '14:00', '16:00', '18:00'],
+                datasets: [{
+                    label: 'متوسط التقييم',
+                    data: [85, 88, 92, 90, 87, 89],
+                    borderColor: '#4e73df',
+                    backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            attendanceData: {
+                labels: ['حاضرون', 'غائبون', 'إجازة'],
+                datasets: [{
+                    data: [75, 10, 15],
+                    backgroundColor: ['#1cc88a', '#e74a3b', '#f6c23e']
+                }]
+            },
+            companiesData: {
+                labels: ['شركة الجوهرة', 'شركة النظافة المثالية', 'شركة النظافة المتكاملة', 'شركة النظافة الحديثة'],
+                datasets: [{
+                    label: 'متوسط التقييم',
+                    data: [92, 88, 85, 90],
+                    backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e']
+                }]
+            },
+            areasData: {
+                labels: ['المنطقة الشرقية', 'المنطقة الغربية', 'المنطقة الشمالية', 'المنطقة الجنوبية', 'المنطقة الوسطى'],
+                datasets: [{
+                    label: 'التقييمات',
+                    data: [89, 92, 87, 85, 91],
+                    backgroundColor: [
+                        'rgba(78, 115, 223, 0.7)',
+                        'rgba(28, 200, 138, 0.7)',
+                        'rgba(54, 185, 204, 0.7)',
+                        'rgba(246, 194, 62, 0.7)',
+                        'rgba(231, 74, 59, 0.7)'
+                    ]
+                }]
+            }
+        };
+
+        // البيانات من الخادم مع السقوط على البيانات الافتراضية
+        const serverData = {
+            evaluationData: {{ evaluation_data|tojson|default(defaultData.evaluationData) }},
+            attendanceData: {{ attendance_data|tojson|default(defaultData.attendanceData) }},
+            companiesData: {{ companies_data|tojson|default(defaultData.companiesData) }},
+            areasData: {{ areas_data|tojson|default(defaultData.areasData) }},
+            performanceData: {{ performance_data|tojson|default({}) }}
+        };
+
+        // التأكد من صحة هيكل البيانات
+        function validateChartData(data) {
+            if (!data.labels || !data.datasets) {
+                console.warn('بيانات الرسم البياني غير صالحة:', data);
+                return false;
+            }
+            return true;
+        }
+
+        // تحديث التاريخ والوقت
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+
+            // تهيئة الرسوم البيانية
+            initCharts();
+
+            // إضافة تفاعلية لأزرار عرض الفترة
+            document.getElementById('dayView').addEventListener('click', function() {
+                setActiveView(this, 'day');
+            });
+            document.getElementById('weekView').addEventListener('click', function() {
+                setActiveView(this, 'week');
+            });
+            document.getElementById('monthView').addEventListener('click', function() {
+                setActiveView(this, 'month');
+            });
+
+            // تفاعلية القائمة المنسدلة للأقسام
+            document.querySelectorAll('.dropdown-item[data-department]').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const department = this.getAttribute('data-department');
+                    filterByDepartment(department);
+                    this.closest('.dropdown').querySelector('.dropdown-toggle').textContent = this.textContent;
+                });
+            });
+        });
+
+        function updateDateTime() {
+            const now = new Date();
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            const dateTime = now.toLocaleDateString('ar-SA', options);
+            const dateTimeElement = document.getElementById('currentDateTime');
+            if (dateTimeElement) {
+                dateTimeElement.textContent = dateTime;
+            }
+        }
+
+        function setActiveView(button, view) {
+            // إزالة النشاط من جميع الأزرار
+            document.querySelectorAll('.btn-group .btn').forEach(btn => {
+                btn.classList.remove('btn-light');
+                btn.classList.add('btn-outline-light');
+            });
+
+            // إضافة النشاط للزر المحدد
+            button.classList.remove('btn-outline-light');
+            button.classList.add('btn-light');
+
+            // تحديث البيانات حسب الفترة المحددة
+            updateChartsByView(view);
+        }
+
+        function filterByDepartment(department) {
+            console.log('تصفية حسب القسم: ' + department);
+            updateChartsByDepartment(department);
+        }
+
+        function initCharts() {
+            // رسم بياني لتقييم الموظفين اليومي
+            const evalCtx = document.getElementById('employeeEvaluationChart');
+            if (evalCtx) {
+                const validatedData = validateChartData(serverData.evaluationData) ?
+                    serverData.evaluationData : defaultData.evaluationData;
+
+                window.evaluationChart = new Chart(evalCtx.getContext('2d'), {
+                    type: 'line',
+                    data: validatedData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                rtl: true
+                            },
+                            tooltip: {
+                                rtl: true,
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': ' + context.parsed.y + '%';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                min: 70,
+                                max: 100,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // رسم بياني للحضور اليومي
+            const attendanceCtx = document.getElementById('attendanceChart');
+            if (attendanceCtx) {
+                const validatedData = validateChartData(serverData.attendanceData) ?
+                    serverData.attendanceData : defaultData.attendanceData;
+
+                window.attendanceChart = new Chart(attendanceCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: validatedData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                rtl: true
+                            },
+                            tooltip: {
+                                rtl: true,
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.parsed;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = Math.round((value / total) * 100);
+                                        return `${label}: ${value} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // رسم بياني حسب الشركات
+            const companiesCtx = document.getElementById('companiesChart');
+            if (companiesCtx) {
+                const validatedData = validateChartData(serverData.companiesData) ?
+                    serverData.companiesData : defaultData.companiesData;
+
+                window.companiesChart = new Chart(companiesCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: validatedData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                rtl: true,
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'متوسط التقييم: ' + context.parsed.y + '%';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                min: 80,
+                                max: 100,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // رسم بياني حسب المناطق
+            const regionsCtx = document.getElementById('regionsChart');
+            if (regionsCtx) {
+                const validatedData = validateChartData(serverData.areasData) ?
+                    serverData.areasData : defaultData.areasData;
+
+                window.regionsChart = new Chart(regionsCtx.getContext('2d'), {
+                    type: 'polarArea',
+                    data: validatedData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                rtl: true
+                            },
+                            tooltip: {
+                                rtl: true,
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.label + ': ' + context.parsed + '%';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function updateChartsByView(view) {
+            console.log('تحديث البيانات للعرض: ' + view);
+
+            // محاكاة تحديث البيانات
+            fetch(`/api/dashboard/data?view=${view}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // تحديث الرسوم البيانية بالبيانات الجديدة
+                    if (window.evaluationChart && validateChartData(data.evaluationData)) {
+                        window.evaluationChart.data = data.evaluationData;
+                        window.evaluationChart.update();
+                    }
+
+                    if (window.attendanceChart && validateChartData(data.attendanceData)) {
+                        window.attendanceChart.data = data.attendanceData;
+                        window.attendanceChart.update();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    // استخدام البيانات الافتراضية في حالة الخطأ
+                    if (window.evaluationChart) {
+                        window.evaluationChart.data = defaultData.evaluationData;
+                        window.evaluationChart.update();
+                    }
+                });
+        }
+
+        function updateChartsByDepartment(department) {
+            // محاكاة تحديث البيانات حسب القسم
+            fetch(`/api/dashboard/data?department=${department}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (window.evaluationChart && validateChartData(data.evaluationData)) {
+                        window.evaluationChart.data = data.evaluationData;
+                        window.evaluationChart.update();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching department data:', error);
+                });
+        }
+
+        // إعادة تحميل الصفحة في حالة وجود أخطاء في تحميل الرسوم البيانية
+        window.addEventListener('error', function(e) {
+            if (e.target.tagName === 'CANVAS') {
+                console.warn('خطأ في تحميل الرسم البياني، إعادة المحاولة...');
+                setTimeout(() => {
+                    if (window.evaluationChart) window.evaluationChart.destroy();
+                    if (window.attendanceChart) window.attendanceChart.destroy();
+                    if (window.companiesChart) window.companiesChart.destroy();
+                    if (window.regionsChart) window.regionsChart.destroy();
+                    initCharts();
+                }, 1000);
+            }
+        });
+    </script>
+
+{% endblock %}

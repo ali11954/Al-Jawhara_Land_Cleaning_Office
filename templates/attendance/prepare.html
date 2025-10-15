@@ -1,0 +1,689 @@
+{% extends "base.html" %}
+
+{% block title %}نظام التحضير{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- رأس الصفحة -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800">
+            <i class="fas fa-clipboard-check text-primary"></i>
+            نظام التحضير
+        </h1>
+        <div class="d-flex align-items-center gap-2">
+            <!-- زر العودة -->
+            <a href="{{ url_for('attendance_index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة للحضور
+            </a>
+        </div>
+    </div>
+
+    <!-- بطاقة إعدادات التحضير -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">إعدادات التحضير</h6>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-success" onclick="saveAllAttendance()">
+                    <i class="fas fa-save"></i> حفظ الكل
+                </button>
+                <button type="button" class="btn btn-info" onclick="loadEmployees()">
+                    <i class="fas fa-sync"></i> تحديث
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <form id="filterForm" class="row g-3">
+                <!-- فلترة الشركة -->
+                <div class="col-md-3">
+                    <label for="company_id" class="form-label">الشركة</label>
+                    <select class="form-control" id="company_id" name="company_id" onchange="loadAreas(this.value)">
+                        <option value="">جميع الشركات</option>
+                        {% for company in companies %}
+                        <option value="{{ company.id }}" {% if selected_company_id == company.id %}selected{% endif %}>
+                            {{ company.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- فلترة المنطقة -->
+                <div class="col-md-3">
+                    <label for="area_id" class="form-label">المنطقة</label>
+                    <select class="form-control" id="area_id" name="area_id" onchange="loadLocations(this.value)">
+                        <option value="">جميع المناطق</option>
+                        {% if selected_area_id %}
+                            {% for area in areas %}
+                            <option value="{{ area.id }}" {% if selected_area_id == area.id %}selected{% endif %}>
+                                {{ area.name }}
+                            </option>
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+
+                <!-- فلترة الموقع -->
+                <div class="col-md-3">
+                    <label for="location_id" class="form-label">الموقع</label>
+                    <select class="form-control" id="location_id" name="location_id">
+                        <option value="">جميع المواقع</option>
+                        {% if selected_location_id %}
+                            {% for location in locations %}
+                            <option value="{{ location.id }}" {% if selected_location_id == location.id %}selected{% endif %}>
+                                {{ location.name }}
+                            </option>
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+
+                <!-- اختيار التاريخ (للمالك فقط) -->
+                <div class="col-md-3">
+                    <label for="attendance_date" class="form-label">تاريخ التحضير</label>
+                    <input type="date"
+                           class="form-control"
+                           id="attendance_date"
+                           name="date"
+                           value="{{ selected_date }}"
+                           {% if not can_select_date %}disabled{% endif %}>
+                    {% if not can_select_date %}
+                    <small class="text-muted">التاريخ مضبوط على اليوم ولا يمكن تغييره</small>
+                    {% endif %}
+                </div>
+
+                <!-- أزرار التطبيق -->
+                <div class="col-12">
+                    <button type="button" class="btn btn-primary" onclick="applyFilters()">
+                        <i class="fas fa-filter"></i> تطبيق الفلترة
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
+                        <i class="fas fa-times"></i> مسح الفلترة
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- إحصائيات سريعة -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                إجمالي الموظفين</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalEmployees">
+                                {{ employees|length }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                تم تحضيرهم</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="preparedCount">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                لم يتم تحضيرهم</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="notPreparedCount">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                تاريخ التحضير</div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                {{ selected_date.strftime('%Y-%m-%d') }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول التحضير -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">قائمة الموظفين للتحضير</h6>
+        </div>
+        <div class="card-body">
+            {% if employees %}
+            <div class="table-responsive">
+                <table class="table table-bordered" id="attendanceTable" width="100%" cellspacing="0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>#</th>
+                            <th>اسم الموظف</th>
+                            <th>الوظيفة</th>
+                            <th>الشركة</th>
+                            <th>الوردية الصباحية</th>
+                            <th>الوردية المسائية</th>
+                            <th>ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for employee in employees %}
+                        <tr id="employee-{{ employee.id }}" data-employee-id="{{ employee.id }}">
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <strong>{{ employee.full_name }}</strong>
+                                <br>
+                                <small class="text-muted">{{ employee.employee_id }}</small>
+                            </td>
+                            <td>{{ employee.position }}</td>
+                            <td>{{ employee.company.name if employee.company else '-' }}</td>
+
+                            <!-- الوردية الصباحية -->
+                            <td>
+                                {% set morning_key = employee.id ~ '_morning' %}
+                                {% set morning_data = existing_attendance.get(morning_key) %}
+                                <div class="attendance-shift" data-shift="morning">
+                                    <select class="form-control form-control-sm status-select"
+                                            data-employee="{{ employee.id }}"
+                                            data-shift="morning">
+                                        <option value="">-- اختر الحالة --</option>
+                                        <option value="present" {% if morning_data and morning_data.status == 'present' %}selected{% endif %}>حاضر</option>
+                                        <option value="absent" {% if morning_data and morning_data.status == 'absent' %}selected{% endif %}>غائب</option>
+                                        <option value="late" {% if morning_data and morning_data.status == 'late' %}selected{% endif %}>متأخر</option>
+                                    </select>
+
+                                    <div class="time-fields mt-2" {% if not morning_data or morning_data.status != 'present' %}style="display: none;"{% endif %}>
+                                        <div class="input-group input-group-sm mb-1">
+                                            <span class="input-group-text">الحضور</span>
+                                            <input type="time"
+                                                   class="form-control check-in"
+                                                   data-employee="{{ employee.id }}"
+                                                   data-shift="morning"
+                                                   value="{{ morning_data.check_in.strftime('%H:%M') if morning_data and morning_data.check_in else '' }}">
+                                        </div>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text">الانصراف</span>
+                                            <input type="time"
+                                                   class="form-control check-out"
+                                                   data-employee="{{ employee.id }}"
+                                                   data-shift="morning"
+                                                   value="{{ morning_data.check_out.strftime('%H:%M') if morning_data and morning_data.check_out else '' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- الوردية المسائية -->
+                            <td>
+                                {% set evening_key = employee.id ~ '_evening' %}
+                                {% set evening_data = existing_attendance.get(evening_key) %}
+                                <div class="attendance-shift" data-shift="evening">
+                                    <select class="form-control form-control-sm status-select"
+                                            data-employee="{{ employee.id }}"
+                                            data-shift="evening">
+                                        <option value="">-- اختر الحالة --</option>
+                                        <option value="present" {% if evening_data and evening_data.status == 'present' %}selected{% endif %}>حاضر</option>
+                                        <option value="absent" {% if evening_data and evening_data.status == 'absent' %}selected{% endif %}>غائب</option>
+                                        <option value="late" {% if evening_data and evening_data.status == 'late' %}selected{% endif %}>متأخر</option>
+                                    </select>
+
+                                    <div class="time-fields mt-2" {% if not evening_data or evening_data.status != 'present' %}style="display: none;"{% endif %}>
+                                        <div class="input-group input-group-sm mb-1">
+                                            <span class="input-group-text">الحضور</span>
+                                            <input type="time"
+                                                   class="form-control check-in"
+                                                   data-employee="{{ employee.id }}"
+                                                   data-shift="evening"
+                                                   value="{{ evening_data.check_in.strftime('%H:%M') if evening_data and evening_data.check_in else '' }}">
+                                        </div>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text">الانصراف</span>
+                                            <input type="time"
+                                                   class="form-control check-out"
+                                                   data-employee="{{ employee.id }}"
+                                                   data-shift="evening"
+                                                   value="{{ evening_data.check_out.strftime('%H:%M') if evening_data and evening_data.check_out else '' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- الملاحظات -->
+                            <td>
+                                <textarea class="form-control form-control-sm notes"
+                                          data-employee="{{ employee.id }}"
+                                          placeholder="ملاحظات..."
+                                          rows="2">{{ morning_data.notes if morning_data and morning_data.notes else (evening_data.notes if evening_data and evening_data.notes else '') }}</textarea>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">لا يوجد موظفين للعرض</h5>
+                <p class="text-muted">قم بتغيير فلترة البحث أو تأكد من وجود موظفين نشطين</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- نافذة تأكيد الحفظ -->
+<div class="modal fade" id="confirmationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-shield-alt me-2"></i>تأكيد حفظ سجلات الحضور
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="confirmationModalBody">
+                <!-- سيتم تعبئة المحتوى ديناميكياً -->
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إلغاء
+                </button>
+                <button type="button" class="btn btn-warning" id="confirmSaveBtn">
+                    <i class="fas fa-check me-1"></i>نعم، احفظ البيانات
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// متغيرات عامة
+let attendanceData = {};
+
+// عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    updateStatistics();
+    setupEventListeners();
+});
+
+// إعداد مستمعي الأحداث
+function setupEventListeners() {
+    // تغيير حالة الحضور
+    document.querySelectorAll('.status-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const employeeId = this.dataset.employee;
+            const shift = this.dataset.shift;
+            const status = this.value;
+
+            // إظهار/إخفاء حقول الوقت
+            const timeFields = this.closest('.attendance-shift').querySelector('.time-fields');
+            if (status === 'present') {
+                timeFields.style.display = 'block';
+            } else {
+                timeFields.style.display = 'none';
+            }
+
+            updateStatistics();
+        });
+    });
+}
+
+// تطبيق الفلترة
+function applyFilters() {
+    const form = document.getElementById('filterForm');
+    const formData = new FormData(form);
+    const params = new URLSearchParams();
+
+    for (const [key, value] of formData) {
+        if (value) params.append(key, value);
+    }
+
+    window.location.href = `{{ url_for('prepare_attendance') }}?${params.toString()}`;
+}
+
+// مسح الفلترة
+function clearFilters() {
+    window.location.href = `{{ url_for('prepare_attendance') }}`;
+}
+
+// تحميل المناطق حسب الشركة
+function loadAreas(companyId) {
+    if (!companyId) {
+        document.getElementById('area_id').innerHTML = '<option value="">جميع المناطق</option>';
+        document.getElementById('location_id').innerHTML = '<option value="">جميع المواقع</option>';
+        return;
+    }
+
+    fetch(`/api/areas/${companyId}`)
+        .then(response => response.json())
+        .then(data => {
+            const areaSelect = document.getElementById('area_id');
+            areaSelect.innerHTML = '<option value="">جميع المناطق</option>';
+
+            if (data.success && data.areas.length > 0) {
+                data.areas.forEach(area => {
+                    areaSelect.innerHTML += `<option value="${area.id}">${area.name}</option>`;
+                });
+            }
+        })
+        .catch(error => console.error('Error loading areas:', error));
+}
+
+// تحميل المواقع حسب المنطقة
+function loadLocations(areaId) {
+    if (!areaId) {
+        document.getElementById('location_id').innerHTML = '<option value="">جميع المواقع</option>';
+        return;
+    }
+
+    fetch(`/api/locations/${areaId}`)
+        .then(response => response.json())
+        .then(data => {
+            const locationSelect = document.getElementById('location_id');
+            locationSelect.innerHTML = '<option value="">جميع المواقع</option>';
+
+            if (data.success && data.locations.length > 0) {
+                data.locations.forEach(location => {
+                    locationSelect.innerHTML += `<option value="${location.id}">${location.name}</option>`;
+                });
+            }
+        })
+        .catch(error => console.error('Error loading locations:', error));
+}
+
+// تحديث الإحصائيات
+function updateStatistics() {
+    const totalEmployees = {{ employees|length }};
+    let preparedCount = 0;
+
+    document.querySelectorAll('.status-select').forEach(select => {
+        if (select.value) {
+            preparedCount++;
+        }
+    });
+
+    // تقسيم على 2 لأن كل موظف له ورديتين
+    preparedCount = Math.ceil(preparedCount / 2);
+
+    document.getElementById('preparedCount').textContent = preparedCount;
+    document.getElementById('notPreparedCount').textContent = totalEmployees - preparedCount;
+}
+
+// حفظ بيانات التحضير
+function saveAllAttendance() {
+    const attendanceData = [];
+    const date = document.getElementById('attendance_date').value || '{{ selected_date }}';
+
+    // جمع بيانات جميع الموظفين
+    document.querySelectorAll('tr[id^="employee-"]').forEach(row => {
+        const employeeId = row.dataset.employeeId;
+
+        // الوردية الصباحية
+        const morningStatus = row.querySelector('select[data-shift="morning"]').value;
+        const morningCheckIn = row.querySelector('input.check-in[data-shift="morning"]').value;
+        const morningCheckOut = row.querySelector('input.check-out[data-shift="morning"]').value;
+
+        // الوردية المسائية
+        const eveningStatus = row.querySelector('select[data-shift="evening"]').value;
+        const eveningCheckIn = row.querySelector('input.check-in[data-shift="evening"]').value;
+        const eveningCheckOut = row.querySelector('input.check-out[data-shift="evening"]').value;
+
+        // الملاحظات
+        const notes = row.querySelector('.notes').value;
+
+        if (morningStatus) {
+            attendanceData.push({
+                employee_id: employeeId,
+                date: date,
+                status: morningStatus,
+                shift_type: 'morning',
+                check_in: morningCheckIn || null,
+                check_out: morningCheckOut || null,
+                notes: notes
+            });
+        }
+
+        if (eveningStatus) {
+            attendanceData.push({
+                employee_id: employeeId,
+                date: date,
+                status: eveningStatus,
+                shift_type: 'evening',
+                check_in: eveningCheckIn || null,
+                check_out: eveningCheckOut || null,
+                notes: notes
+            });
+        }
+    });
+
+    if (attendanceData.length === 0) {
+        showAlert('warning', 'لا توجد بيانات لحفظها');
+        return;
+    }
+
+    // إظهار رسالة تأكيد
+    showConfirmationModal(attendanceData);
+}
+
+// عرض نافذة تأكيد الحفظ
+function showConfirmationModal(attendanceData) {
+    // حساب الإحصائيات
+    const totalRecords = attendanceData.length;
+    const presentCount = attendanceData.filter(record => record.status === 'present').length;
+    const absentCount = attendanceData.filter(record => record.status === 'absent').length;
+    const lateCount = attendanceData.filter(record => record.status === 'late').length;
+    const date = attendanceData[0]?.date || '{{ selected_date }}';
+
+    // إنشاء محتوى نافذة التأكيد
+    const modalContent = `
+        <div class="text-center">
+            <i class="fas fa-exclamation-triangle fa-4x text-warning mb-3"></i>
+            <h4 class="text-dark mb-3">تأكيد حفظ سجلات الحضور</h4>
+
+            <div class="alert alert-info text-start">
+                <h6 class="alert-heading">ملخص البيانات المراد حفظها:</h6>
+                <div class="row mt-3">
+                    <div class="col-6">
+                        <strong>التاريخ:</strong> ${date}
+                    </div>
+                    <div class="col-6">
+                        <strong>إجمالي السجلات:</strong> ${totalRecords}
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-4">
+                        <span class="badge bg-success">حاضر: ${presentCount}</span>
+                    </div>
+                    <div class="col-4">
+                        <span class="badge bg-danger">غائب: ${absentCount}</span>
+                    </div>
+                    <div class="col-4">
+                        <span class="badge bg-warning">متأخر: ${lateCount}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-warning mt-3">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>ملاحظة:</strong> هذا الإجراء سيحفظ جميع سجلات الحضور المعروضة. لا يمكن التراجع عن هذا الإجراء.
+            </div>
+        </div>
+    `;
+
+    // تعيين محتوى النافذة
+    document.getElementById('confirmationModalBody').innerHTML = modalContent;
+
+    // إعداد حدث الزر تأكيد
+    const confirmBtn = document.getElementById('confirmSaveBtn');
+    confirmBtn.onclick = function() {
+        confirmSaveAttendance(attendanceData);
+    };
+
+    // إظهار النافذة
+    const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+    modal.show();
+}
+
+// تأكيد الحفظ بعد الموافقة
+function confirmSaveAttendance(attendanceData) {
+    // إغلاق نافذة التأكيد
+    const modal = bootstrap.Modal.getInstance(document.getElementById('confirmationModal'));
+    modal.hide();
+
+    // إظهار رسالة تحميل
+    showAlert('info', 'جاري حفظ البيانات...');
+
+    // إرسال البيانات مع تأكيد الحفظ
+    fetch('{{ url_for("prepare_attendance") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Confirm-Save': 'true'  // إشارة تأكيد الحفظ
+        },
+        body: JSON.stringify(attendanceData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            showAlert('error', data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('error', 'حدث خطأ أثناء حفظ البيانات');
+    });
+}
+
+// عرض التنبيهات
+function showAlert(type, message) {
+    const alertClass = {
+        'success': 'alert-success',
+        'error': 'alert-danger',
+        'warning': 'alert-warning',
+        'info': 'alert-info'
+    }[type] || 'alert-info';
+
+    // إزالة التنبيهات السابقة
+    document.querySelectorAll('.alert-dismissible').forEach(alert => {
+        if (alert.parentNode) {
+            alert.parentNode.removeChild(alert);
+        }
+    });
+
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        <strong>${type === 'success' ? 'نجاح' : type === 'error' ? 'خطأ' : type === 'warning' ? 'تحذير' : 'معلومات'}:</strong> ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    document.body.appendChild(alertDiv);
+
+    // إزالة التنبيه تلقائياً بعد 5 ثوانٍ
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
+
+// تحميل الموظفين
+function loadEmployees() {
+    window.location.reload();
+}
+</script>
+
+<style>
+.attendance-shift {
+    min-width: 150px;
+}
+
+.time-fields {
+    border-top: 1px solid #e3e6f0;
+    padding-top: 8px;
+}
+
+.input-group-text {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.form-control-sm {
+    font-size: 0.75rem;
+}
+
+.table th {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* تنسيقات إضافية للتنبيهات */
+.alert.position-fixed {
+    animation: slideInRight 0.5s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* تنسيقات النافذة المنبثقة */
+.modal-header.bg-warning {
+    background: linear-gradient(135deg, #ffc107, #ffb300);
+}
+
+.modal-header .btn-close {
+    filter: invert(1);
+}
+</style>
+{% endblock %}

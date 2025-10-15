@@ -18,7 +18,7 @@ db = SQLAlchemy()
 
 
 class User(UserMixin, db.Model):
-    __tablename__ = 'users'
+    __tablename__ = 'clean_users'  # ⬅️ غير من users إلى clean_users
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -45,10 +45,10 @@ class User(UserMixin, db.Model):
 
 
 class Employee(db.Model):
-    __tablename__ = 'employees'
+    __tablename__ = 'employees'  # ⬅️ هذا جدول جديد، لا يحتاج تغيير
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('clean_users.id'), unique=True, nullable=False)  # ⬅️ عدل المرجع
     full_name = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(20))
     address = db.Column(db.Text)
@@ -60,7 +60,6 @@ class Employee(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # العلاقات
-    # ✅ إصلاح العلاقات - استخدام قائمة بدلاً من نص
     supervised_areas = db.relationship('Area', backref='supervisor', foreign_keys='[Area.supervisor_id]')
     monitored_locations = db.relationship('Location', backref='monitor', foreign_keys='Location.monitor_id')
     assigned_places = db.relationship('Place', backref='worker', foreign_keys='Place.worker_id')
@@ -70,7 +69,7 @@ class Employee(db.Model):
 
 
 class Company(db.Model):
-    __tablename__ = 'companies'
+    __tablename__ = 'clean_companies'  # ⬅️ غير من companies إلى clean_companies
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
@@ -90,11 +89,11 @@ class Company(db.Model):
 
 
 class Area(db.Model):
-    __tablename__ = 'areas'
+    __tablename__ = 'areas'  # ⬅️ هذا جدول جديد، لا يحتاج تغيير
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    company_id = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('clean_companies.id'), nullable=False)  # ⬅️ عدل المرجع
     supervisor_id = db.Column(db.Integer, db.ForeignKey('employees.id'))
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -108,7 +107,7 @@ class Area(db.Model):
 
 
 class Location(db.Model):
-    __tablename__ = 'locations'
+    __tablename__ = 'clean_locations'  # ⬅️ غير من locations إلى clean_locations
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -126,11 +125,11 @@ class Location(db.Model):
 
 
 class Place(db.Model):
-    __tablename__ = 'places'
+    __tablename__ = 'clean_places'  # ⬅️ غير من places إلى clean_places
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), nullable=False)
+    location_id = db.Column(db.Integer, db.ForeignKey('clean_locations.id'), nullable=False)  # ⬅️ عدل المرجع
     worker_id = db.Column(db.Integer, db.ForeignKey('employees.id'))
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -144,11 +143,11 @@ class Place(db.Model):
 
 
 class CleaningEvaluation(db.Model):
-    __tablename__ = 'cleaning_evaluations'
+    __tablename__ = 'cleaning_evaluations'  # ⬅️ هذا جدول جديد، لا يحتاج تغيير
 
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date, nullable=False, default=date.today)
-    place_id = db.Column(db.Integer, db.ForeignKey('places.id'), nullable=False)
+    place_id = db.Column(db.Integer, db.ForeignKey('clean_places.id'), nullable=False)  # ⬅️ عدل المرجع
     evaluated_employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
     evaluator_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
 
@@ -179,7 +178,7 @@ class CleaningEvaluation(db.Model):
 
 
 class Attendance(db.Model):
-    __tablename__ = 'attendance'
+    __tablename__ = 'attendance'  # ⬅️ هذا جدول جديد، لا يحتاج تغيير
 
     id = db.Column(db.Integer, primary_key=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
@@ -199,11 +198,93 @@ class Attendance(db.Model):
     def __repr__(self):
           return f'<Attendance {self.employee_id} - {self.date}>'
 
-# ✅ دوال مساعدة إضافية لتحسين التوافق
-def initialize_models():
-    """تهيئة النماذج وإضافة أي دوال مساعدة إذا لزم الأمر"""
-    # هذه الدوال موجودة بالفعل في النماذج، لذا لا حاجة لإضافتها هنا
-    pass
 
-# جعل db متاحة للاستيراد من ملفات أخرى
-__all__ = ['db', 'User', 'Employee', 'Company', 'Area', 'Location', 'Place', 'CleaningEvaluation', 'Attendance']
+# 🔧 أضف هذه الدوال في نهاية models.py - قبل السطر الأخير
+
+def create_tables():
+    """إنشاء جميع الجداول"""
+    try:
+        print("🔧 جاري إنشاء الجداول...")
+        db.create_all()
+
+        # التحقق من الجداول المنشأة
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+
+        print("✅ تم إنشاء الجداول بنجاح")
+        print(f"📋 الجداول المنشأة: {tables}")
+        return True
+
+    except Exception as e:
+        print(f"❌ خطأ في إنشاء الجداول: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def initialize_default_data():
+    """إنشاء البيانات الافتراضية"""
+    try:
+        print("📦 جاري إنشاء البيانات الافتراضية...")
+
+        # التحقق إذا كانت هناك بيانات موجودة
+        user_count = User.query.count()
+        company_count = Company.query.count()
+
+        if user_count == 0 and company_count == 0:
+            print("🆕 لا توجد بيانات، جاري الإنشاء...")
+
+            # إنشاء شركة افتراضية
+            company = Company(
+                name="شركة النظافة العامة",
+                address="اليمن - صنعاء",
+                contact_person="المدير العام",
+                phone="+967123456789",
+                email="info@cleaning.com",
+                is_active=True
+            )
+            db.session.add(company)
+            db.session.flush()  # للحصول على ID
+
+            # إنشاء مستخدم مالك
+            owner_user = User(
+                username="owner",
+                email="owner@cleaning.com",
+                role="owner",
+                is_active=True
+            )
+            owner_user.set_password("123456")
+            db.session.add(owner_user)
+            db.session.flush()
+
+            # إنشاء موظف للمالك
+            owner_employee = Employee(
+                user_id=owner_user.id,
+                full_name="المالك العام",
+                position="owner",
+                hire_date=date.today(),
+                is_active=True
+            )
+            db.session.add(owner_employee)
+
+            db.session.commit()
+            print("✅ تم إنشاء البيانات الافتراضية بنجاح")
+            print("   👤 مستخدم: owner / 123456")
+            print("   🏢 شركة: شركة النظافة العامة")
+        else:
+            print(f"✅ توجد بيانات بالفعل: {user_count} مستخدم، {company_count} شركة")
+
+        return True
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ خطأ في إنشاء البيانات الافتراضية: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+# تأكد من أن هذا السطر موجود في النهاية
+__all__ = ['db', 'User', 'Employee', 'Company', 'Area', 'Location', 'Place', 'CleaningEvaluation', 'Attendance',
+           'create_tables', 'initialize_default_data']

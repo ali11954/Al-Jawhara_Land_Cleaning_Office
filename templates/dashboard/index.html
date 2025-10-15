@@ -1,11 +1,7 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}أرض الجوهرة للنظافة{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+{% extends "base.html" %}
+{% block title %}إدارة الموظفين - أرض الجوهرة للنظافة{% endblock %}
+{% block content %}
+
     <style>
         :root {
             --primary-color: #4e73df;
@@ -16,6 +12,10 @@
             --danger-color: #e74a3b;
             --light-bg: #f8f9fc;
             --dark-text: #5a5c69;
+            --light-purple: #e0d6ff;
+            --light-blue: #d6e4ff;
+            --light-green: #d6ffdf;
+            --light-yellow: #fff9d6;
         }
 
         body {
@@ -90,239 +90,378 @@
             display: none !important;
         }
 
+        /* تخصيصات الرسوم البيانية */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            padding: 15px;
+        }
+
+        .chart-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fc 100%);
+        }
+
+        .performance-indicator {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .indicator-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 8px;
+        }
+
+        .improvement-badge {
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+        }
+
+        .dashboard-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 1.5rem 0;
+            margin-bottom: 2rem;
+            border-radius: 0 0 1rem 1rem;
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .metric-change {
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .metric-change.positive {
+            color: var(--success-color);
+        }
+
+        .metric-change.negative {
+            color: var(--danger-color);
+        }
+
         @media (max-width: 768px) {
             .navbar-nav .nav-link {
                 padding: 0.75rem 1rem;
             }
+
+            .chart-container {
+                height: 250px;
+            }
         }
     </style>
-    {% block extra_css %}{% endblock %}
-</head>
-<body>
-    <!-- شريط التنقل -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
-        <div class="container">
-            <a class="navbar-brand" href="/dashboard">
-                <i class="fas fa-gem me-2"></i>
-                أرض الجوهرة للنظافة
-            </a>
 
-            <div class="text-light me-3 d-none d-lg-block">
-                <small id="currentDateTime"></small>
+        <!-- رأس لوحة التحكم -->
+        <div class="dashboard-header">
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="h3 mb-2">لوحة تحكم الأداء</h1>
+                        <p class="mb-0">نظرة عامة على أداء الموظفين والحضور والتقييمات</p>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <div class="btn-group">
+                            <button class="btn btn-light btn-sm" id="dayView">يومي</button>
+                            <button class="btn btn-outline-light btn-sm" id="weekView">أسبوعي</button>
+                            <button class="btn btn-outline-light btn-sm" id="monthView">شهري</button>
+                        </div>
+                    </div>
+                </div>
             </div>
+        </div>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+        <!-- مؤشرات الأداء السريعة -->
+        <div class="container mb-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value text-primary">{{ "%.1f"|format(stats.avg_evaluation) }}%</div>
+                        <div class="metric-label">متوسط التقييم اليومي</div>
+                        <div class="metric-change {{ 'positive' if stats.evaluation_change > 0 else 'negative' }}">
+                            <i class="fas fa-arrow-{{ 'up' if stats.evaluation_change > 0 else 'down' }} me-1"></i>
+                            {{ "%.1f"|format(stats.evaluation_change|abs) }}% عن الأمس
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value text-success">{{ "%.1f"|format(stats.attendance_rate) }}%</div>
+                        <div class="metric-label">نسبة الحضور</div>
+                        <div class="metric-change {{ 'positive' if stats.attendance_change > 0 else 'negative' }}">
+                            <i class="fas fa-arrow-{{ 'up' if stats.attendance_change > 0 else 'down' }} me-1"></i>
+                            {{ "%.1f"|format(stats.attendance_change|abs) }}% عن الأسبوع الماضي
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value text-info">{{ stats.active_employees }}</div>
+                        <div class="metric-label">عدد الموظفين النشطين</div>
+                        <div class="metric-change positive">
+                            <i class="fas fa-plus me-1"></i> {{ stats.new_employees }} موظفين جدد
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value text-warning">{{ stats.pending_reviews }}</div>
+                        <div class="metric-label">تقييمات تحتاج مراجعة</div>
+                        <div class="metric-change {{ 'positive' if stats.reviews_change < 0 else 'negative' }}">
+                            <i class="fas fa-arrow-{{ 'down' if stats.reviews_change < 0 else 'up' }} me-1"></i>
+                            {{ stats.reviews_change|abs }} عن الأمس
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-            <div class="collapse navbar-collapse" id="navbarMain">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="/dashboard">
-                            <i class="fas fa-tachometer-alt me-1"></i>لوحة التحكم
-                        </a>
-                    </li>
-                    {% if current_user.is_authenticated and current_user.role == 'owner' %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'users_list' %}active{% endif %}" href="/users">
-                            <i class="fas fa-user-cog me-1"></i>إدارة المستخدمين
-                        </a>
-                    </li>
-                    {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint in ['employees_list', 'add_employee'] %}active{% endif %}" href="/employees">
-                            <i class="fas fa-users me-1"></i>الموظفين
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'companies_list' %}active{% endif %}" href="/companies">
-                            <i class="fas fa-building me-1"></i>الشركات
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint in ['evaluations_list', 'add_evaluation'] %}active{% endif %}" href="/evaluations">
-                            <i class="fas fa-clipboard-check me-1"></i>التقييمات
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint in ['reports_index', 'reports_daily_evaluations'] %}active{% endif %}" href="/reports">
-                            <i class="fas fa-chart-bar me-1"></i>التقارير
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'attendance_index' %}active{% endif %}" href="/attendance">
-                            <i class="fas fa-calendar-check me-1"></i>الحضور
-                        </a>
-                    </li>
-                </ul>
-
-                <div class="search-container me-3 my-2 my-lg-0">
-                    <div class="input-group input-group-sm">
-                        <input type="text" id="globalSearch" class="form-control" placeholder="بحث سريع..." style="width: 200px;">
-                        <button class="btn btn-outline-light" type="button" onclick="quickSearch()">
-                            <i class="fas fa-search"></i>
-                        </button>
+        <!-- قسم الرسوم البيانية -->
+        <div class="container">
+            <div class="row">
+                <!-- تقييم الموظفين اليومي ومستوى التحسن -->
+                <div class="col-lg-8">
+                    <div class="card chart-card mb-4">
+                        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-line text-primary me-2"></i>
+                                تقييم الموظفين اليومي ومستوى التحسن
+                            </h5>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    جميع الأقسام
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" data-department="all">جميع الأقسام</a></li>
+                                    <li><a class="dropdown-item" href="#" data-department="supervisor">المشرفون</a></li>
+                                    <li><a class="dropdown-item" href="#" data-department="monitor">المراقبون</a></li>
+                                    <li><a class="dropdown-item" href="#" data-department="worker">العمال</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="employeeEvaluationChart"></canvas>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-4">
+                                    <div class="performance-indicator">
+                                        <span class="indicator-dot" style="background-color: #4e73df;"></span>
+                                        <span>متوسط التقييم: <strong>{{ "%.1f"|format(stats.avg_evaluation) }}%</strong></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="performance-indicator">
+                                        <span class="indicator-dot" style="background-color: #1cc88a;"></span>
+                                        <span>الأعلى أداءً: <strong>{{ "%.1f"|format(stats.max_evaluation) }}%</strong></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="performance-indicator">
+                                        <span class="indicator-dot" style="background-color: #f6c23e;"></span>
+                                        <span>الأقل أداءً: <strong>{{ "%.1f"|format(stats.min_evaluation) }}%</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <ul class="navbar-nav">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link position-relative" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-bell"></i>
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                3
-                            </span>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationsDropdown">
-                            <li><h6 class="dropdown-header">الإشعارات</h6></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-info-circle text-info me-2"></i>تقييم جديد مطلوب</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-exclamation-triangle text-warning me-2"></i>موظف يحتاج متابعة</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-check-circle text-success me-2"></i>تم إكمال المهمة</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-center" href="#">عرض جميع الإشعارات</a></li>
-                        </ul>
-                    </li>
+                <!-- الحضور اليومي -->
+                <div class="col-lg-4">
+                    <div class="card chart-card mb-4">
+                        <div class="card-header bg-transparent">
+                            <h5 class="mb-0">
+                                <i class="fas fa-user-check text-success me-2"></i>
+                                الحضور اليومي
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="attendanceChart"></canvas>
+                            </div>
+                            <div class="row mt-3 text-center">
+                                <div class="col-4">
+                                    <div class="metric-value text-success" style="font-size: 1.5rem;">{{ "%.1f"|format(stats.attendance_rate) }}%</div>
+                                    <div class="metric-label">نسبة الحضور</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="metric-value text-primary" style="font-size: 1.5rem;">{{ stats.present_today }}</div>
+                                    <div class="metric-label">حاضرون</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="metric-value text-danger" style="font-size: 1.5rem;">{{ stats.absent_today }}</div>
+                                    <div class="metric-label">غائبون</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user me-1"></i>
-                            <span>
-                                {% if current_user.is_authenticated %}
-                                    {{ current_user.username }}
-                                {% else %}
-                                    زائر
-                                {% endif %}
-                            </span>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li>
-                                <div class="dropdown-header">
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar-circle-sm me-2">
-                                            <span class="initials-sm">
-                                                {% if current_user.is_authenticated %}
-                                                    {{ current_user.username[0] }}
-                                                {% else %}
-                                                    ز
-                                                {% endif %}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <div class="fw-bold">
-                                                {% if current_user.is_authenticated %}
-                                                    {{ current_user.username }}
-                                                {% else %}
-                                                    زائر
-                                                {% endif %}
-                                            </div>
-                                            <small class="text-muted">
-                                                {% if current_user.is_authenticated %}
-                                                    {{ current_user.role }}
-                                                {% else %}
-                                                    غير مسجل
-                                                {% endif %}
-                                            </small>
-                                        </div>
+            <!-- الرسوم البيانية حسب الشركات والمناطق -->
+            <div class="row">
+                <!-- حسب الشركات -->
+                <div class="col-lg-6">
+                    <div class="card chart-card mb-4">
+                        <div class="card-header bg-transparent">
+                            <h5 class="mb-0">
+                                <i class="fas fa-building text-info me-2"></i>
+                                التقييمات حسب الشركات
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="companiesChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- حسب المناطق -->
+                <div class="col-lg-6">
+                    <div class="card chart-card mb-4">
+                        <div class="card-header bg-transparent">
+                            <h5 class="mb-0">
+                                <i class="fas fa-map-marker-alt text-warning me-2"></i>
+                                التقييمات حسب المناطق
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="regionsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- مؤشرات الأداء والتحسينات -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card chart-card mb-4">
+                        <div class="card-header bg-transparent">
+                            <h5 class="mb-0">
+                                <i class="fas fa-tachometer-alt text-primary me-2"></i>
+                                مؤشرات الأداء والتحسينات
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3 text-center mb-3">
+                                    <div class="p-3 rounded" style="background-color: var(--light-purple);">
+                                        <div class="metric-value text-primary">{{ "%.1f"|format(stats.customer_satisfaction) }}%</div>
+                                        <div class="metric-label">رضا العملاء</div>
+                                        <span class="improvement-badge bg-{{ 'success' if stats.customer_satisfaction_change > 0 else 'danger' }} text-white">
+                                            <i class="fas fa-arrow-{{ 'up' if stats.customer_satisfaction_change > 0 else 'down' }} me-1"></i>
+                                            {{ "%.1f"|format(stats.customer_satisfaction_change|abs) }}%
+                                        </span>
                                     </div>
                                 </div>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="/profile">
-                                    <i class="fas fa-user-circle me-2"></i>الملف الشخصي
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="#" onclick="showComingSoon('الإعدادات')">
-                                    <i class="fas fa-cog me-2"></i>الإعدادات
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item text-danger" href="/logout">
-                                    <i class="fas fa-sign-out-alt me-2"></i>تسجيل الخروج
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
-    <!-- رسائل التنبيه -->
-    <div class="container-fluid mt-3">
-        <div id="flashMessages">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
-                            <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' }} me-2"></i>
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                <div class="col-md-3 text-center mb-3">
+                                    <div class="p-3 rounded" style="background-color: var(--light-blue);">
+                                        <div class="metric-value text-info">{{ "%.1f"|format(stats.task_completion) }}%</div>
+                                        <div class="metric-label">إنجاز المهام</div>
+                                        <span class="improvement-badge bg-{{ 'success' if stats.task_completion_change > 0 else 'danger' }} text-white">
+                                            <i class="fas fa-arrow-{{ 'up' if stats.task_completion_change > 0 else 'down' }} me-1"></i>
+                                            {{ "%.1f"|format(stats.task_completion_change|abs) }}%
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 text-center mb-3">
+                                    <div class="p-3 rounded" style="background-color: var(--light-green);">
+                                        <div class="metric-value text-success">{{ "%.1f"|format(stats.quality_score) }}%</div>
+                                        <div class="metric-label">الجودة</div>
+                                        <span class="improvement-badge bg-{{ 'success' if stats.quality_change > 0 else 'danger' }} text-white">
+                                            <i class="fas fa-arrow-{{ 'up' if stats.quality_change > 0 else 'down' }} me-1"></i>
+                                            {{ "%.1f"|format(stats.quality_change|abs) }}%
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 text-center mb-3">
+                                    <div class="p-3 rounded" style="background-color: var(--light-yellow);">
+                                        <div class="metric-value text-warning">{{ "%.1f"|format(stats.time_utilization) }}%</div>
+                                        <div class="metric-label">الوقت المستغل</div>
+                                        <span class="improvement-badge bg-{{ 'success' if stats.time_utilization_change > 0 else 'danger' }} text-white">
+                                            <i class="fas fa-arrow-{{ 'up' if stats.time_utilization_change > 0 else 'down' }} me-1"></i>
+                                            {{ "%.1f"|format(stats.time_utilization_change|abs) }}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-        </div>
-    </div>
-
-    <!-- المحتوى الرئيسي -->
-    {% block content %}{% endblock %}
-
-    <!-- الفوتر -->
-    <footer class="bg-dark text-white mt-5 py-4">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>أرض الجوهرة للنظافة</h5>
-                    <p class="mb-0">نظام إدارة النظافة والجودة المتكامل</p>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <p class="mb-0">
-                        <i class="fas fa-phone me-2"></i>+967 770 322 261
-                        <br>
-                        <i class="fas fa-envelope me-2"></i>aljwahrh-land@gamil.com
-                    </p>
-                    <p class="mb-0 mt-2">&copy; 2025 جميع الحقوق محفوظة</p>
-                </div>
-            </div>
-        </div>
-    </footer>
-
-    <!-- المودالات العامة -->
-    <div class="modal fade" id="employeeDetailsModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">تفاصيل الموظف</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" id="employeeDetailsContent">
-                    <!-- المحتوى سيتم تحميله عبر JavaScript -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- مؤشر التحميل -->
-    <div id="loadingIndicator" class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="background: rgba(0,0,0,0.5); z-index: 9999;">
-        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-            <span class="visually-hidden">جاري التحميل...</span>
-        </div>
-    </div>
-
-    <!-- السكريبتات الأساسية -->
+    <!-- السكريبتات -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // الدوال الأساسية المشتركة
+        // البيانات من الخادم
+        const serverData = {
+            evaluationData: {{ evaluation_data|tojson }},
+            attendanceData: {{ attendance_data|tojson }},
+            companiesData: {{ companies_data|tojson }},
+            areasData: {{ areas_data|tojson }},
+            performanceData: {{ performance_data|tojson }}
+        };
+
+        // تحديث التاريخ والوقت
         document.addEventListener('DOMContentLoaded', function() {
             updateDateTime();
             setInterval(updateDateTime, 1000);
+
+            // تهيئة الرسوم البيانية
+            initCharts();
+
+            // إضافة تفاعلية لأزرار عرض الفترة
+            document.getElementById('dayView').addEventListener('click', function() {
+                setActiveView(this, 'day');
+            });
+            document.getElementById('weekView').addEventListener('click', function() {
+                setActiveView(this, 'week');
+            });
+            document.getElementById('monthView').addEventListener('click', function() {
+                setActiveView(this, 'month');
+            });
+
+            // تفاعلية القائمة المنسدلة للأقسام
+            document.querySelectorAll('.dropdown-item[data-department]').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const department = this.getAttribute('data-department');
+                    filterByDepartment(department);
+                    this.closest('.dropdown').querySelector('.dropdown-toggle').textContent = this.textContent;
+                });
+            });
         });
 
         function updateDateTime() {
@@ -342,45 +481,191 @@
             }
         }
 
-        function showLoading() {
-            const indicator = document.getElementById('loadingIndicator');
-            if (indicator) {
-                indicator.style.display = 'flex';
-            }
+        function setActiveView(button, view) {
+            // إزالة النشاط من جميع الأزرار
+            document.querySelectorAll('.btn-group .btn').forEach(btn => {
+                btn.classList.remove('btn-light');
+                btn.classList.add('btn-outline-light');
+            });
+
+            // إضافة النشاط للزر المحدد
+            button.classList.remove('btn-outline-light');
+            button.classList.add('btn-light');
+
+            // تحديث البيانات حسب الفترة المحددة
+            updateChartsByView(view);
         }
 
-        function hideLoading() {
-            const indicator = document.getElementById('loadingIndicator');
-            if (indicator) {
-                indicator.style.display = 'none';
-            }
+        function filterByDepartment(department) {
+            // في التطبيق الحقيقي، هنا ستقوم بجلب البيانات من الخادم حسب القسم المحدد
+            console.log('تصفية حسب القسم: ' + department);
+            updateChartsByDepartment(department);
         }
 
-        function quickSearch() {
-            const query = document.getElementById('globalSearch').value.trim();
-            if (query) {
-                alert(`سيتم البحث عن: ${query}`);
-            }
-        }
+        function initCharts() {
+            // رسم بياني لتقييم الموظفين اليومي
+            const evalCtx = document.getElementById('employeeEvaluationChart').getContext('2d');
+            window.evaluationChart = new Chart(evalCtx, {
+                type: 'line',
+                data: serverData.evaluationData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            rtl: true
+                        },
+                        tooltip: {
+                            rtl: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 70,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
 
-        function showComingSoon(feature) {
-            alert(`ميزة ${feature} قيد التطوير وستكون متاحة قريباً`);
-        }
+            // رسم بياني للحضور اليومي
+            const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+            window.attendanceChart = new Chart(attendanceCtx, {
+                type: 'doughnut',
+                data: serverData.attendanceData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            rtl: true
+                        },
+                        tooltip: {
+                            rtl: true,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
 
-        function printPage() {
-            window.print();
-        }
+            // رسم بياني حسب الشركات
+            const companiesCtx = document.getElementById('companiesChart').getContext('2d');
+            window.companiesChart = new Chart(companiesCtx, {
+                type: 'bar',
+                data: serverData.companiesData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            rtl: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return 'متوسط التقييم: ' + context.parsed.y + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 80,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
 
-        // إزالة أي Service Worker قديم
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let registration of registrations) {
-                    registration.unregister();
+            // رسم بياني حسب المناطق
+            const regionsCtx = document.getElementById('regionsChart').getContext('2d');
+            window.regionsChart = new Chart(regionsCtx, {
+                type: 'polarArea',
+                data: serverData.areasData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            rtl: true
+                        },
+                        tooltip: {
+                            rtl: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed + '%';
+                                }
+                            }
+                        }
+                    }
                 }
             });
         }
+
+        function updateChartsByView(view) {
+            // في التطبيق الحقيقي، هنا ستقوم بجلب البيانات من الخادم حسب الفترة المحددة
+            console.log('تحديث البيانات للعرض: ' + view);
+
+            // محاكاة تحديث البيانات
+            fetch(`/api/dashboard/data?view=${view}`)
+                .then(response => response.json())
+                .then(data => {
+                    // تحديث الرسوم البيانية بالبيانات الجديدة
+                    if (window.evaluationChart) {
+                        window.evaluationChart.data = data.evaluationData;
+                        window.evaluationChart.update();
+                    }
+
+                    if (window.attendanceChart) {
+                        window.attendanceChart.data = data.attendanceData;
+                        window.attendanceChart.update();
+                    }
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        function updateChartsByDepartment(department) {
+            // محاكاة تحديث البيانات حسب القسم
+            fetch(`/api/dashboard/data?department=${department}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (window.evaluationChart) {
+                        window.evaluationChart.data = data.evaluationData;
+                        window.evaluationChart.update();
+                    }
+                })
+                .catch(error => console.error('Error fetching department data:', error));
+        }
     </script>
 
-    {% block scripts %}{% endblock %}
-</body>
-</html>
+{% endblock %}
