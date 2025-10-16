@@ -14,3 +14,4 @@ pandas==2.3.1
 openpyxl==3.2.0b1
 psycopg2-binary==2.9.10
 Flask-Migrate==4.0.7
+humanize==4.14.0
