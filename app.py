@@ -2274,12 +2274,12 @@ def get_areas_by_company(company_id):
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
-@app.route('/api/locations/<int:area_id>')
+@app.route('/api/locations/by-area/<int:area_id>')
 @login_required
 def get_locations_by_area(area_id):
     """الحصول على المواقع التابعة لمنطقة معينة"""
     try:
-        locations = Location.query.filter_by(area_id=area_id).all()
+        locations = Location.query.filter_by(area_id=area_id, is_active=True).all()
         locations_data = [{'id': loc.id, 'name': loc.name} for loc in locations]
         return jsonify({'success': True, 'locations': locations_data})
     except Exception as e:
@@ -3095,25 +3095,25 @@ def area_locations(area_id):
 @app.route('/areas/<int:area_id>/locations/add', methods=['GET', 'POST'])
 @login_required
 def add_location(area_id):
-    """إضافة موقع جديد - الإصدار المصحح"""
+    """إضافة موقع جديد"""
     print(f"🎯 تم استدعاء add_location للمنطقة {area_id} بطريقة {request.method}")
 
     if request.method == 'GET':
-        # للتصحيح فقط
+        # ✅ هذا للتصحيح فقط - لكن القالب لا يستخدمه!
         return jsonify({
             'debug': True,
-            'message': 'هذا مسار GET للتصحيح',
+            'message': 'هذا المسار يعمل بشكل صحيح',
             'area_id': area_id,
-            'endpoint': 'add_location'
+            'endpoint': 'add_location',
+            'note': 'هذا API وليس صفحة HTML'
         })
 
-    # معالجة طلب POST
+    # معالجة طلب POST (يتم استدعاؤها من الـ Modal)
     try:
         print(f"📨 بيانات POST المستلمة: {dict(request.form)}")
 
         # التحقق من وجود المنطقة
         area = Area.query.get_or_404(area_id)
-        print(f"✅ المنطقة: {area.name} (ID: {area.id})")
 
         # التحقق من الصلاحيات
         if current_user.role != 'owner' and not (
@@ -3121,7 +3121,6 @@ def add_location(area_id):
                 current_user.employee_profile and
                 area.supervisor_id == current_user.employee_profile.id
         ):
-            print(f"❌ صلاحيات غير كافية: المستخدم {current_user.username} لديه دور {current_user.role}")
             return jsonify({
                 'success': False,
                 'message': 'غير مصرح بهذا الإجراء'
@@ -3135,17 +3134,9 @@ def add_location(area_id):
 
         # التحقق من البيانات المطلوبة
         if not name:
-            print("❌ اسم الموقع مفقود")
             return jsonify({
                 'success': False,
                 'message': 'اسم الموقع مطلوب'
-            }), 400
-
-        # التحقق من طول الاسم
-        if len(name) < 2:
-            return jsonify({
-                'success': False,
-                'message': 'اسم الموقع يجب أن يكون على الأقل حرفين'
             }), 400
 
         # التحقق من عدم التكرار
@@ -3156,10 +3147,9 @@ def add_location(area_id):
         ).first()
 
         if existing_location:
-            print(f"❌ الموقع موجود مسبقاً: {name}")
             return jsonify({
                 'success': False,
-                'message': f'اسم الموقع "{name}" موجود مسبقاً في هذه المنطقة'
+                'message': f'الموقع "{name}" موجود مسبقاً'
             }), 400
 
         # معالجة monitor_id
@@ -3193,8 +3183,12 @@ def add_location(area_id):
         return jsonify({
             'success': True,
             'message': 'تم إضافة الموقع بنجاح',
-            'location_id': location.id,
-            'location_name': location.name
+            'location': {
+                'id': location.id,
+                'name': location.name,
+                'area_id': location.area_id,
+                'monitor_name': location.monitor.full_name if location.monitor else None
+            }
         })
 
     except Exception as e:
@@ -3202,12 +3196,10 @@ def add_location(area_id):
         print(f"❌ خطأ في إضافة الموقع: {str(e)}")
         import traceback
         print(f"🔍 تفاصيل الخطأ: {traceback.format_exc()}")
-
         return jsonify({
             'success': False,
-            'message': f'حدث خطأ أثناء إضافة الموقع: {str(e)}'
+            'message': f'حدث خطأ: {str(e)}'
         }), 500
-
 
 @app.route('/locations/<int:location_id>/places')
 @login_required
@@ -3263,17 +3255,13 @@ def location_places(location_id):
 @app.route('/locations/<int:location_id>/places/add', methods=['GET', 'POST'])
 @login_required
 def add_place(location_id):
-    """إضافة مكان جديد - الإصدار المصحح"""
-    print(f"🎯 تم استدعاء add_place للموقع {location_id} بطريقة {request.method}")
-
     if request.method == 'GET':
-        # للتصحيح فقط
-        return jsonify({
-            'debug': True,
-            'message': 'هذا مسار GET للتصحيح',
-            'location_id': location_id,
-            'endpoint': 'add_place'
-        })
+        # ✅ إرجاع قالب إضافة المكان
+        location = Location.query.get_or_404(location_id)
+        available_workers = Employee.query.filter_by(position='worker', is_active=True).all()
+        return render_template('companies/add_place.html',
+                             location=location,
+                             available_workers=available_workers)
 
     # معالجة طلب POST
     try:
