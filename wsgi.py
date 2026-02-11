@@ -1,20 +1,17 @@
 from app import app, db
-from models import create_tables, initialize_default_data
+# من الأفضل ترك الاستيراد لتجنّب الخطأ عند التنفيذ
+# from models import create_tables, initialize_default_data
 import os
 
-# تهيئة قاعدة البيانات عند التشغيل
 with app.app_context():
-    print("🚀 بدء تهيئة التطبيق...")
+    print("🚀 بدء تشغيل التطبيق بدون إنشاء جداول جديدة...")
 
-    # 1. إنشاء الجداول
-    create_tables()
+    # ❌ علّق الأسطر التالية بعد النشر
+    # create_tables()
+    # initialize_default_data()
 
-    # 2. إنشاء البيانات الافتراضية
-    initialize_default_data()
+    print("✅ تم تشغيل التطبيق بنجاح")
 
-    print("✅ تم تهيئة التطبيق بنجاح")
-
-# هذا هو المتغير الذي يبحث عنه Gunicorn
 application = app
 
 if __name__ == "__main__":
