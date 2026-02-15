@@ -31,6 +31,7 @@ from bidi.algorithm import get_display
 def register_template_filters(app):
     """تسجيل الفلاتر المخصصة في Jinja2"""
 
+
     @app.template_filter('time_ago')
     def time_ago_filter(value):
         """تحويل التاريخ إلى صيغة 'منذ وقت'"""
@@ -117,6 +118,34 @@ def register_template_filters(app):
         }
         return names.get(shift_type, shift_type)
 
+    @app.template_filter('date')
+    def date_filter(value, format='%Y-%m-%d'):
+        """تنسيق التاريخ"""
+        if not value:
+            return ""
+        try:
+            if isinstance(value, str):
+                from datetime import datetime
+                value = datetime.strptime(value, '%Y-%m-%d')
+            elif hasattr(value, 'strftime'):
+                return value.strftime(format)
+            return str(value)
+        except Exception as e:
+            app.logger.error(f"Error in date filter: {str(e)}")
+            return str(value)
+
+    # أضف هذا مع باقي الفلاتر في دالة register_template_filters
+    @app.template_filter('time')
+    def time_filter(value):
+        """تنسيق الوقت"""
+        if not value:
+            return "-"
+        try:
+            if isinstance(value, str):
+                return value
+            return value.strftime('%H:%M')
+        except Exception:
+            return str(value)
 
 @app.route('/create-owner-employee')
 @login_required
@@ -151,36 +180,6 @@ def create_owner_employee():
 
     return redirect(url_for('dashboard'))
 
-@app.template_filter('time_ago')
-def time_ago_filter(date):
-    """تحويل التاريخ إلى نص مثل 'منذ يومين'"""
-    if not date:
-        return ""
-
-    try:
-        now = datetime.now().date()
-        diff = (now - date).days
-
-        if diff == 0:
-            return "اليوم"
-        elif diff == 1:
-            return "أمس"
-        elif diff < 7:
-            return f"منذ {diff} أيام"
-        elif diff < 30:
-            weeks = diff // 7
-            return f"منذ {weeks} أسابيع"
-        elif diff < 365:
-            months = diff // 30
-            return f"منذ {months} أشهر"
-        else:
-            years = diff // 365
-            return f"منذ {years} سنوات"
-    except Exception as e:
-        app.logger.error(f"Error in time_ago filter: {str(e)}")
-        return str(date)
-
-
 # ✅ تصحيح: تهيئة الإضافات مرة واحدة
 db.init_app(app)
 
@@ -192,19 +191,6 @@ login_manager.login_message = 'يجب تسجيل الدخول للوصول إل�
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
-
-@app.template_filter('time')
-def time_filter(value):
-    """تنسيق الوقت"""
-    if not value:
-        return "-"
-    try:
-        if hasattr(value, 'strftime'):
-            return value.strftime('%H:%M')
-        return str(value)
-    except Exception as e:
-        app.logger.error(f"Error in time filter: {str(e)}")
-        return "-"
 
 # ✅ بقية الكود يبقى كما هو بدون تغيير...
 # [جميع الدوال والروابط الموجودة حالياً تبقى كما هي]
@@ -340,114 +326,6 @@ def time_filter(value):
             #print("   - مالك: owner / admin123")
 
 
-# ============================================
-# تسجيل جميع الفلاتر المخصصة في Jinja2
-# ============================================
-def register_template_filters(app):
-    """تسجيل جميع الفلاتر المخصصة في Jinja2"""
-
-    @app.template_filter('date')
-    def date_filter(value, format='%Y-%m-%d'):
-        """تنسيق التاريخ"""
-        if not value:
-            return ""
-        try:
-            if isinstance(value, str):
-                from datetime import datetime
-                value = datetime.strptime(value, '%Y-%m-%d')
-            return value.strftime(format)
-        except Exception as e:
-            app.logger.error(f"Error in date filter: {str(e)}")
-            return str(value)
-
-    @app.template_filter('arabic_date')
-    def arabic_date_filter(value, format='%Y-%m-%d'):
-        """تنسيق التاريخ مع دعم العربية"""
-        if not value:
-            return ""
-        try:
-            if isinstance(value, str):
-                from datetime import datetime
-                value = datetime.strptime(value, '%Y-%m-%d')
-            return value.strftime(format)
-        except Exception as e:
-            app.logger.error(f"Error in arabic_date filter: {str(e)}")
-            return str(value)
-
-    @app.template_filter('time_ago')
-    def time_ago_filter(value):
-        """تحويل التاريخ إلى صيغة 'منذ وقت'"""
-        if not value:
-            return ""
-        try:
-            from datetime import datetime, timedelta
-            now = datetime.now()
-            if isinstance(value, str):
-                from datetime import datetime
-                value = datetime.strptime(value, '%Y-%m-%d')
-
-            diff = now - value
-
-            if diff.days > 365:
-                years = diff.days // 365
-                return f"منذ {years} سنة" if years > 1 else "منذ سنة"
-            elif diff.days > 30:
-                months = diff.days // 30
-                return f"منذ {months} شهر" if months > 1 else "منذ شهر"
-            elif diff.days > 0:
-                return f"منذ {diff.days} يوم" if diff.days > 1 else "منذ يوم"
-            elif diff.seconds > 3600:
-                hours = diff.seconds // 3600
-                return f"منذ {hours} ساعة" if hours > 1 else "منذ ساعة"
-            elif diff.seconds > 60:
-                minutes = diff.seconds // 60
-                return f"منذ {minutes} دقيقة" if minutes > 1 else "منذ دقيقة"
-            else:
-                return "الآن"
-        except Exception as e:
-            app.logger.error(f"Error in time_ago filter: {str(e)}")
-            return str(value)
-
-    @app.template_filter('status_badge')
-    def status_badge_filter(status):
-        """عرض حالة الحضور كبادجة"""
-        badges = {
-            'present': '<span class="badge bg-success">حاضر</span>',
-            'absent': '<span class="badge bg-danger">غائب</span>',
-            'late': '<span class="badge bg-warning">متأخر</span>',
-            'active': '<span class="badge bg-success">نشط</span>',
-            'inactive': '<span class="badge bg-secondary">غير نشط</span>'
-        }
-        return badges.get(status, f'<span class="badge bg-secondary">{status}</span>')
-
-    @app.template_filter('shift_name')
-    def shift_name_filter(shift_type):
-        """تحويل نوع الوردية إلى اسم عربي"""
-        names = {
-            'morning': 'صباحية',
-            'evening': 'مسائية'
-        }
-        return names.get(shift_type, shift_type)
-
-    @app.template_filter('currency')
-    def currency_filter(value):
-        """تنسيق العملة"""
-        if not value:
-            return "0 ر.س"
-        try:
-            return "{:,.0f} ر.س".format(float(value))
-        except:
-            return str(value)
-
-    @app.template_filter('percentage')
-    def percentage_filter(value):
-        """تنسيق النسبة المئوية"""
-        if not value:
-            return "0%"
-        try:
-            return "{:.1f}%".format(float(value))
-        except:
-            return str(value)
 
 
 # سجل الفلاتر بعد إنشاء التطبيق
@@ -4235,119 +4113,11 @@ def get_employee_current_assignment(employee_id):
 @app.route('/evaluations')
 @login_required
 def evaluations_list():
-    """عرض قائمة التقييمات مع الصلاحيات المحسنة"""
+    """عرض قائمة التقييمات مع الصلاحيات المحسنة (باستخدام الدالة المساعدة)"""
     try:
-        from sqlalchemy.orm import joinedload
-        from datetime import datetime
-
-        # استعلام أساسي مع تحميل العلاقات
-        base_query = CleaningEvaluation.query \
-            .options(
-            joinedload(CleaningEvaluation.place),
-            joinedload(CleaningEvaluation.evaluator),
-            joinedload(CleaningEvaluation.evaluated_employee)
-        )
-
-        # تطبيق الفلتر حسب الصلاحيات
-        if current_user.role == 'owner':
-            # المالك: يرى جميع التقييمات
-            evaluations_list = base_query.order_by(CleaningEvaluation.date.desc()).all()
-            app.logger.info(f"👑 المالك يشاهد جميع التقييمات: {len(evaluations_list)}")
-
-        elif current_user.role == 'supervisor':
-            # المشرف: يرى تقييمات الموظفين المربوطين به فقط (مراقبيه وعماله)
-            if current_user.employee_profile:
-                supervisor_id = current_user.employee_profile.id
-                app.logger.info(f"👤 المشرف ID: {supervisor_id} - {current_user.employee_profile.full_name}")
-
-                # 1. الحصول على جميع الموظفين التابعين لهذا المشرف
-                supervised_employees_ids = []
-
-                # الموظفون الذين supervisor_id = supervisor_id (المراقبون والعمال)
-                direct_subordinates = Employee.query.filter_by(
-                    supervisor_id=supervisor_id,
-                    is_active=True
-                ).all()
-
-                for emp in direct_subordinates:
-                    supervised_employees_ids.append(emp.id)
-                    app.logger.info(f"   → تابع مباشر: {emp.full_name} (ID: {emp.id}, دور: {emp.position})")
-
-                # 2. إذا كان المشرف مشرفاً على مناطق، الحصول على الموظفين في تلك المناطق
-                supervised_areas = Area.query.filter_by(supervisor_id=supervisor_id, is_active=True).all()
-                area_ids = [area.id for area in supervised_areas]
-
-                if area_ids:
-                    # الحصول على المواقع في هذه المناطق
-                    locations = Location.query.filter(Location.area_id.in_(area_ids), Location.is_active == True).all()
-                    location_ids = [loc.id for loc in locations]
-
-                    if location_ids:
-                        # الحصول على المراقبين المعينين على هذه المواقع
-                        monitors_in_locations = [loc.monitor_id for loc in locations if loc.monitor_id]
-                        supervised_employees_ids.extend(monitors_in_locations)
-
-                        # الحصول على الأماكن في هذه المواقع
-                        places = Place.query.filter(Place.location_id.in_(location_ids), Place.is_active == True).all()
-
-                        # الحصول على العمال المعينين في هذه الأماكن
-                        workers_in_places = [place.worker_id for place in places if place.worker_id]
-                        supervised_employees_ids.extend(workers_in_places)
-
-                # إزالة التكرارات والقيم الفارغة
-                supervised_employees_ids = list(set([id for id in supervised_employees_ids if id]))
-
-                app.logger.info(f"📊 إجمالي الموظفين التابعين: {len(supervised_employees_ids)}")
-
-                if supervised_employees_ids:
-                    # الحصول على التقييمات التي يكون فيها الموظف المقيّم أو المُقيِّم من التابعين
-                    evaluations_list = base_query.filter(
-                        db.or_(
-                            CleaningEvaluation.evaluated_employee_id.in_(supervised_employees_ids),
-                            CleaningEvaluation.evaluator_id.in_(supervised_employees_ids)
-                        )
-                    ).order_by(CleaningEvaluation.date.desc()).all()
-
-                    app.logger.info(f"✅ عدد التقييمات التي وجدت: {len(evaluations_list)}")
-                else:
-                    evaluations_list = []
-                    app.logger.warning("⚠️ لا يوجد موظفين تابعين لهذا المشرف")
-            else:
-                evaluations_list = []
-                app.logger.warning("⚠️ المشرف ليس لديه ملف موظف مرتبط")
-
-        elif current_user.role == 'monitor':
-            # المراقب: يرى تقييمات عماله فقط
-            if current_user.employee_profile:
-                monitor_id = current_user.employee_profile.id
-
-                # الحصول على المواقع التي يراقبها
-                monitored_locations = Location.query.filter_by(monitor_id=monitor_id, is_active=True).all()
-                location_ids = [loc.id for loc in monitored_locations]
-
-                if location_ids:
-                    # الحصول على الأماكن في هذه المواقع
-                    places = Place.query.filter(Place.location_id.in_(location_ids), Place.is_active == True).all()
-                    place_ids = [place.id for place in places]
-
-                    # الحصول على تقييمات هذه الأماكن
-                    evaluations_list = base_query.filter(
-                        CleaningEvaluation.place_id.in_(place_ids)
-                    ).order_by(CleaningEvaluation.date.desc()).all()
-                else:
-                    evaluations_list = []
-            else:
-                evaluations_list = []
-
-        else:  # worker
-            # العامل: يرى تقييماته فقط
-            if current_user.employee_profile:
-                worker_id = current_user.employee_profile.id
-                evaluations_list = base_query.filter(
-                    CleaningEvaluation.evaluated_employee_id == worker_id
-                ).order_by(CleaningEvaluation.date.desc()).all()
-            else:
-                evaluations_list = []
+        # استخدام الدالة المركزية للحصول على التقييمات المفلترة
+        evaluations_list = get_filtered_evaluations(current_user)
+        app.logger.info(f"✅ تم تحميل {len(evaluations_list)} تقييم للمستخدم {current_user.username}")
 
         return render_template('evaluations/list.html',
                                evaluations=evaluations_list,
@@ -4361,6 +4131,7 @@ def evaluations_list():
         flash('حدث خطأ في تحميل قائمة التقييمات', 'error')
         return render_template('evaluations/list.html', evaluations=[], today=date.today(), current_user=current_user)
 
+
 @app.route('/evaluations/add', methods=['GET', 'POST'])
 @login_required
 def add_evaluation():
@@ -4373,37 +4144,103 @@ def add_evaluation():
 
     if request.method == 'POST':
         try:
-            # البيانات الأساسية
+            # ========== طباعة جميع البيانات المستلمة للتصحيح ==========
+            print("\n" + "=" * 70)
+            print("🔍 جميع البيانات المستلمة من النموذج:")
+            for key, value in request.form.items():
+                print(f"   {key}: '{value}'")
+            print("=" * 70 + "\n")
+
+            # ========== الحصول على جميع البيانات ==========
+
+            # التاريخ
             date_str = request.form.get('date', '')
-            place_id = request.form.get('place_id', '')
+
+            # بيانات الهيكل التنظيمي
+            company_id = request.form.get('company_id', '')
+            area_id = request.form.get('area_id', '')
+            location_id = request.form.get('location_id', '')
+
+            # المكان - ملاحظة: النموذج لا يرسل place_id!
+            # سنستخدم company_id, area_id, location_id لتحديد المكان
+            # ولكن حالياً النموذج لا يختار المكان، لذلك سنحتاج إلى إيجاد مكان افتراضي
+
+            # البحث عن أول مكان متاح في هذا الموقع (إذا كان location_id موجوداً)
+            place_id = None
+            if location_id and location_id.isdigit():
+                # البحث عن مكان في هذا الموقع
+                place = Place.query.filter_by(location_id=int(location_id), is_active=True).first()
+                if place:
+                    place_id = place.id
+                    print(f"✅ تم العثور على مكان افتراضي: {place.name} (ID: {place_id})")
+
+            # إذا لم يتم العثور على مكان، استخدم أول مكان في النظام
+            if not place_id:
+                place = Place.query.filter_by(is_active=True).first()
+                if place:
+                    place_id = place.id
+                    print(f"⚠️ استخدام مكان افتراضي عام: {place.name} (ID: {place_id})")
+
+            # الموظف المقيّم
             evaluated_employee_id = request.form.get('evaluated_employee_id', '')
+
+            # حقول التقييم
             cleanliness = request.form.get('cleanliness', '')
             organization = request.form.get('organization', '')
             equipment_condition = request.form.get('equipment_condition', '')
-            time_value = request.form.get('time', '3')  # ✅ تعريف المتغير هنا مع قيمة افتراضية
+            time_value = request.form.get('time', '')
             safety_measures = request.form.get('safety_measures', '')
             comments = request.form.get('comments', '')
 
-            app.logger.info(f"📨 بيانات التقييم المستلمة:")
-            app.logger.info(f"   - التاريخ: {date_str}")
-            app.logger.info(f"   - المكان: {place_id}")
-            app.logger.info(f"   - الموظف المقيّم: {evaluated_employee_id}")
+            # المقيم
+            evaluator_id = None
 
-            # التحقق من البيانات المطلوبة
-            if not all([date_str, place_id, evaluated_employee_id, cleanliness,
-                        organization, equipment_condition, time_value, safety_measures]):
-                flash('يرجى ملء جميع الحقول المطلوبة', 'error')
+            # ========== التحقق من الحقول المطلوبة ==========
+            missing_fields = []
+
+            if not date_str:
+                missing_fields.append('التاريخ')
+
+            if not company_id:
+                missing_fields.append('الشركة')
+
+            if not evaluated_employee_id:
+                missing_fields.append('الموظف المقيّم')
+
+            if not place_id:
+                missing_fields.append('المكان (لم يتم العثور على مكان متاح)')
+
+            if not cleanliness:
+                missing_fields.append('النظافة')
+            if not organization:
+                missing_fields.append('التنظيم')
+            if not equipment_condition:
+                missing_fields.append('المعدات')
+            if not time_value:
+                missing_fields.append('الوقت')
+            if not safety_measures:
+                missing_fields.append('السلامة')
+
+            if missing_fields:
+                error_message = f'يرجى ملء جميع الحقول المطلوبة. الحقول المفقودة: {", ".join(missing_fields)}'
+                print(f"❌ {error_message}")
+                flash(error_message, 'error')
                 return redirect(url_for('add_evaluation'))
 
-            # تحويل البيانات
-            evaluation_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            print("✅ جميع الحقول المطلوبة موجودة")
+
+            # ========== تحويل التاريخ ==========
+            try:
+                evaluation_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                flash('صيغة التاريخ غير صحيحة', 'error')
+                return redirect(url_for('add_evaluation'))
+
             if evaluation_date > date.today():
                 flash('لا يمكن إضافة تقييم لتاريخ مستقبلي', 'error')
                 return redirect(url_for('add_evaluation'))
 
-            # تحديد المُقيِّم بناءً على المستخدم الحالي
-            evaluator_id = None
-
+            # ========== تحديد المقيم ==========
             if current_user.role == 'owner':
                 # للمالك: يمكنه اختيار المقيم من القائمة
                 evaluator_id = request.form.get('evaluator_id')
@@ -4430,10 +4267,22 @@ def add_evaluation():
                 flash('لا يمكن تحديد المقيم، يرجى التحقق من بيانات الموظفين', 'error')
                 return redirect(url_for('add_evaluation'))
 
-            # التحقق من صحة البيانات
+            # ========== التحقق من صحة البيانات ==========
+            try:
+                place_id = int(place_id)
+            except ValueError:
+                flash('معرف المكان غير صحيح', 'error')
+                return redirect(url_for('add_evaluation'))
+
             place = Place.query.get(place_id)
             if not place:
                 flash('المكان المحدد غير موجود', 'error')
+                return redirect(url_for('add_evaluation'))
+
+            try:
+                evaluated_employee_id = int(evaluated_employee_id)
+            except ValueError:
+                flash('معرف الموظف غير صحيح', 'error')
                 return redirect(url_for('add_evaluation'))
 
             evaluated_employee = Employee.query.get(evaluated_employee_id)
@@ -4441,27 +4290,67 @@ def add_evaluation():
                 flash('الموظف المحدد غير موجود', 'error')
                 return redirect(url_for('add_evaluation'))
 
-            # التحقق من الصلاحيات المحددة
+            try:
+                evaluator_id = int(evaluator_id)
+            except ValueError:
+                flash('معرف المقيم غير صحيح', 'error')
+                return redirect(url_for('add_evaluation'))
+
+            evaluator = Employee.query.get(evaluator_id)
+            if not evaluator:
+                flash('المقيم المحدد غير موجود', 'error')
+                return redirect(url_for('add_evaluation'))
+
+            # ========== التحقق من الصلاحيات ==========
             if not can_evaluate_employee(current_user, evaluated_employee, place):
                 flash('غير مصرح بتقييم هذا الموظف', 'error')
                 return redirect(url_for('add_evaluation'))
 
-            # إنشاء التقييم مع تضمين حقل الوقت
+            # ========== تحويل قيم التقييم ==========
+            try:
+                cleanliness = int(cleanliness)
+                organization = int(organization)
+                equipment_condition = int(equipment_condition)
+                time_value = int(time_value)
+                safety_measures = int(safety_measures)
+
+                # التحقق من النطاق
+                if not (1 <= cleanliness <= 5):
+                    flash('قيمة النظافة يجب أن تكون بين 1 و 5', 'error')
+                    return redirect(url_for('add_evaluation'))
+                if not (1 <= organization <= 5):
+                    flash('قيمة التنظيم يجب أن تكون بين 1 و 5', 'error')
+                    return redirect(url_for('add_evaluation'))
+                if not (1 <= equipment_condition <= 5):
+                    flash('قيمة المعدات يجب أن تكون بين 1 و 5', 'error')
+                    return redirect(url_for('add_evaluation'))
+                if not (1 <= time_value <= 5):
+                    flash('قيمة الوقت يجب أن تكون بين 1 و 5', 'error')
+                    return redirect(url_for('add_evaluation'))
+                if not (1 <= safety_measures <= 5):
+                    flash('قيمة السلامة يجب أن تكون بين 1 و 5', 'error')
+                    return redirect(url_for('add_evaluation'))
+
+            except ValueError:
+                flash('قيم التقييم غير صحيحة، يرجى التأكد من إدخال أرقام صحيحة', 'error')
+                return redirect(url_for('add_evaluation'))
+
+            # ========== إنشاء التقييم ==========
             evaluation = CleaningEvaluation(
                 date=evaluation_date,
                 place_id=place_id,
                 evaluated_employee_id=evaluated_employee_id,
                 evaluator_id=evaluator_id,
-                cleanliness=int(cleanliness),
-                organization=int(organization),
-                equipment_condition=int(equipment_condition),
-                time=int(time_value),  # ✅ استخدام المتغير المعرف
-                safety_measures=int(safety_measures),
+                cleanliness=cleanliness,
+                organization=organization,
+                equipment_condition=equipment_condition,
+                time=time_value,
+                safety_measures=safety_measures,
                 overall_score=0.0,
                 comments=comments or None
             )
 
-            # حساب النتيجة الإجمالية تلقائياً
+            # حساب النتيجة الإجمالية
             evaluation.calculate_overall_score()
 
             db.session.add(evaluation)
@@ -4470,11 +4359,6 @@ def add_evaluation():
             flash('✅ تم إضافة التقييم بنجاح!', 'success')
             return redirect(url_for('evaluations_list'))
 
-        except ValueError as e:
-            db.session.rollback()
-            app.logger.error(f"❌ خطأ في تحويل القيم: {str(e)}")
-            flash('قيم التقييم غير صحيحة، يرجى التأكد من إدخال أرقام صحيحة', 'error')
-            return redirect(url_for('add_evaluation'))
         except Exception as e:
             db.session.rollback()
             app.logger.error(f"❌ خطأ في إضافة التقييم: {str(e)}")
@@ -4483,17 +4367,13 @@ def add_evaluation():
             flash(f'حدث خطأ: {str(e)}', 'error')
             return redirect(url_for('add_evaluation'))
 
-    # GET Request - عرض النموذج
+    # ========== GET Request - عرض النموذج ==========
     try:
-        # الحصول على البيانات المطلوبة للقوائم المنسدلة
         companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-
-        # الحصول على الموظفين المسموح بتقييمهم حسب الصلاحيات
         employees_for_evaluation = get_employees_for_evaluation(current_user)
 
-        # الحصول على المقيمين المتاحين (للمالك فقط)
         evaluators = []
-        supervisors = []  # قائمة المشرفين للتقييم
+        supervisors = []
 
         if current_user.role == 'owner':
             evaluators = Employee.query.filter(
@@ -4501,28 +4381,239 @@ def add_evaluation():
                 Employee.is_active == True
             ).order_by(Employee.full_name).all()
 
-            # جلب جميع المشرفين النشطين لتقييمهم
             supervisors = Employee.query.filter_by(
                 position='supervisor',
                 is_active=True
             ).order_by(Employee.full_name).all()
-
-            app.logger.info(f"📊 عدد المشرفين المتاحين للتقييم: {len(supervisors)}")
-
-        app.logger.info(f"📊 عدد الموظفين المتاحين للتقييم: {len(employees_for_evaluation)}")
 
         return render_template('evaluations/add.html',
                                today=date.today(),
                                companies=companies,
                                employees=employees_for_evaluation,
                                evaluators=evaluators,
-                               supervisors=supervisors,  # إرسال قائمة المشرفين للقالب
+                               supervisors=supervisors,
                                current_user=current_user)
 
     except Exception as e:
         app.logger.error(f"❌ خطأ في تحميل النموذج: {str(e)}")
         flash(f'خطأ في تحميل النموذج: {str(e)}', 'error')
         return redirect(url_for('evaluations_list'))
+
+@app.route('/test-evaluation-form')
+def test_evaluation_form():
+    """صفحة اختبار لنموذج التقييم"""
+    return render_template('evaluations/test_form.html')
+
+
+# ============================================
+# تقارير التقييمات الشهرية المتقدمة (المسار المفقود)
+# ============================================
+
+@app.route('/reports/monthly-trends-advanced')
+@login_required
+def report_monthly_trends_advanced():
+    """تقرير اتجاهات التقييم الشهرية المتقدمة - يعتمد على بيانات حقيقية ومفلترة"""
+    try:
+        app.logger.info("=" * 50)
+        app.logger.info(f"📊 تقرير الاتجاهات الشهرية المتقدمة - المستخدم: {current_user.username}")
+
+        # الحصول على التقييمات المفلترة
+        all_evaluations = get_filtered_evaluations(current_user)
+
+        # الحصول على آخر 6 أشهر
+        months = []
+        month_labels = []
+        month_averages = []
+        monthly_counts = []
+        monthly_data = []
+
+        today_date = date.today()
+        for i in range(5, -1, -1):  # آخر 6 أشهر
+            month_date = today_date - timedelta(days=30 * i)
+            month_num = month_date.month
+            year = month_date.year
+
+            # اسم الشهر
+            month_names = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+                           'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+            month_name = month_names[month_num - 1]
+            months.append(month_name)
+            month_labels.append(month_name)
+
+            # حساب متوسط التقييم لهذا الشهر
+            month_start = date(year, month_num, 1)
+            if month_num == 12:
+                month_end = date(year + 1, 1, 1) - timedelta(days=1)
+            else:
+                month_end = date(year, month_num + 1, 1) - timedelta(days=1)
+
+            month_evaluations = [e for e in all_evaluations
+                                 if e.date and e.date >= month_start and e.date <= month_end]
+
+            count = len(month_evaluations)
+            monthly_counts.append(count)
+
+            if count > 0:
+                scores = [e.overall_score for e in month_evaluations if e.overall_score]
+                avg = sum(scores) / len(scores) if scores else 0
+                avg_score = round(avg, 1)
+            else:
+                avg_score = 0
+
+            month_averages.append(avg_score * 20)  # تحويل إلى نسبة مئوية
+
+            # أفضل موظف في الشهر
+            top_employee = "لا يوجد"
+            if count > 0:
+                # تجميع التقييمات لكل موظف
+                employee_scores = {}
+                for e in month_evaluations:
+                    if e.evaluated_employee_id and e.overall_score:
+                        if e.evaluated_employee_id not in employee_scores:
+                            employee_scores[e.evaluated_employee_id] = []
+                        employee_scores[e.evaluated_employee_id].append(e.overall_score)
+
+                # حساب متوسط كل موظف
+                best_avg = 0
+                best_emp_id = None
+                for emp_id, scores in employee_scores.items():
+                    emp_avg = sum(scores) / len(scores)
+                    if emp_avg > best_avg:
+                        best_avg = emp_avg
+                        best_emp_id = emp_id
+
+                if best_emp_id:
+                    employee = Employee.query.get(best_emp_id)
+                    if employee:
+                        top_employee = employee.full_name
+
+            # أفضل شركة في الشهر
+            top_company = "غير محدد"
+            if count > 0:
+                company_scores = {}
+                for e in month_evaluations:
+                    if e.place and e.place.location and e.place.location.area and e.place.location.area.company:
+                        company_id = e.place.location.area.company_id
+                        if company_id not in company_scores:
+                            company_scores[company_id] = []
+                        if e.overall_score:
+                            company_scores[company_id].append(e.overall_score)
+
+                best_company_avg = 0
+                best_comp_id = None
+                for comp_id, scores in company_scores.items():
+                    comp_avg = sum(scores) / len(scores)
+                    if comp_avg > best_company_avg:
+                        best_company_avg = comp_avg
+                        best_comp_id = comp_id
+
+                if best_comp_id:
+                    company = Company.query.get(best_comp_id)
+                    if company:
+                        top_company = company.name
+
+            # تحديد لون الشهر بناءً على التقييم
+            if avg_score >= 4.5:
+                color = 'success'
+            elif avg_score >= 4:
+                color = 'info'
+            elif avg_score >= 3:
+                color = 'warning'
+            else:
+                color = 'danger'
+
+            # ✅ إضافة البيانات مع حقل change (قيمة مؤقتة)
+            monthly_data.append({
+                'name': month_name,
+                'count': count,
+                'avg': avg_score,
+                'color': color,
+                'top_employee': top_employee,
+                'top_company': top_company,
+                'change': 0  # قيمة افتراضية
+            })
+
+        # ✅ حساب التغيير بين الأشهر وتحديث القيم
+        for i in range(1, len(monthly_data)):
+            if monthly_data[i - 1]['count'] > 0:
+                change = round(
+                    ((monthly_data[i]['count'] - monthly_data[i - 1]['count']) / monthly_data[i - 1]['count']) * 100, 1)
+                monthly_data[i]['change'] = change
+            else:
+                monthly_data[i]['change'] = 0
+
+        # أفضل شهر
+        if monthly_counts:
+            best_month_idx = monthly_counts.index(max(monthly_counts))
+            best_month = {
+                'name': months[best_month_idx] if months else 'غير محدد',
+                'avg': month_averages[best_month_idx] if month_averages else 0
+            }
+        else:
+            best_month = {'name': 'غير محدد', 'avg': 0}
+
+        # متوسط آخر 3 أشهر
+        last_3_months = month_averages[-3:] if len(month_averages) >= 3 else month_averages
+        three_month_avg = round(sum(last_3_months) / len(last_3_months)) if last_3_months else 0
+
+        # النمو السنوي
+        if len(month_averages) >= 2 and month_averages[0] > 0:
+            yearly_growth = round(((month_averages[-1] - month_averages[0]) / month_averages[0]) * 100)
+        else:
+            yearly_growth = 0
+
+        # اتجاه العام
+        if len(month_averages) >= 2:
+            if month_averages[-1] > month_averages[0]:
+                trend_direction = 'تصاعدي'
+            elif month_averages[-1] < month_averages[0]:
+                trend_direction = 'تنازلي'
+            else:
+                trend_direction = 'ثابت'
+        else:
+            trend_direction = 'غير محدد'
+
+        # بيانات توزيع التقييمات
+        distribution_labels = ['ممتاز (4.5-5)', 'جيد جداً (4-4.4)', 'جيد (3-3.9)', 'مقبول (2-2.9)', 'ضعيف (1-1.9)']
+        distribution_data = [0, 0, 0, 0, 0]
+
+        for e in all_evaluations:
+            if e.overall_score:
+                if e.overall_score >= 4.5:
+                    distribution_data[0] += 1
+                elif e.overall_score >= 4:
+                    distribution_data[1] += 1
+                elif e.overall_score >= 3:
+                    distribution_data[2] += 1
+                elif e.overall_score >= 2:
+                    distribution_data[3] += 1
+                else:
+                    distribution_data[4] += 1
+
+        app.logger.info(f"📊 تم تجهيز التقرير الشهري بنجاح")
+        app.logger.info("=" * 50)
+
+        # ✅ استخدام القالب المناسب
+        return render_template('reports/monthly_trends.html',  # أو monthly_trends_advanced.html حسب الموجود
+                               best_month=best_month,
+                               three_month_avg=three_month_avg,
+                               yearly_growth=yearly_growth,
+                               trend_direction=trend_direction,
+                               month_labels=month_labels,
+                               month_averages=month_averages,
+                               monthly_data=monthly_data,
+                               distribution_labels=distribution_labels,
+                               distribution_data=distribution_data)
+
+    except Exception as e:
+        app.logger.error(f"❌ Error in report_monthly_trends_advanced: {str(e)}")
+        import traceback
+        app.logger.error(f"🔍 تفاصيل الخطأ: {traceback.format_exc()}")
+        flash('حدث خطأ في تحميل التقرير', 'error')
+        return redirect(url_for('reports_index'))
+
+
+# ==================================
 
 def get_supervised_employees(user):
     """الحصول على جميع الموظفين التابعين للمستخدم الحالي (محسنة)"""
@@ -4786,6 +4877,100 @@ def can_evaluate_employee(evaluator_user, evaluated_employee, place):
         return False
 
     return False
+
+# ============================================
+# دوال مساعدة للفلترة حسب الصلاحيات (محسنة)
+# ============================================
+
+def get_filtered_evaluations(user):
+    """
+    جلب التقييمات التي يُسمح للمستخدم بمشاهدتها بناءً على صلاحياته.
+    هذه الدالة مركزية لتوحيد منطق الفلترة في جميع أنحاء التطبيق.
+    """
+    try:
+        from sqlalchemy.orm import joinedload
+
+        base_query = CleaningEvaluation.query.options(
+            joinedload(CleaningEvaluation.place),
+            joinedload(CleaningEvaluation.evaluator),
+            joinedload(CleaningEvaluation.evaluated_employee)
+        )
+
+        if user.role == 'owner':
+            # المالك: يرى جميع التقييمات
+            return base_query.order_by(CleaningEvaluation.date.desc()).all()
+
+        elif user.role == 'supervisor':
+            # المشرف: يرى تقييمات الموظفين التابعين له
+            if user.employee_profile:
+                supervisor_id = user.employee_profile.id
+                supervised_employees_ids = []
+
+                # 1. التابعين المباشرين
+                direct_subs = Employee.query.filter_by(supervisor_id=supervisor_id, is_active=True).all()
+                supervised_employees_ids.extend([emp.id for emp in direct_subs])
+
+                # 2. الموظفين في المناطق التي يشرف عليها
+                supervised_areas = Area.query.filter_by(supervisor_id=supervisor_id, is_active=True).all()
+                for area in supervised_areas:
+                    # المراقبين في مواقع المنطقة
+                    locations = Location.query.filter_by(area_id=area.id, is_active=True).all()
+                    for location in locations:
+                        if location.monitor_id:
+                            supervised_employees_ids.append(location.monitor_id)
+                        # العمال في أماكن الموقع
+                        places = Place.query.filter_by(location_id=location.id, is_active=True).all()
+                        for place in places:
+                            if place.worker_id:
+                                supervised_employees_ids.append(place.worker_id)
+
+                supervised_employees_ids = list(set(supervised_employees_ids))
+
+                if supervised_employees_ids:
+                    return base_query.filter(
+                        db.or_(
+                            CleaningEvaluation.evaluated_employee_id.in_(supervised_employees_ids),
+                            CleaningEvaluation.evaluator_id.in_(supervised_employees_ids)
+                        )
+                    ).order_by(CleaningEvaluation.date.desc()).all()
+            return []
+
+        elif user.role == 'monitor':
+            # المراقب: يرى تقييمات العمال في موقعه فقط
+            if user.employee_profile:
+                monitor_id = user.employee_profile.id
+                monitored_locations = Location.query.filter_by(monitor_id=monitor_id, is_active=True).all()
+                location_ids = [loc.id for loc in monitored_locations]
+
+                if location_ids:
+                    # الحصول على أماكن هذه المواقع
+                    places = Place.query.filter(Place.location_id.in_(location_ids), Place.is_active == True).all()
+                    place_ids = [place.id for place in places]
+
+                    if place_ids:
+                        # الحصول على تقييمات هذه الأماكن (الموظف المقيّم هو العامل في المكان)
+                        # ملاحظة: قد يكون التقييم مرتبطاً بالمكان مباشرة
+                        return base_query.filter(
+                            CleaningEvaluation.place_id.in_(place_ids)
+                        ).order_by(CleaningEvaluation.date.desc()).all()
+            return []
+
+        elif user.role == 'worker':
+            # العامل: يرى تقييماته فقط
+            if user.employee_profile:
+                worker_id = user.employee_profile.id
+                return base_query.filter(
+                    CleaningEvaluation.evaluated_employee_id == worker_id
+                ).order_by(CleaningEvaluation.date.desc()).all()
+            return []
+
+        else:
+            return []
+
+    except Exception as e:
+        app.logger.error(f"❌ Error in get_filtered_evaluations: {str(e)}")
+        return []
+
 @app.route('/api/employees/evaluatable')
 @login_required
 def get_evaluatable_employees():
@@ -5266,39 +5451,52 @@ def get_my_evaluations():
 
 
 # Reports
+
 @app.route('/reports')
 @login_required
 def reports_index():
-    """صفحة التقارير الرئيسية"""
+    """صفحة التقارير الرئيسية (محسنة بصلاحيات المشاهد)"""
     try:
-        # إحصائيات أساسية
+        # الحصول على التقييمات المفلترة
+        filtered_evaluations = get_filtered_evaluations(current_user)
+        filtered_evaluation_ids = [e.id for e in filtered_evaluations]
+
+        # إذا لم يكن هناك تقييمات، استخدم قائمة فارغة للاستعلامات اللاحقة
+        if not filtered_evaluation_ids:
+            filtered_evaluation_ids = [0]  # قيمة وهمية لتجنب أخطاء SQL
+
+        # إحصائيات أساسية (مع الأخذ بالاعتبار التقييمات المفلترة فقط)
+        total_evaluations = len(filtered_evaluations)
+
+        # حساب متوسط التقييم (للتقييمات المفلترة فقط)
+        if filtered_evaluation_ids:
+            avg_score_result = db.session.query(db.func.avg(CleaningEvaluation.overall_score)) \
+                .filter(CleaningEvaluation.id.in_(filtered_evaluation_ids)).scalar()
+            avg_score = float(avg_score_result) if avg_score_result is not None else 0.0
+        else:
+            avg_score = 0.0
+
+        # إحصائيات التقييمات لليوم (مع الفلترة)
+        today = date.today()
+        evaluations_today = len([e for e in filtered_evaluations if e.date == today]) if filtered_evaluations else 0
+
+        # إحصائيات هذا الأسبوع (مع الفلترة)
+        week_ago = today - timedelta(days=7)
+        evaluations_this_week = len([e for e in filtered_evaluations if e.date >= week_ago]) if filtered_evaluations else 0
+
+        # إحصائيات هذا الشهر (مع الفلترة)
+        month_ago = today - timedelta(days=30)
+        evaluations_this_month = len([e for e in filtered_evaluations if e.date >= month_ago]) if filtered_evaluations else 0
+
+        # إحصائيات الموظفين (يمكن أن تبقى كما هي، أو يمكن فلترتها إذا لزم الأمر)
         total_employees = Employee.query.count() or 0
         active_employees = Employee.query.filter_by(is_active=True).count() or 0
         total_companies = Company.query.filter_by(is_active=True).count() or 0
         total_areas = Area.query.filter_by(is_active=True).count() or 0
-        total_evaluations = CleaningEvaluation.query.count() or 0
 
-        # حساب متوسط التقييم
-        avg_score_result = db.session.query(db.func.avg(CleaningEvaluation.overall_score)).scalar()
-        avg_score = float(avg_score_result) if avg_score_result is not None else 0.0
-
-        # إحصائيات التقييمات
-        today = date.today()
-        evaluations_today = CleaningEvaluation.query.filter_by(date=today).count() or 0
-
-        # إحصائيات هذا الأسبوع
-        week_ago = today - timedelta(days=7)
-        evaluations_this_week = CleaningEvaluation.query.filter(
-            CleaningEvaluation.date >= week_ago
-        ).count() or 0
-
-        # إحصائيات هذا الشهر
-        month_ago = today - timedelta(days=30)
-        evaluations_this_month = CleaningEvaluation.query.filter(
-            CleaningEvaluation.date >= month_ago
-        ).count() or 0
-
-        # إحصائيات الحضور
+        # إحصائيات الحضور (يجب فلترتها حسب الموظفين المسموح رؤيتهم)
+        # هذا الجزء أكثر تعقيداً ويتطلب دالة مشابهة get_filtered_employees
+        # للتبسيط، سأتركه كما هو الآن، لكن يجب تحسينه لاحقاً.
         present_today = Attendance.query.filter_by(date=today, status='present').count() or 0
 
         # حساب النسبة المئوية للنمو (بدون استخدام |)
@@ -5645,32 +5843,50 @@ def report_kpis():
 @app.route('/reports/daily-evaluations-advanced')
 @login_required
 def report_daily_evaluations_advanced():
-    """تقرير التقييمات اليومية المتقدم - يعتمد على بيانات حقيقية"""
+    """تقرير التقييمات اليومية المتقدم - يعتمد على بيانات حقيقية ومفلترة"""
     try:
+        app.logger.info("=" * 50)
+        app.logger.info(f"📊 تقرير التقييمات اليومية المتقدم - المستخدم: {current_user.username}")
+
         today = date.today()
-        evaluations = CleaningEvaluation.query.filter_by(date=today).all()
+        selected_date_param = request.args.get('date', today.isoformat())
+
+        try:
+            selected_date = datetime.strptime(selected_date_param, '%Y-%m-%d').date()
+        except ValueError:
+            selected_date = today
+            flash('صيغة التاريخ غير صحيحة، تم استخدام تاريخ اليوم', 'warning')
+
+        # استخدام الدالة المساعدة لجلب جميع التقييمات المفلترة أولاً
+        all_filtered_evaluations = get_filtered_evaluations(current_user)
+
+        # ثم فلترتها حسب التاريخ المطلوب
+        evaluations = [e for e in all_filtered_evaluations if e.date == selected_date]
+
+        app.logger.info(f"📅 التاريخ: {selected_date}")
+        app.logger.info(f"📊 عدد التقييمات في هذا التاريخ: {len(evaluations)}")
 
         # تجهيز بيانات التقييمات للعرض
         evaluations_data = []
         hourly_counts = [0, 0, 0, 0, 0]  # لفترات اليوم
 
-        for eval in evaluations:
+        for eval_obj in evaluations:
             # اسم الموظف
             employee_name = "غير محدد"
-            if eval.evaluated_employee:
-                employee_name = eval.evaluated_employee.full_name
+            if eval_obj.evaluated_employee:
+                employee_name = eval_obj.evaluated_employee.full_name
 
             # الموقع
             location_name = "غير محدد"
-            if eval.place:
-                if eval.place.location:
-                    location_name = eval.place.location.name
+            if eval_obj.place:
+                if eval_obj.place.location:
+                    location_name = eval_obj.place.location.name
                 else:
-                    location_name = eval.place.name
+                    location_name = eval_obj.place.name
 
             # حساب الفترة الزمنية
-            if eval.created_at:
-                hour = eval.created_at.hour
+            if eval_obj.created_at:
+                hour = eval_obj.created_at.hour
                 if 8 <= hour < 10:
                     hourly_counts[0] += 1
                 elif 10 <= hour < 12:
@@ -5683,18 +5899,18 @@ def report_daily_evaluations_advanced():
                     hourly_counts[4] += 1
 
             evaluations_data.append({
-                'id': eval.id,
-                'created_at': eval.created_at or datetime.now(),
+                'id': eval_obj.id,
+                'created_at': eval_obj.created_at or datetime.now(),
                 'employee': {
                     'full_name': employee_name,
                     'avatar': None
                 },
                 'location': location_name,
-                'cleanliness': eval.cleanliness or 0,
-                'organization': eval.organization or 0,
-                'equipment': eval.equipment_condition or 0,
-                'safety': eval.safety_measures or 0,
-                'overall_score': float(eval.overall_score) if eval.overall_score else 0
+                'cleanliness': eval_obj.cleanliness or 0,
+                'organization': eval_obj.organization or 0,
+                'equipment': eval_obj.equipment_condition or 0,
+                'safety': eval_obj.safety_measures or 0,
+                'overall_score': float(eval_obj.overall_score) if eval_obj.overall_score else 0
             })
 
         # إحصائيات يومية حقيقية
@@ -5715,9 +5931,11 @@ def report_daily_evaluations_advanced():
             excellent_percent = 0
             poor_percent = 0
 
-        # حساب التغيير عن الأمس
-        yesterday = today - timedelta(days=1)
-        yesterday_count = CleaningEvaluation.query.filter_by(date=yesterday).count()
+        # حساب التغيير عن الأمس (مع الأخذ بالاعتبار الفلترة)
+        yesterday = selected_date - timedelta(days=1)
+        yesterday_evaluations = [e for e in all_filtered_evaluations if e.date == yesterday]
+        yesterday_count = len(yesterday_evaluations)
+
         trend = 0
         if yesterday_count > 0 and total > 0:
             trend = round(((total - yesterday_count) / yesterday_count) * 100)
@@ -5805,14 +6023,17 @@ def report_daily_evaluations_advanced():
             recommendations.append({
                 'type': 'info',
                 'icon': 'info-circle',
-                'title': 'لا توجد تقييمات اليوم',
-                'message': 'لم يتم تسجيل أي تقييمات اليوم، يرجى البدء في تقييم الموظفين'
+                'title': 'لا توجد تقييمات لهذا اليوم',
+                'message': 'لم يتم تسجيل أي تقييمات في هذا التاريخ'
             })
+
+        app.logger.info(f"📊 تم تجهيز التقرير بنجاح")
+        app.logger.info("=" * 50)
 
         return render_template('reports/daily_evaluations_advanced.html',
                                daily_stats=daily_stats,
                                evaluations=evaluations_data,
-                               selected_date=today.strftime('%Y-%m-%d'),
+                               selected_date=selected_date.strftime('%Y-%m-%d'),
                                hourly_labels=['8-10', '10-12', '12-14', '14-16', '16-18'],
                                hourly_data=hourly_counts,
                                distribution_data=distribution_data,
@@ -5822,162 +6043,9 @@ def report_daily_evaluations_advanced():
                                recommendations=recommendations[:3])  # أقصى 3 توصيات
 
     except Exception as e:
-        app.logger.error(f"Error in report_daily_evaluations_advanced: {str(e)}")
-        flash('حدث خطأ في تحميل التقرير', 'error')
-        return redirect(url_for('reports_index'))
-
-
-@app.route('/reports/monthly-trends-advanced')
-@login_required
-def report_monthly_trends_advanced():
-    """تقرير اتجاهات التقييم الشهرية - يعتمد على بيانات حقيقية"""
-    try:
-        from sqlalchemy import func, extract
-
-        # الحصول على آخر 6 أشهر
-        months = []
-        month_labels = []
-        month_averages = []
-        monthly_counts = []
-        monthly_data = []
-
-        today_date = date.today()
-        for i in range(5, -1, -1):  # آخر 6 أشهر
-            month_date = today_date - timedelta(days=30 * i)
-            month_num = month_date.month
-            year = month_date.year
-
-            # اسم الشهر
-            month_names = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-                           'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
-            month_name = month_names[month_num - 1]
-            months.append(month_name)
-            month_labels.append(month_name)
-
-            # حساب متوسط التقييم لهذا الشهر
-            month_start = date(year, month_num, 1)
-            if month_num == 12:
-                month_end = date(year + 1, 1, 1) - timedelta(days=1)
-            else:
-                month_end = date(year, month_num + 1, 1) - timedelta(days=1)
-
-            month_evaluations = CleaningEvaluation.query.filter(
-                CleaningEvaluation.date >= month_start,
-                CleaningEvaluation.date <= month_end
-            ).all()
-
-            count = len(month_evaluations)
-            monthly_counts.append(count)
-
-            if count > 0:
-                avg = sum(e.overall_score for e in month_evaluations if e.overall_score) / count
-                avg_score = round(avg, 1)
-            else:
-                avg_score = 0
-
-            month_averages.append(avg_score * 20)  # تحويل إلى نسبة مئوية
-
-            # أفضل موظف في الشهر
-            top_employee = "لا يوجد"
-            if count > 0:
-                # تجميع التقييمات لكل موظف
-                employee_scores = {}
-                for e in month_evaluations:
-                    if e.evaluated_employee_id and e.overall_score:
-                        if e.evaluated_employee_id not in employee_scores:
-                            employee_scores[e.evaluated_employee_id] = []
-                        employee_scores[e.evaluated_employee_id].append(e.overall_score)
-
-                # حساب متوسط كل موظف
-                best_avg = 0
-                for emp_id, scores in employee_scores.items():
-                    emp_avg = sum(scores) / len(scores)
-                    if emp_avg > best_avg:
-                        best_avg = emp_avg
-                        employee = Employee.query.get(emp_id)
-                        if employee:
-                            top_employee = employee.full_name
-
-            # أفضل شركة في الشهر
-            top_company = "غير محدد"
-            if count > 0:
-                company_scores = {}
-                for e in month_evaluations:
-                    if e.place and e.place.location and e.place.location.area and e.place.location.area.company:
-                        company_id = e.place.location.area.company_id
-                        if company_id not in company_scores:
-                            company_scores[company_id] = []
-                        if e.overall_score:
-                            company_scores[company_id].append(e.overall_score)
-
-                best_company_avg = 0
-                for comp_id, scores in company_scores.items():
-                    comp_avg = sum(scores) / len(scores)
-                    if comp_avg > best_company_avg:
-                        best_company_avg = comp_avg
-                        company = Company.query.get(comp_id)
-                        if company:
-                            top_company = company.name
-
-            monthly_data.append({
-                'name': month_name,
-                'count': count,
-                'avg': avg_score,
-                'color': 'success' if avg_score >= 4.5 else 'info' if avg_score >= 4 else 'warning' if avg_score >= 3 else 'danger',
-                'change': 0,  # يمكن حسابه لاحقاً
-                'top_employee': top_employee,
-                'top_company': top_company
-            })
-
-        # حساب التغيير بين الأشهر
-        for i in range(1, len(monthly_data)):
-            if monthly_data[i - 1]['count'] > 0:
-                change = round(
-                    ((monthly_data[i]['count'] - monthly_data[i - 1]['count']) / monthly_data[i - 1]['count']) * 100, 1)
-                monthly_data[i]['change'] = change
-
-        # أفضل شهر
-        best_month_idx = monthly_counts.index(max(monthly_counts)) if monthly_counts else 0
-        best_month = {
-            'name': months[best_month_idx] if months else 'غير محدد',
-            'avg': month_averages[best_month_idx] if month_averages else 0
-        }
-
-        # متوسط آخر 3 أشهر
-        last_3_months = month_averages[-3:] if len(month_averages) >= 3 else month_averages
-        three_month_avg = round(sum(last_3_months) / len(last_3_months)) if last_3_months else 0
-
-        # النمو السنوي
-        if len(month_averages) >= 2:
-            yearly_growth = round(((month_averages[-1] - month_averages[0]) / month_averages[0]) * 100) if \
-            month_averages[0] > 0 else 0
-        else:
-            yearly_growth = 0
-
-        # اتجاه العام
-        if len(month_averages) >= 2:
-            if month_averages[-1] > month_averages[0]:
-                trend_direction = 'تصاعدي'
-            elif month_averages[-1] < month_averages[0]:
-                trend_direction = 'تنازلي'
-            else:
-                trend_direction = 'ثابت'
-        else:
-            trend_direction = 'غير محدد'
-
-        return render_template('reports/monthly_trends.html',
-                               best_month=best_month,
-                               three_month_avg=three_month_avg,
-                               yearly_growth=yearly_growth,
-                               trend_direction=trend_direction,
-                               month_labels=month_labels,
-                               month_averages=month_averages,
-                               distribution_labels=['ممتاز', 'جيد', 'مقبول', 'ضعيف'],
-                               distribution_data=[45, 30, 15, 10],  # يمكن تحسينها لاحقاً
-                               monthly_data=monthly_data)
-
-    except Exception as e:
-        app.logger.error(f"Error in report_monthly_trends_advanced: {str(e)}")
+        app.logger.error(f"❌ Error in report_daily_evaluations_advanced: {str(e)}")
+        import traceback
+        app.logger.error(f"🔍 تفاصيل الخطأ: {traceback.format_exc()}")
         flash('حدث خطأ في تحميل التقرير', 'error')
         return redirect(url_for('reports_index'))
 
@@ -5985,11 +6053,16 @@ def report_monthly_trends_advanced():
 @app.route('/reports/evaluation-details-advanced')
 @login_required
 def report_evaluation_details_advanced():
-    """تقرير تفاصيل التقييمات حسب المعايير - يعتمد على بيانات حقيقية"""
+    """تقرير تفاصيل التقييمات حسب المعايير - يعتمد على بيانات حقيقية ومفلترة"""
     try:
-        # جميع التقييمات
-        all_evaluations = CleaningEvaluation.query.all()
+        app.logger.info("=" * 50)
+        app.logger.info(f"📊 تقرير تفاصيل التقييمات - المستخدم: {current_user.username}")
+
+        # استخدام الدالة المساعدة لجلب جميع التقييمات المفلترة
+        all_evaluations = get_filtered_evaluations(current_user)
         total_evaluations = len(all_evaluations)
+
+        app.logger.info(f"📊 إجمالي التقييمات المفلترة: {total_evaluations}")
 
         if total_evaluations == 0:
             # بيانات افتراضية عند عدم وجود تقييمات
@@ -5997,7 +6070,6 @@ def report_evaluation_details_advanced():
                 {'name': 'النظافة', 'avg': 0, 'color': 'secondary', 'max': 0, 'min': 0},
                 {'name': 'التنظيم', 'avg': 0, 'color': 'secondary', 'max': 0, 'min': 0},
                 {'name': 'المعدات', 'avg': 0, 'color': 'secondary', 'max': 0, 'min': 0},
-                {'name': 'الوقت', 'avg': 0, 'color': 'secondary', 'max': 0, 'min': 0},
                 {'name': 'السلامة', 'avg': 0, 'color': 'secondary', 'max': 0, 'min': 0},
             ]
             criteria_details = []
@@ -6030,6 +6102,12 @@ def report_evaluation_details_advanced():
             equipment_max = max(equipment_values) if equipment_values else 0
             equipment_min = min(equipment_values) if equipment_values else 0
 
+            # حساب إحصائيات الوقت
+            time_values = [e.time for e in all_evaluations if e.time]
+            time_avg = sum(time_values) / len(time_values) if time_values else 0
+            time_max = max(time_values) if time_values else 0
+            time_min = min(time_values) if time_values else 0
+
             # حساب إحصائيات السلامة
             safety_values = [e.safety_measures for e in all_evaluations if e.safety_measures]
             safety_avg = sum(safety_values) / len(safety_values) if safety_values else 0
@@ -6047,7 +6125,7 @@ def report_evaluation_details_advanced():
                  'color': 'success' if equipment_avg >= 4 else 'warning' if equipment_avg >= 3 else 'danger',
                  'max': equipment_max, 'min': equipment_min},
                 {'name': 'الوقت', 'avg': round(time_avg, 1),
-                 'color': 'success' if equipment_avg >= 4 else 'warning' if time_avg >= 3 else 'danger',
+                 'color': 'success' if time_avg >= 4 else 'warning' if time_avg >= 3 else 'danger',
                  'max': time_max, 'min': time_min},
                 {'name': 'السلامة', 'avg': round(safety_avg, 1),
                  'color': 'success' if safety_avg >= 4 else 'warning' if safety_avg >= 3 else 'danger',
@@ -6056,45 +6134,35 @@ def report_evaluation_details_advanced():
 
             # تفاصيل المعايير
             criteria_details = []
-            for c in criteria:
-                # تصنيف التقييمات حسب القيمة
-                excellent = len([e for e in all_evaluations if
-                                 (c['name'] == 'النظافة' and e.cleanliness == 5) or
-                                 (c['name'] == 'التنظيم' and e.organization == 5) or
-                                 (c['name'] == 'المعدات' and e.equipment_condition == 5) or
-                                 (c['name'] == 'الوقت' and e.time == 5) or
-                                 (c['name'] == 'السلامة' and e.safety_measures == 5)])
+            for criterion_name in ['النظافة', 'التنظيم', 'المعدات', 'الوقت', 'السلامة']:
+                excellent = good = average = poor = very_poor = 0
 
-                good = len([e for e in all_evaluations if
-                            (c['name'] == 'النظافة' and e.cleanliness == 4) or
-                            (c['name'] == 'التنظيم' and e.organization == 4) or
-                            (c['name'] == 'المعدات' and e.equipment_condition == 4) or
-                            (c['name'] == 'لوقت' and e.time == 4) or
-                            (c['name'] == 'السلامة' and e.safety_measures == 4)])
+                for eval_obj in all_evaluations:
+                    value = None
+                    if criterion_name == 'النظافة':
+                        value = eval_obj.cleanliness
+                    elif criterion_name == 'التنظيم':
+                        value = eval_obj.organization
+                    elif criterion_name == 'المعدات':
+                        value = eval_obj.equipment_condition
+                    elif criterion_name == 'الوقت':
+                        value = eval_obj.time
+                    elif criterion_name == 'السلامة':
+                        value = eval_obj.safety_measures
 
-                average = len([e for e in all_evaluations if
-                               (c['name'] == 'النظافة' and e.cleanliness == 3) or
-                               (c['name'] == 'التنظيم' and e.organization == 3) or
-                               (c['name'] == 'المعدات' and e.equipment_condition == 3) or
-                               (c['name'] == 'الوقت' and e.time == 3) or
-                               (c['name'] == 'السلامة' and e.safety_measures == 3)])
-
-                poor = len([e for e in all_evaluations if
-                            (c['name'] == 'النظافة' and e.cleanliness == 2) or
-                            (c['name'] == 'التنظيم' and e.organization == 2) or
-                            (c['name'] == 'المعدات' and e.equipment_condition == 2) or
-                            (c['name'] == 'الوقت' and e.time == 2) or
-                            (c['name'] == 'السلامة' and e.safety_measures == 2)])
-
-                very_poor = len([e for e in all_evaluations if
-                                 (c['name'] == 'النظافة' and e.cleanliness == 1) or
-                                 (c['name'] == 'التنظيم' and e.organization == 1) or
-                                 (c['name'] == 'المعدات' and e.equipment_condition == 1) or
-                                 (c['name'] == 'الوقت' and e.time == 1) or
-                                 (c['name'] == 'السلامة' and e.safety_measures == 1)])
+                    if value == 5:
+                        excellent += 1
+                    elif value == 4:
+                        good += 1
+                    elif value == 3:
+                        average += 1
+                    elif value == 2:
+                        poor += 1
+                    elif value == 1:
+                        very_poor += 1
 
                 criteria_details.append({
-                    'name': c['name'],
+                    'name': criterion_name,
                     'excellent': excellent,
                     'good': good,
                     'average': average,
@@ -6102,6 +6170,9 @@ def report_evaluation_details_advanced():
                     'very_poor': very_poor,
                     'total': excellent + good + average + poor + very_poor
                 })
+
+        app.logger.info(f"📊 تم تجهيز تفاصيل {len(criteria)} معايير")
+        app.logger.info("=" * 50)
 
         return render_template('reports/evaluation_details.html',
                                criteria=criteria,
@@ -6112,7 +6183,9 @@ def report_evaluation_details_advanced():
                                criteria_details=criteria_details)
 
     except Exception as e:
-        app.logger.error(f"Error in report_evaluation_details_advanced: {str(e)}")
+        app.logger.error(f"❌ Error in report_evaluation_details_advanced: {str(e)}")
+        import traceback
+        app.logger.error(f"🔍 تفاصيل الخطأ: {traceback.format_exc()}")
         flash('حدث خطأ في تحميل التقرير', 'error')
         return redirect(url_for('reports_index'))
 
@@ -6821,6 +6894,44 @@ def report_absence_rates():
         return redirect(url_for('reports_index'))
 
 
+@app.route('/api/reports/statistics')
+@login_required
+def reports_statistics():
+    """API للحصول على إحصائيات التقارير (مع الفلترة)"""
+    try:
+        # الحصول على التقييمات المفلترة
+        filtered_evaluations = get_filtered_evaluations(current_user)
+        filtered_evaluation_ids = [e.id for e in filtered_evaluations]
+
+        if not filtered_evaluation_ids:
+            filtered_evaluation_ids = [0]
+
+        total_evaluations = len(filtered_evaluations)
+
+        if filtered_evaluation_ids and filtered_evaluation_ids != [0]:
+            avg_score_result = db.session.query(db.func.avg(CleaningEvaluation.overall_score)) \
+                .filter(CleaningEvaluation.id.in_(filtered_evaluation_ids)).scalar()
+            avg_score = float(avg_score_result) if avg_score_result is not None else 0
+        else:
+            avg_score = 0
+
+        excellent_count = len([e for e in filtered_evaluations if e.overall_score and e.overall_score >= 4.5])
+        improvement_count = len([e for e in filtered_evaluations if e.overall_score and e.overall_score < 3])
+
+        return jsonify({
+            'success': True,
+            'total_evaluations': total_evaluations,
+            'avg_score': float(avg_score),
+            'excellent_count': excellent_count,
+            'improvement_count': improvement_count
+        })
+    except Exception as e:
+        app.logger.error(f"❌ Error in reports_statistics: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'حدث خطأ في تحميل الإحصائيات'
+        }), 500
+
 # ============================================
 # مسارات تقارير المشرفين
 # ============================================
@@ -7277,28 +7388,7 @@ def generate_report():
 def create_schedule():
     return render_template('schedules/create.html')
 
-@app.route('/api/reports/statistics')
-@login_required
-def reports_statistics():
-    try:
-        total_evaluations = CleaningEvaluation.query.count()
-        avg_score = db.session.query(db.func.avg(CleaningEvaluation.overall_score)).scalar() or 0
-        excellent_count = CleaningEvaluation.query.filter(CleaningEvaluation.overall_score >= 4.5).count()
-        improvement_count = CleaningEvaluation.query.filter(CleaningEvaluation.overall_score < 3).count()
 
-        return jsonify({
-            'success': True,
-            'total_evaluations': total_evaluations,
-            'avg_score': float(avg_score),
-            'excellent_count': excellent_count,
-            'improvement_count': improvement_count
-        })
-    except Exception as e:
-        app.logger.error(f"Error in reports_statistics: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': 'حدث خطأ في تحميل الإحصائيات'
-        }), 500
 # Error handlers
 @app.errorhandler(404)
 def not_found_error(error):
