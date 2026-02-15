@@ -1,10 +1,243 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<!-- templates/reports/companies_ratings.html -->
+{% extends "base.html" %}
+
+{% block title %}تقييم الشركات حسب المناطق{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- شريط العنوان -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-gradient-warning mb-1">
+                <i class="fas fa-star me-2"></i>
+                تقييم الشركات حسب المناطق
+            </h2>
+            <p class="text-muted mb-0">تحليل أداء الشركات وتقييم المناطق التابعة</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">PDF</button>
+            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">Excel</button>
+        </div>
+    </div>
+
+    <!-- بطاقات التقييم -->
+    <div class="row mb-4">
+        {% for company in ratings_data %}
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card rating-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5 class="card-title">{{ company.name }}</h5>
+                            <p class="text-muted small mb-2">{{ company.areas_count }} منطقة</p>
+                        </div>
+                        <div class="rating-badge bg-{{ company.rating_color }}">
+                            {{ "%.1f"|format(company.avg_rating) }}
+                        </div>
+                    </div>
+
+                    <div class="stars-large mb-3">
+                        {% for i in range(5) %}
+                            {% if i < company.avg_rating|int %}
+                                <i class="fas fa-star text-warning"></i>
+                            {% elif i < company.avg_rating %}
+                                <i class="fas fa-star-half-alt text-warning"></i>
+                            {% else %}
+                                <i class="far fa-star text-warning"></i>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <div class="rating-stats">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>أعلى منطقة</span>
+                            <span class="fw-bold">{{ company.max_area }} ({{ company.max_rating }})</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>أدنى منطقة</span>
+                            <span class="fw-bold">{{ company.min_area }} ({{ company.min_rating }})</span>
+                        </div>
+                        <div class="progress mt-3" style="height: 8px;">
+                            <div class="progress-bar bg-{{ company.rating_color }}"
+                                 style="width: {{ (company.avg_rating / 5 * 100) }}%;"></div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-outline-primary w-100 mt-3" onclick="showCompanyDetails({{ company.id }})">
+                        <i class="fas fa-chart-line me-1"></i> تحليل المناطق
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- رسم بياني لمقارنة التقييمات -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-bar me-2"></i>مقارنة تقييمات الشركات
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="ratingsComparisonChart" style="height: 350px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول تفصيلي للمناطق -->
+    <div class="card shadow">
+        <div class="card-header bg-white py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-table me-2"></i>تفاصيل تقييم المناطق
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>الشركة</th>
+                            <th>المنطقة</th>
+                            <th>المشرف</th>
+                            <th>عدد التقييمات</th>
+                            <th>التقييم</th>
+                            <th>المستوى</th>
+                            <th>آخر تقييم</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for area in areas_ratings %}
+                        <tr>
+                            <td>{{ area.company_name }}</td>
+                            <td class="fw-bold">{{ area.name }}</td>
+                            <td>{{ area.supervisor_name|default('غير محدد') }}</td>
+                            <td>{{ area.evaluations_count }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="stars-container me-2">
+                                        {% for i in range(5) %}
+                                            {% if i < area.rating|int %}
+                                                <i class="fas fa-star text-warning"></i>
+                                            {% elif i < area.rating %}
+                                                <i class="fas fa-star-half-alt text-warning"></i>
+                                            {% else %}
+                                                <i class="far fa-star text-warning"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <span class="fw-bold">{{ "%.1f"|format(area.rating) }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                {% set level = 'ممتاز' if area.rating >= 4.5 else 'جيد جداً' if area.rating >= 4 else 'جيد' if area.rating >= 3 else 'مقبول' if area.rating >= 2 else 'ضعيف' %}
+                                {% set level_color = 'success' if area.rating >= 4.5 else 'info' if area.rating >= 4 else 'primary' if area.rating >= 3 else 'warning' if area.rating >= 2 else 'danger' %}
+                                <span class="badge bg-{{ level_color }}">{{ level }}</span>
+                            </td>
+                            <td>{{ area.last_evaluation_date|date if area.last_evaluation_date else 'لا يوجد' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const ratingsData = {{ ratings_data|tojson }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    const chartOptions = {
+        series: [{
+            name: 'متوسط التقييم',
+            data: ratingsData.map(c => c.avg_rating)
+        }],
+        chart: {
+            type: 'bar',
+            height: 350,
+            toolbar: { show: false },
+            fontFamily: 'Cairo, sans-serif'
+        },
+        colors: ['#4e73df'],
+        plotOptions: {
+            bar: {
+                borderRadius: 10,
+                columnWidth: '50%',
+                distributed: true
+            }
+        },
+        dataLabels: {
+            enabled: true,
+            formatter: (val) => val.toFixed(1) + '/5',
+            style: { fontFamily: 'Cairo, sans-serif' }
+        },
+        xaxis: {
+            categories: ratingsData.map(c => c.name),
+            labels: { style: { fontFamily: 'Cairo, sans-serif' } }
+        },
+        yaxis: {
+            max: 5,
+            min: 0,
+            labels: { style: { fontFamily: 'Cairo, sans-serif' } }
+        },
+        tooltip: {
+            y: { formatter: (val) => val.toFixed(1) + '/5' }
+        }
+    };
+
+    const chart = new ApexCharts(document.querySelector("#ratingsComparisonChart"), chartOptions);
+    chart.render();
+});
+
+function showCompanyDetails(companyId) {
+    alert(`عرض تفاصيل الشركة رقم: ${companyId}`);
+}
+</script>
+
+<style>
+.rating-card {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+    transition: all 0.3s;
+}
+
+.rating-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(78,115,223,0.1);
+}
+
+.rating-badge {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: white;
+}
+
+.bg-excellent { background: linear-gradient(135deg, #1cc88a, #13855c); }
+.bg-good { background: linear-gradient(135deg, #4e73df, #224abe); }
+.bg-average { background: linear-gradient(135deg, #f6c23e, #dda20a); }
+.bg-poor { background: linear-gradient(135deg, #e74a3b, #be2617); }
+
+.stars-large i {
+    font-size: 1.2rem;
+    margin-left: 2px;
+}
+
+.rating-stats {
+    background: #f8f9fc;
+    padding: 1rem;
+    border-radius: 10px;
+    margin: 1rem 0;
+}
+</style>
+{% endblock %}

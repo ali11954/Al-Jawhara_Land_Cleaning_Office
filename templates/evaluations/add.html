@@ -11,34 +11,71 @@
             <a href="{{ url_for('evaluations_list') }}" class="btn btn-secondary btn-sm">
                 <i class="fas fa-arrow-right"></i> رجوع للتقييمات
             </a>
+            {% if current_user.role == 'owner' %}
+            <a href="{{ url_for('supervisor_evaluations_list') }}" class="btn btn-info btn-sm">
+                <i class="fas fa-user-tie"></i> تقييمات المشرفين
+            </a>
+            {% endif %}
         </div>
     </div>
 
     <!-- رسائل التنبيه -->
     <div id="alertContainer"></div>
 
+    <!-- اختيار نوع التقييم (للمالك فقط) -->
+    {% if current_user.role == 'owner' %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="evaluationType" id="typeEmployee" value="employee" checked>
+                                <label class="form-check-label" for="typeEmployee">
+                                    <i class="fas fa-user text-primary"></i> تقييم موظف (عامل/مراقب)
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="evaluationType" id="typeSupervisor" value="supervisor">
+                                <label class="form-check-label" for="typeSupervisor">
+                                    <i class="fas fa-user-tie text-success"></i> تقييم مشرف
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="row">
         <div class="col-lg-8">
-            <div class="card shadow mb-4">
+            <!-- نموذج تقييم الموظفين (العامل/المراقب) -->
+            <div id="employeeEvaluationForm" class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">بيانات التقييم</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-user"></i> تقييم موظف
+                    </h6>
                 </div>
                 <div class="card-body">
-                    <form id="evaluationForm" method="POST">
+                    <form method="POST" action="{{ url_for('add_evaluation') }}">
                         <!-- التاريخ -->
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="date" class="form-label">تاريخ التقييم <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="date" name="date"
+                                <label for="emp_date" class="form-label">تاريخ التقييم <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="emp_date" name="date"
                                        value="{{ today.isoformat() }}" max="{{ today.isoformat() }}" required>
                             </div>
                         </div>
 
-                        <!-- الهيكل التنظيمي -->
+                        <!-- الهيكل التنظيمي - للمالك فقط -->
+                        {% if current_user.role == 'owner' %}
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="company_id" class="form-label">الشركة <span class="text-danger">*</span></label>
-                                <select class="form-select" id="company_id" name="company_id" required onchange="loadAreas()">
+                                <label for="emp_company_id" class="form-label">الشركة <span class="text-danger">*</span></label>
+                                <select class="form-select" id="emp_company_id" name="company_id" required onchange="loadEmpAreas()">
                                     <option value="">اختر الشركة...</option>
                                     {% for company in companies %}
                                     <option value="{{ company.id }}">{{ company.name }}</option>
@@ -46,8 +83,8 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label for="area_id" class="form-label">المنطقة</label>
-                                <select class="form-select" id="area_id" name="area_id" onchange="loadLocations()" disabled>
+                                <label for="emp_area_id" class="form-label">المنطقة</label>
+                                <select class="form-select" id="emp_area_id" name="area_id" onchange="loadEmpLocations()" disabled>
                                     <option value="">اختر المنطقة...</option>
                                 </select>
                             </div>
@@ -55,32 +92,55 @@
 
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="location_id" class="form-label">الموقع</label>
-                                <select class="form-select" id="location_id" name="location_id" onchange="loadPlaces()" disabled>
+                                <label for="emp_location_id" class="form-label">الموقع</label>
+                                <select class="form-select" id="emp_location_id" name="location_id" onchange="loadEmpPlaces()" disabled>
                                     <option value="">اختر الموقع...</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label for="place_id" class="form-label">المكان <span class="text-danger">*</span></label>
-                                <select class="form-select" id="place_id" name="place_id" required disabled>
+                                <label for="emp_place_id" class="form-label">المكان <span class="text-danger">*</span></label>
+                                <select class="form-select" id="emp_place_id" name="place_id" required disabled>
                                     <option value="">اختر المكان...</option>
                                 </select>
                             </div>
                         </div>
+                        {% else %}
+                        <!-- للمشرف: حقل مخفي للشركة -->
+                        <input type="hidden" id="emp_company_id" name="company_id" value="{{ current_user.employee_profile.company_id if current_user.employee_profile else '' }}">
+                        <input type="hidden" id="emp_area_id" name="area_id">
+                        <input type="hidden" id="emp_location_id" name="location_id">
+                        {% endif %}
 
-                        <!-- الموظفين -->
+                        <!-- الموظف المقيّم -->
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="evaluated_employee_id" class="form-label">الموظف المقيّم <span class="text-danger">*</span></label>
-                                <select class="form-select" id="evaluated_employee_id" name="evaluated_employee_id" required>
+                                <label for="emp_evaluated_employee_id" class="form-label">الموظف المقيّم <span class="text-danger">*</span></label>
+                                <select class="form-select" id="emp_evaluated_employee_id" name="evaluated_employee_id" required>
                                     <option value="">اختر الموظف...</option>
                                     {% for employee in employees %}
-                                    <option value="{{ employee.id }}">
-                                        {{ employee.full_name }} - ({{ 'مشرف' if employee.position == 'supervisor' else 'مراقب' if employee.position == 'monitor' else 'عامل' }})
-                                    </option>
+                                        {% if employee.position in ['monitor', 'worker'] %}
+                                        <option value="{{ employee.id }}" data-company="{{ employee.company_id }}">
+                                            {{ employee.full_name }} -
+                                            {% if employee.position == 'monitor' %}مراقب{% else %}عامل{% endif %}
+                                            {% if current_user.role == 'owner' and employee.company %} ({{ employee.company.name }}){% endif %}
+                                        </option>
+                                        {% endif %}
                                     {% endfor %}
                                 </select>
                             </div>
+                            {% if current_user.role == 'owner' %}
+                            <div class="col-md-6">
+                                <label for="emp_evaluator_id" class="form-label">المقيّم</label>
+                                <select class="form-select" id="emp_evaluator_id" name="evaluator_id">
+                                    <option value="">اختر المقيّم (اختياري)</option>
+                                    {% for evaluator in evaluators %}
+                                    <option value="{{ evaluator.id }}">{{ evaluator.full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">إذا لم تختار، سيتم استخدام أول مشرف</small>
+                            </div>
+                            {% endif %}
+                        </div>
 
                         <!-- نقاط التقييم -->
                         <div class="row mb-3">
@@ -88,47 +148,58 @@
                                 <h6 class="text-primary mb-3">نقاط التقييم (من 1 إلى 5) <span class="text-danger">*</span></h6>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="cleanliness" class="form-label">النظافة</label>
-                                <select class="form-select" id="cleanliness" name="cleanliness" required>
-                                    <option value="">اختر درجة النظافة...</option>
-                                    <option value="1">1 - ضعيف</option>
-                                    <option value="2">2 - مقبول</option>
-                                    <option value="3">3 - جيد</option>
-                                    <option value="4">4 - جيد جداً</option>
-                                    <option value="5">5 - ممتاز</option>
+                                <label for="emp_cleanliness" class="form-label">النظافة</label>
+                                <select class="form-select" id="emp_cleanliness" name="cleanliness" required>
+                                    <option value="">اختر...</option>
+                                    {% for i in range(1, 6) %}
+                                    <option value="{{ i }}">{{ i }} -
+                                        {% if i == 1 %}ضعيف{% elif i == 2 %}مقبول{% elif i == 3 %}جيد{% elif i == 4 %}جيد جداً{% else %}ممتاز{% endif %}
+                                    </option>
+                                    {% endfor %}
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="organization" class="form-label">التنظيم</label>
-                                <select class="form-select" id="organization" name="organization" required>
-                                    <option value="">اختر درجة التنظيم...</option>
-                                    <option value="1">1 - ضعيف</option>
-                                    <option value="2">2 - مقبول</option>
-                                    <option value="3">3 - جيد</option>
-                                    <option value="4">4 - جيد جداً</option>
-                                    <option value="5">5 - ممتاز</option>
+                                <label for="emp_organization" class="form-label">التنظيم</label>
+                                <select class="form-select" id="emp_organization" name="organization" required>
+                                    <option value="">اختر...</option>
+                                    {% for i in range(1, 6) %}
+                                    <option value="{{ i }}">{{ i }} -
+                                        {% if i == 1 %}ضعيف{% elif i == 2 %}مقبول{% elif i == 3 %}جيد{% elif i == 4 %}جيد جداً{% else %}ممتاز{% endif %}
+                                    </option>
+                                    {% endfor %}
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="equipment_condition" class="form-label">حالة المعدات</label>
-                                <select class="form-select" id="equipment_condition" name="equipment_condition" required>
-                                    <option value="">اختر حالة المعدات...</option>
-                                    <option value="1">1 - ضعيف</option>
-                                    <option value="2">2 - مقبول</option>
-                                    <option value="3">3 - جيد</option>
-                                    <option value="4">4 - جيد جداً</option>
-                                    <option value="5">5 - ممتاز</option>
+                                <label for="emp_equipment_condition" class="form-label">حالة المعدات</label>
+                                <select class="form-select" id="emp_equipment_condition" name="equipment_condition" required>
+                                    <option value="">اختر...</option>
+                                    {% for i in range(1, 6) %}
+                                    <option value="{{ i }}">{{ i }} -
+                                        {% if i == 1 %}ضعيف{% elif i == 2 %}مقبول{% elif i == 3 %}جيد{% elif i == 4 %}جيد جداً{% else %}ممتاز{% endif %}
+                                    </option>
+                                    {% endfor %}
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="safety_measures" class="form-label">إجراءات السلامة</label>
-                                <select class="form-select" id="safety_measures" name="safety_measures" required>
-                                    <option value="">اختر درجة السلامة...</option>
-                                    <option value="1">1 - ضعيف</option>
-                                    <option value="2">2 - مقبول</option>
-                                    <option value="3">3 - جيد</option>
-                                    <option value="4">4 - جيد جداً</option>
-                                    <option value="5">5 - ممتاز</option>
+                                <label for="emp_time" class="form-label">الالتزام بوقت الدوام</label>
+                                <select class="form-select" id="emp_time" name="time" required>
+                                    <option value="">اختر...</option>
+                                    {% for i in range(1, 6) %}
+                                    <option value="{{ i }}">{{ i }} -
+                                        {% if i == 1 %}ضعيف{% elif i == 2 %}مقبول{% elif i == 3 %}جيد{% elif i == 4 %}جيد جداً{% else %}ممتاز{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="emp_safety_measures" class="form-label">إجراءات السلامة</label>
+                                <select class="form-select" id="emp_safety_measures" name="safety_measures" required>
+                                    <option value="">اختر...</option>
+                                    {% for i in range(1, 6) %}
+                                    <option value="{{ i }}">{{ i }} -
+                                        {% if i == 1 %}ضعيف{% elif i == 2 %}مقبول{% elif i == 3 %}جيد{% elif i == 4 %}جيد جداً{% else %}ممتاز{% endif %}
+                                    </option>
+                                    {% endfor %}
                                 </select>
                             </div>
                         </div>
@@ -136,36 +207,195 @@
                         <!-- الملاحظات -->
                         <div class="row mb-3">
                             <div class="col-12">
-                                <label for="comments" class="form-label">ملاحظات إضافية</label>
-                                <textarea class="form-control" id="comments" name="comments" rows="3"
+                                <label for="emp_comments" class="form-label">ملاحظات إضافية</label>
+                                <textarea class="form-control" id="emp_comments" name="comments" rows="3"
                                           placeholder="أدخل أي ملاحظات إضافية حول التقييم..."></textarea>
                             </div>
                         </div>
 
-                        <!-- نتيجة التقييم التلقائية -->
-                        <div class="row mb-3">
-                            <div class="col-12">
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle me-2"></i>
-                                    <strong>معلومة:</strong> سيتم حساب النتيجة الإجمالية تلقائياً بناءً على نقاط التقييم.
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- زر الإرسال -->
-                        <div class="row">
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-primary btn-lg">
-                                    <i class="fas fa-save me-2"></i>حفظ التقييم
-                                </button>
-                                <a href="{{ url_for('evaluations_list') }}" class="btn btn-secondary btn-lg">
-                                    <i class="fas fa-times me-2"></i>إلغاء
-                                </a>
-                            </div>
-                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>حفظ تقييم الموظف
+                        </button>
                     </form>
                 </div>
             </div>
+
+            <!-- نموذج تقييم المشرفين (للمالك فقط) -->
+            {% if current_user.role == 'owner' %}
+            <div id="supervisorEvaluationForm" class="card shadow mb-4" style="display: none;">
+                <div class="card-header py-3 bg-success text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-user-tie"></i> تقييم مشرف
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('add_supervisor_evaluation') }}">
+                        <!-- التاريخ -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="sup_date" class="form-label">تاريخ التقييم <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="sup_date" name="date"
+                                       value="{{ today.isoformat() }}" max="{{ today.isoformat() }}" required>
+                            </div>
+                        </div>
+
+                        <!-- المشرف والشركة -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="sup_supervisor_id" class="form-label">المشرف <span class="text-danger">*</span></label>
+                                <select class="form-select" id="sup_supervisor_id" name="supervisor_id" required>
+                                    <option value="">اختر المشرف...</option>
+                                    {% for supervisor in supervisors %}
+                                    <option value="{{ supervisor.id }}">{{ supervisor.full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="sup_company_id" class="form-label">الشركة <span class="text-danger">*</span></label>
+                                <select class="form-select" id="sup_company_id" name="company_id" required>
+                                    <option value="">اختر الشركة...</option>
+                                    {% for company in companies %}
+                                    <option value="{{ company.id }}">{{ company.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- مجالات التقييم -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <h6 class="text-success mb-3">مجالات تقييم المشرف</h6>
+                            </div>
+
+                            <!-- 1. متابعة العمال -->
+                            <div class="col-md-6 mb-3">
+                                <label for="workers_followup" class="form-label">متابعة العمال <span class="text-danger">*</span></label>
+                                <select class="form-select" id="workers_followup" name="workers_followup" required>
+                                    <option value="">اختر...</option>
+                                    {% for i in range(1, 6) %}
+                                    <option value="{{ i }}">{{ i }} -
+                                        {% if i == 1 %}ضعيف{% elif i == 2 %}مقبول{% elif i == 3 %}جيد{% elif i == 4 %}جيد جداً{% else %}ممتاز{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <textarea class="form-control mt-2" name="workers_followup_notes" rows="2" placeholder="ملاحظات على متابعة العمال..."></textarea>
+                            </div>
+
+                            <!-- 2. الكفاءة في العمل -->
+                            <div class="col-md-6 mb-3">
+                                <label for="work_efficiency" class="form-label">الكفاءة في العمل <span class="text-danger">*</span></label>
+                                <select class="form-select" id="work_efficiency" name="work_efficiency" required>
+                                    <option value="">اختر...</option>
+                                    {% for i in range(1, 6) %}
+                                    <option value="{{ i }}">{{ i }} -
+                                        {% if i == 1 %}ضعيف{% elif i == 2 %}مقبول{% elif i == 3 %}جيد{% elif i == 4 %}جيد جداً{% else %}ممتاز{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <textarea class="form-control mt-2" name="efficiency_notes" rows="2" placeholder="ملاحظات على الكفاءة..."></textarea>
+                            </div>
+
+                            <!-- 3. الرفع بالتقارير -->
+                            <div class="col-md-6 mb-3">
+                                <label for="reports_submission" class="form-label">الرفع بالتقارير <span class="text-danger">*</span></label>
+                                <select class="form-select" id="reports_submission" name="reports_submission" required>
+                                    <option value="">اختر...</option>
+                                    {% for i in range(1, 6) %}
+                                    <option value="{{ i }}">{{ i }} -
+                                        {% if i == 1 %}ضعيف{% elif i == 2 %}مقبول{% elif i == 3 %}جيد{% elif i == 4 %}جيد جداً{% else %}ممتاز{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <textarea class="form-control mt-2" name="reports_notes" rows="2" placeholder="ملاحظات على التقارير..."></textarea>
+                            </div>
+
+                            <!-- 4. الالتزام بالسياسات -->
+                            <div class="col-md-6 mb-3">
+                                <label for="policies_compliance" class="form-label">الالتزام بالسياسات <span class="text-danger">*</span></label>
+                                <select class="form-select" id="policies_compliance" name="policies_compliance" required>
+                                    <option value="">اختر...</option>
+                                    {% for i in range(1, 6) %}
+                                    <option value="{{ i }}">{{ i }} -
+                                        {% if i == 1 %}ضعيف{% elif i == 2 %}مقبول{% elif i == 3 %}جيد{% elif i == 4 %}جيد جداً{% else %}ممتاز{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <textarea class="form-control mt-2" name="policies_notes" rows="2" placeholder="ملاحظات على الالتزام بالسياسات..."></textarea>
+                            </div>
+
+                            <!-- 5. إجراءات السلامة -->
+                            <div class="col-md-6 mb-3">
+                                <label for="safety_procedures" class="form-label">إجراءات السلامة <span class="text-danger">*</span></label>
+                                <select class="form-select" id="safety_procedures" name="safety_procedures" required>
+                                    <option value="">اختر...</option>
+                                    {% for i in range(1, 6) %}
+                                    <option value="{{ i }}">{{ i }} -
+                                        {% if i == 1 %}ضعيف{% elif i == 2 %}مقبول{% elif i == 3 %}جيد{% elif i == 4 %}جيد جداً{% else %}ممتاز{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <textarea class="form-control mt-2" name="safety_notes" rows="2" placeholder="ملاحظات على إجراءات السلامة..."></textarea>
+                            </div>
+
+                            <!-- 6. الالتزام بوقت العمل -->
+                            <div class="col-md-6 mb-3">
+                                <label for="attendance_commitment" class="form-label">الالتزام بوقت العمل <span class="text-danger">*</span></label>
+                                <select class="form-select" id="attendance_commitment" name="attendance_commitment" required>
+                                    <option value="">اختر...</option>
+                                    {% for i in range(1, 6) %}
+                                    <option value="{{ i }}">{{ i }} -
+                                        {% if i == 1 %}ضعيف{% elif i == 2 %}مقبول{% elif i == 3 %}جيد{% elif i == 4 %}جيد جداً{% else %}ممتاز{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <textarea class="form-control mt-2" name="attendance_notes" rows="2" placeholder="ملاحظات على وقت العمل..."></textarea>
+                            </div>
+
+                            <!-- 7. مهارات القيادة -->
+                            <div class="col-md-6 mb-3">
+                                <label for="leadership_skills" class="form-label">مهارات القيادة <span class="text-danger">*</span></label>
+                                <select class="form-select" id="leadership_skills" name="leadership_skills" required>
+                                    <option value="">اختر...</option>
+                                    {% for i in range(1, 6) %}
+                                    <option value="{{ i }}">{{ i }} -
+                                        {% if i == 1 %}ضعيف{% elif i == 2 %}مقبول{% elif i == 3 %}جيد{% elif i == 4 %}جيد جداً{% else %}ممتاز{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <textarea class="form-control mt-2" name="leadership_notes" rows="2" placeholder="ملاحظات على مهارات القيادة..."></textarea>
+                            </div>
+
+                            <!-- 8. حل المشكلات -->
+                            <div class="col-md-6 mb-3">
+                                <label for="problem_solving" class="form-label">حل المشكلات <span class="text-danger">*</span></label>
+                                <select class="form-select" id="problem_solving" name="problem_solving" required>
+                                    <option value="">اختر...</option>
+                                    {% for i in range(1, 6) %}
+                                    <option value="{{ i }}">{{ i }} -
+                                        {% if i == 1 %}ضعيف{% elif i == 2 %}مقبول{% elif i == 3 %}جيد{% elif i == 4 %}جيد جداً{% else %}ممتاز{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <textarea class="form-control mt-2" name="problem_solving_notes" rows="2" placeholder="ملاحظات على حل المشكلات..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- ملاحظات عامة -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label for="general_comments" class="form-label">ملاحظات عامة</label>
+                                <textarea class="form-control" id="general_comments" name="general_comments" rows="3"
+                                          placeholder="أدخل أي ملاحظات عامة عن أداء المشرف..."></textarea>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save me-2"></i>حفظ تقييم المشرف
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
         </div>
 
         <!-- لوحة المعلومات -->
@@ -180,7 +410,34 @@
                         <strong>ملاحظة هامة:</strong> يجب تعبئة جميع الحقول المطلوبة (<span class="text-danger">*</span>)
                     </div>
 
-                    <h6>معايير التقييم:</h6>
+                    <div id="employeeInstructions">
+                        <h6>تقييم الموظفين (العمال/المراقبين):</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-star text-warning me-2"></i><strong>النظافة:</strong> نظافة المكان والمعدات</li>
+                            <li><i class="fas fa-star text-warning me-2"></i><strong>التنظيم:</strong> ترتيب الأدوات والمكان</li>
+                            <li><i class="fas fa-star text-warning me-2"></i><strong>حالة المعدات:</strong> صيانة ونظافة المعدات</li>
+                            <li><i class="fas fa-star text-warning me-2"></i><strong>وقت الدوام:</strong> الحضور والانصراف بوقت الرسمي للدوام</li>
+                            <li><i class="fas fa-star text-warning me-2"></i><strong>السلامة:</strong> الالتزام بإجراءات السلامة</li>
+                        </ul>
+                    </div>
+
+                    <div id="supervisorInstructions" style="display: none;">
+                        <h6>تقييم المشرفين:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-users text-success me-2"></i><strong>متابعة العمال:</strong> مدى متابعة وإشراف العمال</li>
+                            <li><i class="fas fa-chart-line text-success me-2"></i><strong>الكفاءة:</strong> كفاءة تنفيذ المهام</li>
+                            <li><i class="fas fa-file-alt text-success me-2"></i><strong>التقارير:</strong> جودة وانتظام التقارير</li>
+                            <li><i class="fas fa-gavel text-success me-2"></i><strong>السياسات:</strong> الالتزام بسياسات الشركة</li>
+                            <li><i class="fas fa-shield-alt text-success me-2"></i><strong>السلامة:</strong> تطبيق إجراءات السلامة</li>
+                            <li><i class="fas fa-clock text-success me-2"></i><strong>وقت العمل:</strong> الالتزام بمواعيد العمل</li>
+                            <li><i class="fas fa-crown text-success me-2"></i><strong>القيادة:</strong> مهارات القيادة والتوجيه</li>
+                            <li><i class="fas fa-puzzle-piece text-success me-2"></i><strong>حل المشكلات:</strong> القدرة على حل المشكلات</li>
+                        </ul>
+                    </div>
+
+                    <hr>
+
+                    <h6>مقياس التقييم:</h6>
                     <ul class="list-unstyled">
                         <li><i class="fas fa-star text-warning me-2"></i><strong>1:</strong> ضعيف - يحتاج تحسين كبير</li>
                         <li><i class="fas fa-star text-warning me-2"></i><strong>2:</strong> مقبول - يحتاج بعض التحسين</li>
@@ -198,13 +455,12 @@
 {% block scripts %}
 <script>
 // دوال تحميل البيانات الديناميكية
-async function loadAreas() {
-    const companyId = document.getElementById('company_id').value;
-    const areaSelect = document.getElementById('area_id');
-    const locationSelect = document.getElementById('location_id');
-    const placeSelect = document.getElementById('place_id');
+async function loadEmpAreas() {
+    const companyId = document.getElementById('emp_company_id').value;
+    const areaSelect = document.getElementById('emp_area_id');
+    const locationSelect = document.getElementById('emp_location_id');
+    const placeSelect = document.getElementById('emp_place_id');
 
-    // إعادة تعيين القوائم التابعة
     areaSelect.innerHTML = '<option value="">اختر المنطقة...</option>';
     locationSelect.innerHTML = '<option value="">اختر الموقع...</option>';
     placeSelect.innerHTML = '<option value="">اختر المكان...</option>';
@@ -236,15 +492,13 @@ async function loadAreas() {
     }
 }
 
-async function loadLocations() {
-    const areaId = document.getElementById('area_id').value;
-    const locationSelect = document.getElementById('location_id');
-    const placeSelect = document.getElementById('place_id');
+async function loadEmpLocations() {
+    const areaId = document.getElementById('emp_area_id').value;
+    const locationSelect = document.getElementById('emp_location_id');
+    const placeSelect = document.getElementById('emp_place_id');
 
-    // إعادة تعيين القوائم التابعة
     locationSelect.innerHTML = '<option value="">اختر الموقع...</option>';
     placeSelect.innerHTML = '<option value="">اختر المكان...</option>';
-
     placeSelect.disabled = true;
 
     if (!areaId) {
@@ -271,9 +525,9 @@ async function loadLocations() {
     }
 }
 
-async function loadPlaces() {
-    const locationId = document.getElementById('location_id').value;
-    const placeSelect = document.getElementById('place_id');
+async function loadEmpPlaces() {
+    const locationId = document.getElementById('emp_location_id').value;
+    const placeSelect = document.getElementById('emp_place_id');
 
     placeSelect.innerHTML = '<option value="">اختر المكان...</option>';
 
@@ -319,7 +573,6 @@ function showAlert(message, type) {
 
     alertContainer.innerHTML = alertHtml;
 
-    // إخفاء التنبيه تلقائياً بعد 5 ثواني
     setTimeout(() => {
         const alerts = document.querySelectorAll('.alert');
         alerts.forEach(alert => {
@@ -328,31 +581,69 @@ function showAlert(message, type) {
     }, 5000);
 }
 
-// التحقق من النموذج قبل الإرسال
-document.getElementById('evaluationForm').addEventListener('submit', function(e) {
-    const placeId = document.getElementById('place_id').value;
-    const evaluatedEmployeeId = document.getElementById('evaluated_employee_id').value;
+// التبديل بين نماذج التقييم (للمالك فقط)
+{% if current_user.role == 'owner' %}
+const typeEmployee = document.getElementById('typeEmployee');
+const typeSupervisor = document.getElementById('typeSupervisor');
+const employeeForm = document.getElementById('employeeEvaluationForm');
+const supervisorForm = document.getElementById('supervisorEvaluationForm');
+const employeeInstructions = document.getElementById('employeeInstructions');
+const supervisorInstructions = document.getElementById('supervisorInstructions');
 
-    if (!placeId || !evaluatedEmployeeId) {
-        e.preventDefault();
-        showAlert('❌ يرجى اختيار المكان والموظف المقيّم', 'error');
-        return;
-    }
+if (typeEmployee && typeSupervisor) {
+    typeEmployee.addEventListener('change', function() {
+        if (this.checked) {
+            employeeForm.style.display = 'block';
+            supervisorForm.style.display = 'none';
+            employeeInstructions.style.display = 'block';
+            supervisorInstructions.style.display = 'none';
+        }
+    });
 
-    // يمكن إضافة المزيد من التحقق هنا إذا لزم الأمر
-    console.log('✅ النموذج جاهز للإرسال');
-});
+    typeSupervisor.addEventListener('change', function() {
+        if (this.checked) {
+            employeeForm.style.display = 'none';
+            supervisorForm.style.display = 'block';
+            employeeInstructions.style.display = 'none';
+            supervisorInstructions.style.display = 'block';
+        }
+    });
+}
+{% endif %}
 
 // تهيئة الصفحة
 document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ صفحة إضافة التقييم جاهزة');
 
-    // إذا كان هناك شركة واحدة فقط، نختارها تلقائياً
-    const companySelect = document.getElementById('company_id');
-    if (companySelect.options.length === 2) { // خيار افتراضي + شركة واحدة
-        companySelect.selectedIndex = 1;
-        loadAreas();
+    // إذا كان المستخدم مشرف، نعرض شركته تلقائياً
+    {% if current_user.role == 'supervisor' and current_user.employee_profile %}
+    const companySelect = document.getElementById('emp_company_id');
+    if (companySelect && companySelect.value) {
+        loadEmpAreas();
     }
+    {% endif %}
+});
+
+// التحقق من النموذج
+document.querySelectorAll('form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        const requiredFields = this.querySelectorAll('[required]');
+        let isValid = true;
+
+        requiredFields.forEach(field => {
+            if (!field.value) {
+                field.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+
+        if (!isValid) {
+            e.preventDefault();
+            showAlert('❌ يرجى ملء جميع الحقول المطلوبة', 'error');
+        }
+    });
 });
 </script>
 
@@ -367,9 +658,9 @@ document.addEventListener('DOMContentLoaded', function() {
     margin-bottom: 0.5rem;
 }
 
-.btn-lg {
-    padding: 0.75rem 1.5rem;
-    font-size: 1.1rem;
+.is-invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
 }
 
 .alert {
@@ -378,6 +669,17 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .list-unstyled li {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.form-check-input:checked {
+    background-color: #4e73df;
+    border-color: #4e73df;
+}
+
+#supervisorEvaluationForm .form-select,
+#supervisorEvaluationForm textarea {
     margin-bottom: 0.5rem;
 }
 </style>

@@ -1,10 +1,250 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<!-- templates/reports/employees_efficiency.html -->
+{% extends "base.html" %}
+
+{% block title %}تحليل كفاءة الموظفين{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- شريط العنوان -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-gradient-efficiency mb-1">
+                <i class="fas fa-chart-bar me-2"></i>
+                تحليل كفاءة الموظفين
+            </h2>
+            <p class="text-muted mb-0">تحليل متقدم لكفاءة الموظفين وتوزيعهم حسب المستويات</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </button>
+            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-modern btn-info" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
+        </div>
+    </div>
+
+    <!-- بطاقات الكفاءة -->
+    <div class="row mb-4">
+        <div class="col-xl-4 col-md-4 mb-4">
+            <div class="card leadership-card" style="background: linear-gradient(135deg, #1cc88a, #13855c);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white text-uppercase mb-1">كفاءة عالية</h6>
+                            <h2 class="text-white mb-0">{{ high_efficiency }}</h2>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-star fa-2x text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-white-50">
+                        <i class="fas fa-chart-line me-1"></i> أكثر من 10 تقييمات
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-4 mb-4">
+            <div class="card leadership-card" style="background: linear-gradient(135deg, #36b9cc, #258391);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white text-uppercase mb-1">كفاءة متوسطة</h6>
+                            <h2 class="text-white mb-0">{{ medium_efficiency }}</h2>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-chart-line fa-2x text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-white-50">
+                        <i class="fas fa-chart-line me-1"></i> 5-10 تقييمات
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-4 mb-4">
+            <div class="card leadership-card" style="background: linear-gradient(135deg, #e74a3b, #be2617);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white text-uppercase mb-1">كفاءة منخفضة</h6>
+                            <h2 class="text-white mb-0">{{ low_efficiency }}</h2>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-chart-line fa-2x text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-white-50">
+                        <i class="fas fa-chart-line me-1"></i> أقل من 5 تقييمات
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- رسوم بيانية -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-pie me-2"></i>توزيع مستويات الكفاءة
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="efficiencyPieChart" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-radar me-2"></i>مؤشرات الكفاءة
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="efficiencyRadarChart" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- معدل الإنتاجية -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center py-4">
+                    <h3 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        معدل الإنتاجية العام: {{ productivity_rate }}%
+                    </h3>
+                    <p class="mb-0 mt-2 text-white-50">مؤشر يقيس كفاءة وإنتاجية الموظفين</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ApexCharts -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // رسم بياني دائري
+    const pieOptions = {
+        series: [{{ high_efficiency }}, {{ medium_efficiency }}, {{ low_efficiency }}],
+        chart: {
+            type: 'pie',
+            height: 300,
+            fontFamily: 'Cairo, sans-serif',
+            toolbar: { show: false }
+        },
+        labels: ['كفاءة عالية', 'كفاءة متوسطة', 'كفاءة منخفضة'],
+        colors: ['#1cc88a', '#36b9cc', '#e74a3b'],
+        legend: {
+            position: 'bottom',
+            fontFamily: 'Cairo, sans-serif'
+        },
+        dataLabels: {
+            enabled: true,
+            formatter: (val) => val.toFixed(1) + '%',
+            style: { fontFamily: 'Cairo, sans-serif' }
+        },
+        tooltip: {
+            y: { formatter: (val) => val + ' موظف' }
+        }
+    };
+
+    const pieChart = new ApexCharts(document.querySelector("#efficiencyPieChart"), pieOptions);
+    pieChart.render();
+
+    // رسم بياني رادار
+    const radarOptions = {
+        series: [{
+            name: 'المؤشر',
+            data: {{ efficiency_data|tojson }}
+        }],
+        chart: {
+            type: 'radar',
+            height: 300,
+            fontFamily: 'Cairo, sans-serif',
+            toolbar: { show: false }
+        },
+        labels: {{ efficiency_labels|tojson }},
+        colors: ['#4e73df'],
+        plotOptions: {
+            radar: {
+                polygons: {
+                    strokeColors: '#e3e6f0',
+                    fill: { colors: ['#f8f9fc', '#ffffff'] }
+                }
+            }
+        },
+        tooltip: {
+            y: { formatter: (val) => val + '%' }
+        }
+    };
+
+    const radarChart = new ApexCharts(document.querySelector("#efficiencyRadarChart"), radarOptions);
+    radarChart.render();
+});
+
+function exportReport(format) {
+    alert(`جاري تصدير التقرير بصيغة ${format.toUpperCase()}`);
+}
+</script>
+
+<style>
+.text-gradient-efficiency {
+    background: linear-gradient(135deg, #4e73df 0%, #36b9cc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.leadership-card {
+    border-radius: 15px;
+    border: none;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.leadership-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.15) !important;
+}
+
+.icon-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bg-white-20 {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-modern {
+    border-radius: 25px;
+    padding: 0.5rem 1.5rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: all 0.3s;
+}
+
+.btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+}
+
+.text-white-50 {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+</style>
+{% endblock %}

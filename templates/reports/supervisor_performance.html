@@ -1,10 +1,584 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<!-- templates/reports/supervisor_performance.html -->
+{% extends "base.html" %}
+
+{% block title %}تقرير أداء المشرفين الشامل{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- شريط العنوان -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-gradient-leadership mb-1">
+                <i class="fas fa-user-tie me-2"></i>
+                تقرير أداء المشرفين الشامل
+            </h2>
+            <p class="text-muted mb-0">تحليل متقدم لأداء المشرفين مع مؤشرات القيادة والتأثير</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </button>
+            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-modern btn-info" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
+        </div>
+    </div>
+
+    <!-- بطاقات مؤشرات القيادة -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card leadership-card gradient-gold h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white text-uppercase mb-1">إجمالي المشرفين</h6>
+                            <h2 class="text-white mb-0">{{ total_supervisors }}</h2>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-user-tie fa-2x text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-white-50">
+                        <i class="fas fa-check-circle me-1"></i> نشط: {{ active_supervisors }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card leadership-card gradient-silver h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white text-uppercase mb-1">متوسط الأداء</h6>
+                            <h2 class="text-white mb-0">{{ "%.1f"|format(avg_performance) }}%</h2>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-chart-line fa-2x text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-white-50">
+                        <i class="fas fa-arrow-up me-1"></i> +{{ performance_change }}% عن الشهر الماضي
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card leadership-card gradient-bronze h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white text-uppercase mb-1">المشرف المتميز</h6>
+                            <h5 class="text-white mb-0">{{ top_supervisor.name }}</h5>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-crown fa-2x text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-white-50">
+                        <i class="fas fa-star me-1"></i> تقييم: {{ "%.1f"|format(top_supervisor.rating) }}/5
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card leadership-card gradient-platinum h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white text-uppercase mb-1">الفرق المدارة</h6>
+                            <h2 class="text-white mb-0">{{ total_teams }}</h2>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-users fa-2x text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-white-50">
+                        <i class="fas fa-user-plus me-1"></i> {{ avg_team_size }} موظف/فريق
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- رسوم بيانية متقدمة لأداء المشرفين -->
+    <div class="row mb-4">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-chart-line me-2"></i>تطور أداء المشرفين (آخر 6 أشهر)
+                        </h6>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary active" onclick="changeChartType('radar')">رادار</button>
+                            <button class="btn btn-outline-primary" onclick="changeChartType('line')">خطي</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="supervisorTrendChart" style="height: 350px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-pie me-2"></i>توزيع مستويات الأداء
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="supervisorDistributionChart" style="height: 250px;"></div>
+                    <div class="mt-3">
+                        {% for level in performance_levels %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>
+                                <span class="badge bg-{{ level.color }}" style="width: 12px; height: 12px; padding: 0;">&nbsp;</span>
+                                {{ level.name }}
+                            </span>
+                            <span class="fw-bold">{{ level.count }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- بطاقات تقييم المشرفين -->
+    <div class="row mb-4">
+        {% for supervisor in supervisors %}
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card supervisor-card h-100">
+                <div class="card-header bg-white border-0 pt-4">
+                    <div class="d-flex align-items-center">
+                        <div class="supervisor-avatar me-3" style="background-color: {{ supervisor.color }}">
+                            {{ supervisor.name[:1] }}
+                        </div>
+                        <div>
+                            <h5 class="mb-0">{{ supervisor.name }}</h5>
+                            <p class="text-muted small mb-0">{{ supervisor.company }}</p>
+                        </div>
+                        <div class="ms-auto">
+                            <span class="badge bg-{{ supervisor.rank_color }}">{{ supervisor.rank }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <div class="small text-muted">الفريق</div>
+                            <div class="fw-bold">{{ supervisor.team_size }} موظف</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="small text-muted">التقييم</div>
+                            <div class="fw-bold">{{ "%.1f"|format(supervisor.rating) }}/5</div>
+                        </div>
+                    </div>
+
+                    <!-- مؤشرات الأداء -->
+                    <div class="performance-indicators mb-3">
+                        <div class="indicator-item mb-2">
+                            <div class="d-flex justify-content-between small">
+                                <span>متابعة العمال</span>
+                                <span>{{ supervisor.workers_followup }}%</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-success" style="width: {{ supervisor.workers_followup }}%;"></div>
+                            </div>
+                        </div>
+                        <div class="indicator-item mb-2">
+                            <div class="d-flex justify-content-between small">
+                                <span>كفاءة العمل</span>
+                                <span>{{ supervisor.work_efficiency }}%</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-info" style="width: {{ supervisor.work_efficiency }}%;"></div>
+                            </div>
+                        </div>
+                        <div class="indicator-item mb-2">
+                            <div class="d-flex justify-content-between small">
+                                <span>التقارير</span>
+                                <span>{{ supervisor.reports_quality }}%</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-primary" style="width: {{ supervisor.reports_quality }}%;"></div>
+                            </div>
+                        </div>
+                        <div class="indicator-item">
+                            <div class="d-flex justify-content-between small">
+                                <span>الالتزام</span>
+                                <span>{{ supervisor.compliance }}%</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-warning" style="width: {{ supervisor.compliance }}%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- رادار صغير للأداء -->
+                    <div class="mini-radar-container mb-3">
+                        <canvas id="radar-{{ supervisor.id }}" width="200" height="120"></canvas>
+                    </div>
+
+                    <!-- آخر تقييم -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="fas fa-calendar me-1"></i> آخر تقييم: {{ supervisor.last_evaluation|date }}
+                        </small>
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewSupervisorDetails({{ supervisor.id }})">
+                            <i class="fas fa-eye"></i> تفاصيل
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- جدول تفصيلي لأداء المشرفين -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-table me-2"></i>تفاصيل أداء المشرفين
+                </h6>
+                <div class="d-flex">
+                    <div class="input-group input-group-sm me-2" style="width: 250px;">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0" id="searchSupervisor"
+                               placeholder="بحث عن مشرف...">
+                    </div>
+                    <select class="form-select form-select-sm" id="filterCompany" style="width: 150px;">
+                        <option value="all">جميع الشركات</option>
+                        {% for company in companies %}
+                        <option value="{{ company.id }}">{{ company.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="supervisorsTable">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>#</th>
+                            <th>المشرف</th>
+                            <th>الشركة</th>
+                            <th>حجم الفريق</th>
+                            <th>متابعة العمال</th>
+                            <th>كفاءة العمل</th>
+                            <th>التقارير</th>
+                            <th>الالتزام</th>
+                            <th>المعدل</th>
+                            <th>المستوى</th>
+                            <th>آخر تقييم</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sup in supervisors %}
+                        <tr class="supervisor-row" data-company="{{ sup.company_id }}">
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm me-2" style="background-color: {{ sup.color }}">
+                                        {{ sup.name[:1] }}
+                                    </div>
+                                    {{ sup.name }}
+                                </div>
+                            </td>
+                            <td>{{ sup.company }}</td>
+                            <td>
+                                <span class="badge bg-info rounded-pill">{{ sup.team_size }}</span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1" style="height: 6px;">
+                                        <div class="progress-bar bg-success" style="width: {{ sup.workers_followup }}%;"></div>
+                                    </div>
+                                    <span class="ms-2 small">{{ sup.workers_followup }}%</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1" style="height: 6px;">
+                                        <div class="progress-bar bg-info" style="width: {{ sup.work_efficiency }}%;"></div>
+                                    </div>
+                                    <span class="ms-2 small">{{ sup.work_efficiency }}%</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1" style="height: 6px;">
+                                        <div class="progress-bar bg-primary" style="width: {{ sup.reports_quality }}%;"></div>
+                                    </div>
+                                    <span class="ms-2 small">{{ sup.reports_quality }}%</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1" style="height: 6px;">
+                                        <div class="progress-bar bg-warning" style="width: {{ sup.compliance }}%;"></div>
+                                    </div>
+                                    <span class="ms-2 small">{{ sup.compliance }}%</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="fw-bold">{{ "%.1f"|format(sup.rating) }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ sup.level_color }}">{{ sup.level }}</span>
+                            </td>
+                            <td>
+                                <small>{{ sup.last_evaluation|date }}</small>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="evaluateSupervisor({{ sup.id }})">
+                                    <i class="fas fa-star"></i> تقييم
+                                </button>
+                                <button class="btn btn-sm btn-outline-info" onclick="viewSupervisorDetails({{ sup.id }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- توصيات ذكية لتحسين أداء المشرفين -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow bg-light">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-robot me-2"></i>توصيات ذكية لتحسين أداء المشرفين
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for rec in recommendations %}
+                        <div class="col-md-4 mb-3">
+                            <div class="alert alert-{{ rec.type }} h-100 mb-0">
+                                <i class="fas fa-{{ rec.icon }} me-2 fa-lg"></i>
+                                <strong>{{ rec.title }}</strong>
+                                <p class="small mt-2 mb-0">{{ rec.message }}</p>
+                                {% if rec.action %}
+                                <button class="btn btn-sm btn-{{ rec.type }} mt-2" onclick="{{ rec.action }}">
+                                    <i class="fas fa-arrow-left me-1"></i> تنفيذ
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ApexCharts و Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const supervisorsData = {{ supervisors_data|tojson }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    initTrendChart();
+    initDistributionChart();
+    initMiniRadars();
+    initSearch();
+});
+
+function initTrendChart() {
+    const options = {
+        series: [{
+            name: 'أداء المشرفين',
+            data: {{ performance_trend|tojson }}
+        }],
+        chart: {
+            type: 'line',
+            height: 350,
+            toolbar: { show: false },
+            fontFamily: 'Cairo, sans-serif'
+        },
+        colors: ['#4e73df'],
+        stroke: { curve: 'smooth', width: 3 },
+        xaxis: {
+            categories: {{ months_labels|tojson }},
+            labels: { style: { fontFamily: 'Cairo, sans-serif' } }
+        },
+        yaxis: {
+            min: 0,
+            max: 100,
+            labels: {
+                formatter: (val) => val + '%',
+                style: { fontFamily: 'Cairo, sans-serif' }
+            }
+        },
+        tooltip: {
+            y: { formatter: (val) => val + '%' }
+        }
+    };
+
+    const chart = new ApexCharts(document.querySelector("#supervisorTrendChart"), options);
+    chart.render();
+}
+
+function initDistributionChart() {
+    const options = {
+        series: {{ distribution_values|tojson }},
+        chart: {
+            type: 'donut',
+            height: 250,
+            fontFamily: 'Cairo, sans-serif'
+        },
+        labels: {{ distribution_labels|tojson }},
+        colors: ['#1cc88a', '#4e73df', '#f6c23e', '#e74a3b'],
+        legend: { show: false },
+        dataLabels: { enabled: false },
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '70%',
+                    labels: {
+                        show: true,
+                        total: {
+                            show: true,
+                            label: 'الإجمالي',
+                            formatter: () => '{{ total_supervisors }}'
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    const chart = new ApexCharts(document.querySelector("#supervisorDistributionChart"), options);
+    chart.render();
+}
+
+function initMiniRadars() {
+    supervisorsData.forEach(sup => {
+        const ctx = document.getElementById(`radar-${sup.id}`).getContext('2d');
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['متابعة', 'كفاءة', 'تقارير', 'التزام', 'قيادة'],
+                datasets: [{
+                    data: [sup.workers_followup, sup.work_efficiency, sup.reports_quality, sup.compliance, sup.leadership],
+                    backgroundColor: 'rgba(78, 115, 223, 0.2)',
+                    borderColor: '#4e73df',
+                    pointBackgroundColor: '#4e73df'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: { r: { min: 0, max: 100, ticks: { display: false } } },
+                plugins: { legend: { display: false } }
+            }
+        });
+    });
+}
+
+function initSearch() {
+    document.getElementById('searchSupervisor').addEventListener('keyup', filterTable);
+    document.getElementById('filterCompany').addEventListener('change', filterTable);
+}
+
+function filterTable() {
+    const searchTerm = document.getElementById('searchSupervisor').value.toLowerCase();
+    const company = document.getElementById('filterCompany').value;
+    const rows = document.querySelectorAll('.supervisor-row');
+
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const rowCompany = row.dataset.company;
+        const matchesSearch = text.includes(searchTerm);
+        const matchesCompany = company === 'all' || rowCompany === company;
+        row.style.display = matchesSearch && matchesCompany ? '' : 'none';
+    });
+}
+
+function evaluateSupervisor(id) {
+    window.location.href = `/supervisor-evaluations/add?supervisor_id=${id}`;
+}
+
+function viewSupervisorDetails(id) {
+    window.location.href = `/employees/${id}`;
+}
+
+function changeChartType(type) {
+    alert(`تغيير نوع الرسم البياني إلى: ${type}`);
+}
+</script>
+
+<style>
+.text-gradient-leadership {
+    background: linear-gradient(135deg, #4e73df 0%, #1cc88a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.leadership-card {
+    border-radius: 15px;
+    border: none;
+    transition: transform 0.3s;
+}
+
+.leadership-card:hover {
+    transform: translateY(-5px);
+}
+
+.gradient-gold { background: linear-gradient(135deg, #f6c23e, #f4a100); }
+.gradient-silver { background: linear-gradient(135deg, #858796, #6c757d); }
+.gradient-bronze { background: linear-gradient(135deg, #cd7f32, #b87333); }
+.gradient-platinum { background: linear-gradient(135deg, #4e73df, #224abe); }
+
+.supervisor-card {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+    transition: all 0.3s;
+}
+
+.supervisor-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(78,115,223,0.1);
+}
+
+.supervisor-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.mini-radar-container {
+    height: 120px;
+    width: 100%;
+}
+
+.bg-white-20 {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+</style>
+{% endblock %}

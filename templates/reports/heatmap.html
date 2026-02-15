@@ -1,10 +1,265 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<!-- templates/reports/heatmap.html -->
+{% extends "base.html" %}
+
+{% block title %}خريطة المناطق الحرارية{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- شريط العنوان -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-gradient-danger mb-1">
+                <i class="fas fa-fire me-2"></i>
+                خريطة المناطق الحرارية
+            </h2>
+            <p class="text-muted mb-0">تحليل الأداء باستخدام الخرائط الحرارية</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">PDF</button>
+            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">Excel</button>
+        </div>
+    </div>
+
+    <!-- عناصر التحكم -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-map me-2"></i>الخريطة الحرارية للأداء
+                        </h6>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary active" onclick="changeHeatmapType('performance')">الأداء</button>
+                            <button class="btn btn-outline-primary" onclick="changeHeatmapType('attendance')">الحضور</button>
+                            <button class="btn btn-outline-primary" onclick="changeHeatmapType('evaluations')">التقييمات</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div id="heatmap" style="height: 500px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-info-circle me-2"></i>مؤشر الخريطة الحرارية
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="heatmap-legend">
+                        <div class="legend-item">
+                            <span class="color-box" style="background: #1cc88a;"></span>
+                            <span>أداء ممتاز (90-100%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="color-box" style="background: #4e73df;"></span>
+                            <span>أداء جيد جداً (80-89%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="color-box" style="background: #36b9cc;"></span>
+                            <span>أداء جيد (70-79%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="color-box" style="background: #f6c23e;"></span>
+                            <span>أداء متوسط (60-69%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="color-box" style="background: #e74a3b;"></span>
+                            <span>ضعيف (<60%)</span>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="stats-summary">
+                        <h6 class="fw-bold mb-3">ملخص الأداء</h6>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>المناطق الممتازة:</span>
+                            <span class="fw-bold text-success">{{ excellent_zones }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>المناطق الجيدة:</span>
+                            <span class="fw-bold text-primary">{{ good_zones }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>المناطق المتوسطة:</span>
+                            <span class="fw-bold text-warning">{{ average_zones }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>المناطق الضعيفة:</span>
+                            <span class="fw-bold text-danger">{{ poor_zones }}</span>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary w-100 mt-3" onclick="refreshHeatmap()">
+                        <i class="fas fa-sync-alt me-1"></i> تحديث البيانات
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- قائمة المناطق حسب الأداء -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-list me-2"></i>المناطق حسب مستوى الأداء
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="nav nav-pills mb-3" id="performanceTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="excellent-tab" data-bs-toggle="pill" data-bs-target="#excellent" type="button">
+                                ممتاز <span class="badge bg-success ms-1">{{ excellent_zones }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="good-tab" data-bs-toggle="pill" data-bs-target="#good" type="button">
+                                جيد <span class="badge bg-primary ms-1">{{ good_zones }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="average-tab" data-bs-toggle="pill" data-bs-target="#average" type="button">
+                                متوسط <span class="badge bg-warning ms-1">{{ average_zones }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="poor-tab" data-bs-toggle="pill" data-bs-target="#poor" type="button">
+                                ضعيف <span class="badge bg-danger ms-1">{{ poor_zones }}</span>
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="performanceTabsContent">
+                        <div class="tab-pane fade show active" id="excellent">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>المنطقة</th>
+                                            <th>الشركة</th>
+                                            <th>المشرف</th>
+                                            <th>الأداء</th>
+                                            <th>آخر تقييم</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for zone in excellent_zones_list %}
+                                        <tr>
+                                            <td>{{ zone.name }}</td>
+                                            <td>{{ zone.company_name }}</td>
+                                            <td>{{ zone.supervisor_name }}</td>
+                                            <td>
+                                                <span class="badge bg-success">{{ zone.performance }}%</span>
+                                            </td>
+                                            <td>{{ zone.last_evaluation|date }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- تكرار باقي التبويبات -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet و Leaflet.heat -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+<script>
+const heatmapData = {{ heatmap_data|tojson }};
+let heatmapLayer;
+
+document.addEventListener('DOMContentLoaded', function() {
+    initHeatmap();
+});
+
+function initHeatmap() {
+    // إنشاء الخريطة
+    const map = L.map('heatmap').setView([24.7136, 46.6753], 10);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // تحويل البيانات إلى نقاط حرارية
+    const heatPoints = heatmapData.map(point => [
+        point.lat,
+        point.lng,
+        point.intensity
+    ]);
+
+    // إضافة الطبقة الحرارية
+    heatmapLayer = L.heatLayer(heatPoints, {
+        radius: 25,
+        blur: 15,
+        maxZoom: 17,
+        gradient: {
+            0.0: '#1cc88a',
+            0.3: '#4e73df',
+            0.6: '#f6c23e',
+            0.8: '#e74a3b'
+        }
+    }).addTo(map);
+}
+
+function changeHeatmapType(type) {
+    // تغيير نوع البيانات المعروضة في الخريطة الحرارية
+    alert(`تغيير نوع الخريطة الحرارية إلى: ${type}`);
+}
+
+function refreshHeatmap() {
+    location.reload();
+}
+</script>
+
+<style>
+.heatmap-legend {
+    padding: 1rem;
+    background: #f8f9fc;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.color-box {
+    width: 30px;
+    height: 20px;
+    border-radius: 4px;
+    margin-left: 10px;
+}
+
+.nav-pills .nav-link {
+    color: #5a5c69;
+    background: #f8f9fc;
+    margin-left: 5px;
+    border-radius: 25px;
+}
+
+.nav-pills .nav-link.active {
+    background: #4e73df;
+    color: white;
+}
+
+.nav-pills .nav-link .badge {
+    background: rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}

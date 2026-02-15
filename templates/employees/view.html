@@ -2,43 +2,153 @@
 
 {% block title %}تفاصيل الموظف - {{ employee.full_name }}{% endblock %}
 
+{% block header %}تفاصيل الموظف{% endblock %}
+
 {% block content %}
 <div class="container-fluid mt-4">
     <div class="row">
         <div class="col-12">
-            <!-- رأس الصفحة -->
+            <!-- رأس الصفحة المحسن -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="{{ url_for('employees_list') }}">الموظفين</a></li>
-                            <li class="breadcrumb-item active">تفاصيل الموظف</li>
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('dashboard') }}" class="text-decoration-none">
+                                    <i class="fas fa-home me-1"></i>الرئيسية
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('employees_list') }}" class="text-decoration-none">
+                                    <i class="fas fa-users me-1"></i>الموظفين
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('employees_by_company', company=employee.company) }}" class="text-decoration-none">
+                                    <i class="fas fa-building me-1"></i>{{ employee.company }}
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item active" aria-current="page">
+                                <i class="fas fa-user me-1"></i>{{ employee.full_name }}
+                            </li>
                         </ol>
                     </nav>
                     <h2 class="text-primary mb-1">
-                        <i class="fas fa-user-circle me-2"></i>{{ employee.full_name }}
+                        <i class="fas fa-id-card me-2"></i>{{ employee.full_name }}
                     </h2>
-                    <p class="text-muted mb-0">تفاصيل الموظف وسجلات الحضور</p>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                        موظف منذ {{ employee.hire_date.strftime('%Y-%m-%d') if employee.hire_date else 'غير محدد' }}
+                    </p>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="{{ url_for('employees_list') }}" class="btn btn-secondary">
+                    <a href="{{ url_for('employees_list') }}" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-right me-2"></i>العودة
                     </a>
                     {% if current_user.role in ['owner', 'supervisor'] %}
-                    <a href="{{ url_for('edit_employee', id=employee.id) }}" class="btn btn-warning">
+                    <a href="{{ url_for('edit_employee', employee_id=employee.id) }}" class="btn btn-warning">
                         <i class="fas fa-edit me-2"></i>تعديل
                     </a>
                     {% endif %}
                 </div>
             </div>
 
+            <!-- بطاقات الإحصائيات -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        إجمالي أيام العمل
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_days|default(0) }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        أيام الحضور
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ present_count|default(0) }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        أيام الغياب
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ absent_count|default(0) }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        نسبة الحضور
+                                    </div>
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col-auto">
+                                            <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">
+                                                {{ attendance_rate|default(0) }}%
+                                            </div>
+                                        </div>
+                                        <div class="col">
+                                            <div class="progress progress-sm mr-2">
+                                                <div class="progress-bar bg-info" role="progressbar"
+                                                     style="width: {{ attendance_rate|default(0) }}%"
+                                                     aria-valuenow="{{ attendance_rate|default(0) }}"
+                                                     aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="row">
-                <!-- معلومات الموظف -->
+                <!-- معلومات الموظف المحسنة -->
                 <div class="col-lg-4 mb-4">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-header bg-primary text-white">
-                            <h6 class="mb-0">
-                                <i class="fas fa-info-circle me-2"></i>معلومات الموظف
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3 d-flex align-items-center">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-id-badge me-2"></i>بطاقة الموظف
                             </h6>
                         </div>
                         <div class="card-body">
@@ -47,180 +157,298 @@
                                     <span class="initials-lg">{{ employee.full_name[0] if employee.full_name else '?' }}</span>
                                 </div>
                                 <h4 class="text-dark">{{ employee.full_name }}</h4>
-                                <span class="badge
-                                    {% if employee.position == 'owner' %}bg-danger
-                                    {% elif employee.position == 'supervisor' %}bg-warning
-                                    {% elif employee.position == 'monitor' %}bg-info
-                                    {% else %}bg-secondary{% endif %} p-2">
-                                    {{ employee.position }}
-                                </span>
+                                <div class="mt-2">
+                                    <span class="badge
+                                        {% if employee.position == 'supervisor' %}bg-warning
+                                        {% elif employee.position == 'monitor' %}bg-info
+                                        {% elif employee.position == 'worker' %}bg-secondary
+                                        {% else %}bg-danger{% endif %} p-2 fs-6">
+                                        <i class="fas
+                                            {% if employee.position == 'supervisor' %}fa-user-tie
+                                            {% elif employee.position == 'monitor' %}fa-eye
+                                            {% elif employee.position == 'worker' %}fa-broom
+                                            {% else %}fa-crown{% endif %} me-1"></i>
+                                        {% if employee.position == 'supervisor' %}
+                                            مشرف
+                                        {% elif employee.position == 'monitor' %}
+                                            مراقب
+                                        {% elif employee.position == 'worker' %}
+                                            عامل
+                                        {% else %}
+                                            مالك
+                                        {% endif %}
+                                    </span>
+                                </div>
                             </div>
 
                             <div class="list-group list-group-flush">
                                 <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
-                                    <span class="fw-bold">الحالة:</span>
+                                    <span class="fw-bold">
+                                        <i class="fas fa-toggle-on text-primary me-2"></i>الحالة:
+                                    </span>
                                     {% if employee.is_active %}
-                                    <span class="badge bg-success">نشط</span>
+                                    <span class="badge bg-success px-3 py-2">
+                                        <i class="fas fa-check-circle me-1"></i>نشط
+                                    </span>
                                     {% else %}
-                                    <span class="badge bg-danger">غير نشط</span>
+                                    <span class="badge bg-danger px-3 py-2">
+                                        <i class="fas fa-times-circle me-1"></i>غير نشط
+                                    </span>
                                     {% endif %}
                                 </div>
 
                                 {% if employee.phone %}
                                 <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
-                                    <span class="fw-bold">الهاتف:</span>
-                                    <a href="tel:{{ employee.phone }}" class="text-decoration-none">
-                                        {{ employee.phone }}
+                                    <span class="fw-bold">
+                                        <i class="fas fa-phone-alt text-primary me-2"></i>الهاتف:
+                                    </span>
+                                    <a href="tel:{{ employee.phone }}" class="text-decoration-none" dir="ltr">
+                                        <i class="fas fa-phone me-1"></i>{{ employee.phone }}
                                     </a>
                                 </div>
                                 {% endif %}
 
-                                {% if employee.user_account %}
+                                {% if employee.user and employee.user.email %}
                                 <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
-                                    <span class="fw-bold">اسم المستخدم:</span>
-                                    <span>{{ employee.user_account.username }}</span>
+                                    <span class="fw-bold">
+                                        <i class="fas fa-envelope text-primary me-2"></i>البريد:
+                                    </span>
+                                    <a href="mailto:{{ employee.user.email }}" class="text-decoration-none">
+                                        {{ employee.user.email }}
+                                    </a>
+                                </div>
+                                {% endif %}
+
+                                {% if employee.user %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                                    <span class="fw-bold">
+                                        <i class="fas fa-user-circle text-primary me-2"></i>اسم المستخدم:
+                                    </span>
+                                    <span class="badge bg-light text-dark">{{ employee.user.username }}</span>
                                 </div>
                                 {% endif %}
 
                                 <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
-                                    <span class="fw-bold">تاريخ التعيين:</span>
+                                    <span class="fw-bold">
+                                        <i class="fas fa-calendar-alt text-primary me-2"></i>تاريخ التعيين:
+                                    </span>
                                     <span>{{ employee.hire_date.strftime('%Y-%m-%d') if employee.hire_date else 'غير محدد' }}</span>
                                 </div>
 
                                 {% if employee.salary %}
                                 <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
-                                    <span class="fw-bold">الراتب:</span>
-                                    <span class="text-success">{{ "{:,.0f}".format(employee.salary) }} ر.س</span>
+                                    <span class="fw-bold">
+                                        <i class="fas fa-money-bill-wave text-success me-2"></i>الراتب:
+                                    </span>
+                                    <span class="text-success fw-bold">{{ "{:,.0f}".format(employee.salary) }} ر.س</span>
                                 </div>
                                 {% endif %}
 
                                 {% if employee.company %}
                                 <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
-                                    <span class="fw-bold">الشركة:</span>
-                                    <span>{{ employee.company.name }}</span>
+                                    <span class="fw-bold">
+                                        <i class="fas fa-building text-primary me-2"></i>الشركة:
+                                    </span>
+                                    <span class="badge bg-info">{{ employee.company }}</span>
+                                </div>
+                                {% endif %}
+
+                                {% if employee.supervisor %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                                    <span class="fw-bold">
+                                        <i class="fas fa-user-tie text-warning me-2"></i>المشرف المباشر:
+                                    </span>
+                                    <a href="{{ url_for('view_employee', id=employee.supervisor.id) }}" class="text-decoration-none">
+                                        {{ employee.supervisor.full_name }}
+                                    </a>
                                 </div>
                                 {% endif %}
                             </div>
 
                             {% if employee.address %}
-                            <div class="mt-3">
-                                <h6 class="fw-bold">العنوان:</h6>
-                                <p class="text-muted">{{ employee.address }}</p>
+                            <div class="mt-4 p-3 bg-light rounded">
+                                <h6 class="fw-bold">
+                                    <i class="fas fa-map-marker-alt text-primary me-2"></i>العنوان:
+                                </h6>
+                                <p class="text-muted mb-0">{{ employee.address }}</p>
                             </div>
                             {% endif %}
+
+                            <div class="mt-4">
+                                <div class="small text-muted">
+                                    <i class="fas fa-clock me-1"></i>تاريخ الإنشاء: {{ employee.created_at.strftime('%Y-%m-%d %H:%M') if employee.created_at else 'غير محدد' }}
+                                </div>
+                                <div class="small text-muted mt-1">
+                                    <i class="fas fa-edit me-1"></i>آخر تحديث: {{ employee.updated_at.strftime('%Y-%m-%d %H:%M') if employee.updated_at else 'غير محدد' }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- معلومات إضافية -->
+                    <div class="card shadow">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-chart-pie me-2"></i>معلومات إضافية
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <strong>مدة الخدمة:</strong>
+                                <div class="mt-1">
+                                    {% set days = (now - employee.hire_date).days if employee.hire_date else 0 %}
+                                    {% if days >= 365 %}
+                                        <span class="badge bg-info">{{ (days / 365)|round|int }} سنة</span>
+                                    {% elif days >= 30 %}
+                                        <span class="badge bg-info">{{ (days / 30)|round|int }} شهر</span>
+                                    {% else %}
+                                        <span class="badge bg-info">{{ days }} يوم</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <strong>عدد التقييمات:</strong>
+                                <div class="mt-1">
+                                    <span class="badge bg-secondary">{{ employee.received_evaluations|length if employee.received_evaluations else 0 }}</span>
+                                </div>
+                            </div>
+
+                            {% if employee.supervisor %}
+                            <div class="mb-3">
+                                <strong>الموظفين التابعين:</strong>
+                                <div class="mt-1">
+                                    <span class="badge bg-info">{{ employee.subordinates|length if employee.subordinates else 0 }}</span>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- عرض زملاء العمل في نفس الشركة -->
+                            <div class="mt-4 pt-3 border-top">
+                                <h6 class="fw-bold text-primary mb-3">
+                                    <i class="fas fa-users me-2"></i>زملاء في {{ employee.company }}
+                                </h6>
+                                {% if company_colleagues %}
+                                <div class="list-group">
+                                    {% for colleague in company_colleagues[:5] %}
+                                    {% if colleague.id != employee.id %}
+                                    <a href="{{ url_for('view_employee', id=colleague.id) }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                                        <div class="avatar-circle-sm me-2" style="width: 30px; height: 30px; background: #4e73df; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                            <span style="color: white; font-size: 14px;">{{ colleague.full_name[0] }}</span>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div>{{ colleague.full_name }}</div>
+                                            <small class="text-muted">{{ colleague.position_ar }}</small>
+                                        </div>
+                                        <span class="badge bg-{{ 'success' if colleague.is_active else 'danger' }}">{{ 'نشط' if colleague.is_active else 'غير نشط' }}</span>
+                                    </a>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                                {% if company_colleagues|length > 6 %}
+                                <div class="text-center mt-2">
+                                    <a href="{{ url_for('employees_by_company', company=employee.company) }}" class="btn btn-sm btn-outline-primary">
+                                        عرض الكل ({{ company_colleagues|length - 1 }})
+                                    </a>
+                                </div>
+                                {% endif %}
+                                {% else %}
+                                <p class="text-muted text-center py-3">لا يوجد زملاء في هذه الشركة</p>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- إحصائيات الحضور -->
-                <div class="col-lg-8">
-                    <div class="row mb-4">
-                        <div class="col-md-3 mb-3">
-                            <div class="card border-left-primary shadow h-100">
-                                <div class="card-body">
-                                    <div class="text-center">
-                                        <div class="h3 text-primary mb-1">{{ total_records }}</div>
-                                        <div class="text-xs font-weight-bold text-primary text-uppercase">
-                                            إجمالي السجلات
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-3 mb-3">
-                            <div class="card border-left-success shadow h-100">
-                                <div class="card-body">
-                                    <div class="text-center">
-                                        <div class="h3 text-success mb-1">{{ present_count }}</div>
-                                        <div class="text-xs font-weight-bold text-success text-uppercase">
-                                            أيام حضور
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-3 mb-3">
-                            <div class="card border-left-danger shadow h-100">
-                                <div class="card-body">
-                                    <div class="text-center">
-                                        <div class="h3 text-danger mb-1">{{ absent_count }}</div>
-                                        <div class="text-xs font-weight-bold text-danger text-uppercase">
-                                            أيام غياب
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-3 mb-3">
-                            <div class="card border-left-warning shadow h-100">
-                                <div class="card-body">
-                                    <div class="text-center">
-                                        <div class="h3 text-warning mb-1">{{ late_count }}</div>
-                                        <div class="text-xs font-weight-bold text-warning text-uppercase">
-                                            تأخير
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- سجلات الحضور الحديثة -->
-                    <div class="card shadow-sm">
-                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0 text-primary">
-                                <i class="fas fa-history me-2"></i>آخر سجلات الحضور
+                <!-- سجلات الحضور المحسنة -->
+                <div class="col-lg-8 mb-4">
+                    <div class="card shadow">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-clock me-2"></i>آخر سجلات الحضور
                             </h6>
-                            <a href="{{ url_for('attendance_index') }}?employee={{ employee.id }}" class="btn btn-sm btn-outline-primary">
-                                عرض الكل
-                            </a>
+                            <div>
+                                <a href="{{ url_for('attendance_index') }}?employee_id={{ employee.id }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-calendar-alt me-1"></i>عرض الكل
+                                </a>
+                                {% if current_user.role in ['owner', 'supervisor', 'monitor'] %}
+                                <a href="{{ url_for('add_attendance') }}?employee_id={{ employee.id }}" class="btn btn-sm btn-success">
+                                    <i class="fas fa-plus me-1"></i>تسجيل حضور
+                                </a>
+                                {% endif %}
+                            </div>
                         </div>
                         <div class="card-body">
                             {% if recent_attendance %}
                             <div class="table-responsive">
-                                <table class="table table-sm table-hover">
+                                <table class="table table-hover table-bordered align-middle">
                                     <thead class="table-light">
-                                        <tr>
+                                        <tr class="text-center">
+                                            <th>#</th>
                                             <th>التاريخ</th>
                                             <th>الوردية</th>
                                             <th>الحالة</th>
                                             <th>وقت الحضور</th>
                                             <th>وقت الانصراف</th>
+                                            <th>ملاحظات</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {% for record in recent_attendance %}
-                                        <tr>
-                                            <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
+                                        <tr class="text-center">
+                                            <td>{{ loop.index }}</td>
+                                            <td>
+                                                <span class="fw-bold">{{ record.date.strftime('%Y-%m-%d') }}</span>
+                                            </td>
                                             <td>
                                                 {% if record.shift_type == 'morning' %}
-                                                <span class="badge bg-info">صباحية</span>
+                                                <span class="badge bg-info px-3 py-2">
+                                                    <i class="fas fa-sun me-1"></i>صباحية
+                                                </span>
                                                 {% else %}
-                                                <span class="badge bg-warning">مسائية</span>
+                                                <span class="badge bg-warning px-3 py-2">
+                                                    <i class="fas fa-moon me-1"></i>مسائية
+                                                </span>
                                                 {% endif %}
                                             </td>
                                             <td>
                                                 {% if record.status == 'present' %}
-                                                <span class="badge bg-success">حاضر</span>
+                                                <span class="badge bg-success px-3 py-2">
+                                                    <i class="fas fa-check-circle me-1"></i>حاضر
+                                                </span>
                                                 {% elif record.status == 'absent' %}
-                                                <span class="badge bg-danger">غائب</span>
+                                                <span class="badge bg-danger px-3 py-2">
+                                                    <i class="fas fa-times-circle me-1"></i>غائب
+                                                </span>
                                                 {% elif record.status == 'late' %}
-                                                <span class="badge bg-warning">متأخر</span>
+                                                <span class="badge bg-warning px-3 py-2">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>متأخر
+                                                </span>
                                                 {% endif %}
                                             </td>
                                             <td>
                                                 {% if record.check_in %}
-                                                {{ record.check_in.strftime('%H:%M') }}
+                                                <span class="badge bg-light text-dark">
+                                                    <i class="fas fa-sign-in-alt text-success me-1"></i>
+                                                    {{ record.check_in.strftime('%H:%M') }}
+                                                </span>
                                                 {% else %}
                                                 <span class="text-muted">-</span>
                                                 {% endif %}
                                             </td>
                                             <td>
                                                 {% if record.check_out %}
-                                                {{ record.check_out.strftime('%H:%M') }}
+                                                <span class="badge bg-light text-dark">
+                                                    <i class="fas fa-sign-out-alt text-danger me-1"></i>
+                                                    {{ record.check_out.strftime('%H:%M') }}
+                                                </span>
+                                                {% else %}
+                                                <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if record.notes %}
+                                                <i class="fas fa-comment text-info" data-bs-toggle="tooltip" title="{{ record.notes }}"></i>
                                                 {% else %}
                                                 <span class="text-muted">-</span>
                                                 {% endif %}
@@ -231,12 +459,98 @@
                                 </table>
                             </div>
                             {% else %}
-                            <div class="text-center py-4">
-                                <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
-                                <h5 class="text-muted">لا توجد سجلات حضور</h5>
+                            <div class="text-center py-5">
+                                <div class="mb-3">
+                                    <i class="fas fa-calendar-times fa-4x text-muted"></i>
+                                </div>
+                                <h5 class="text-muted mb-3">لا توجد سجلات حضور</h5>
                                 <p class="text-muted">لم يتم تسجيل أي حضور لهذا الموظف بعد</p>
+                                {% if current_user.role in ['owner', 'supervisor', 'monitor'] %}
+                                <a href="{{ url_for('add_attendance') }}?employee_id={{ employee.id }}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i>تسجيل أول حضور
+                                </a>
+                                {% endif %}
                             </div>
                             {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- تقييمات الموظف -->
+                    {% if employee.received_evaluations %}
+                    <div class="card shadow mt-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-star me-2"></i>آخر التقييمات
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>التاريخ</th>
+                                            <th>المقيّم</th>
+                                            <th>النتيجة</th>
+                                            <th>ملاحظات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for eval in employee.received_evaluations[:5] %}
+                                        <tr>
+                                            <td>{{ eval.date.strftime('%Y-%m-%d') }}</td>
+                                            <td>{{ eval.evaluator.full_name if eval.evaluator else 'غير محدد' }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ 'success' if eval.overall_score >= 4 else 'warning' if eval.overall_score >= 3 else 'danger' }}">
+                                                    {{ eval.overall_score }}/5
+                                                </span>
+                                            </td>
+                                            <td>{{ eval.comments or '-' }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- إحصائيات الشركة -->
+                    <div class="card shadow mt-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-chart-bar me-2"></i>إحصائيات شركة {{ employee.company }}
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <canvas id="companyStatsChart" height="200"></canvas>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="list-group">
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            إجمالي الموظفين
+                                            <span class="badge bg-primary rounded-pill">{{ company_stats.total|default(0) }}</span>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            المشرفين
+                                            <span class="badge bg-warning rounded-pill">{{ company_stats.supervisors|default(0) }}</span>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            المراقبين
+                                            <span class="badge bg-info rounded-pill">{{ company_stats.monitors|default(0) }}</span>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            عمال النظافة
+                                            <span class="badge bg-secondary rounded-pill">{{ company_stats.workers|default(0) }}</span>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            نسبة حضور اليوم
+                                            <span class="badge bg-success rounded-pill">{{ company_stats.today_attendance|default(0) }}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -247,29 +561,158 @@
 {% endblock %}
 
 {% block styles %}
+{{ super() }}
 <style>
 .avatar-circle-lg {
-    width: 100px;
-    height: 100px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-weight: 600;
-    font-size: 2rem;
+    font-size: 3rem;
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+}
+
+.initials-lg {
+    font-size: 3rem;
+    text-transform: uppercase;
+}
+
+.avatar-circle-sm {
+    width: 30px;
+    height: 30px;
+    background: #4e73df;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-circle-sm span {
+    color: white;
+    font-size: 14px;
 }
 
 .breadcrumb {
     background: none;
     padding: 0;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .breadcrumb-item + .breadcrumb-item::before {
     content: "›";
     color: #6c757d;
 }
+
+.breadcrumb-item a {
+    color: #4e73df;
+    transition: color 0.2s;
+}
+
+.breadcrumb-item a:hover {
+    color: #224abe;
+    text-decoration: underline !important;
+}
+
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+
+.progress {
+    height: 0.5rem;
+    background-color: #eaecf4;
+    border-radius: 1rem;
+}
+
+.progress-bar {
+    border-radius: 1rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+}
+
+.table > :not(caption) > * > * {
+    padding: 0.75rem;
+}
+
+.badge {
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.list-group-item {
+    background: none;
+}
+
+.text-xs {
+    font-size: 0.7rem;
+}
+
+.h5 {
+    font-size: 1.25rem;
+}
 </style>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// تفعيل tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // رسم بياني لإحصائيات الشركة
+    const companyCtx = document.getElementById('companyStatsChart');
+    if (companyCtx) {
+        new Chart(companyCtx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['المشرفين', 'المراقبين', 'عمال النظافة'],
+                datasets: [{
+                    data: [
+                        {{ company_stats.supervisors|default(0) }},
+                        {{ company_stats.monitors|default(0) }},
+                        {{ company_stats.workers|default(0) }}
+                    ],
+                    backgroundColor: ['#ffc107', '#0dcaf0', '#6c757d'],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        rtl: true
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

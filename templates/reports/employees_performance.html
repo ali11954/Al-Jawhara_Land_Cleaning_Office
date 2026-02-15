@@ -1,10 +1,293 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<!-- templates/reports/employees_performance.html -->
+{% extends "base.html" %}
+
+{% block title %}تقرير أداء الموظفين الشامل{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- شريط العنوان -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-primary mb-1">
+                <i class="fas fa-chart-line me-2"></i>
+                تقرير أداء الموظفين الشامل
+            </h2>
+            <p class="text-muted mb-0">تحليل متقدم لأداء الموظفين مع مؤشرات الأداء الرئيسية</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary" onclick="exportReport('pdf')">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </button>
+            <button class="btn btn-outline-success" onclick="exportReport('excel')">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-outline-secondary" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
+        </div>
+    </div>
+
+    <!-- بطاقات الأداء السريعة -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                متوسط الأداء العام
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ "%.1f"|format(avg_performance|default(0)) }}/100
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-star fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                أفضل أداء
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ "%.1f"|format(max_performance|default(0)) }}/100
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-trophy fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                عدد المتميزين
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ excellent_count|default(0) }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-medal fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                يحتاج تحسين
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ improvement_needed|default(0) }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الرسوم البيانية -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-chart-line me-2"></i>
+                    تطور أداء الموظفين
+                </div>
+                <div class="card-body">
+                    <canvas id="performanceTrendChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    توزيع مستويات الأداء
+                </div>
+                <div class="card-body">
+                    <canvas id="performanceDistributionChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول أداء الموظفين -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-table me-2"></i>تفاصيل أداء الموظفين</span>
+                    <div>
+                        <input type="text" id="searchEmployee" class="form-control form-control-sm" placeholder="بحث..." style="width: 200px;">
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="performanceTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>الموظف</th>
+                                    <th>الوظيفة</th>
+                                    <th>الشركة</th>
+                                    <th>التقييمات</th>
+                                    <th>الأداء</th>
+                                    <th>المستوى</th>
+                                    <th>الحضور</th>
+                                    <th>التفاصيل</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for emp in employees %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>
+                                        <img src="{{ emp.avatar or 'https://ui-avatars.com/api/?name=' + emp.full_name }}"
+                                             class="rounded-circle me-2" width="30" height="30">
+                                        {{ emp.full_name }}
+                                    </td>
+                                    <td>{{ emp.position_ar }}</td>
+                                    <td>{{ emp.company.name if emp.company else 'غير محدد' }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ emp.evaluations_count|default(0) }}</span>
+                                    </td>
+                                    <td style="width: 200px;">
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-{{ 'success' if emp.performance >= 80 else 'warning' if emp.performance >= 60 else 'danger' }}"
+                                                 role="progressbar"
+                                                 style="width: {{ emp.performance|default(0) }}%;"
+                                                 aria-valuenow="{{ emp.performance|default(0) }}"
+                                                 aria-valuemin="0"
+                                                 aria-valuemax="100">
+                                                {{ "%.1f"|format(emp.performance|default(0)) }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% set level = 'ممتاز' if emp.performance >= 90 else 'جيد جداً' if emp.performance >= 80 else 'جيد' if emp.performance >= 70 else 'مقبول' if emp.performance >= 60 else 'ضعيف' %}
+                                        {% set level_color = 'success' if emp.performance >= 90 else 'info' if emp.performance >= 80 else 'primary' if emp.performance >= 70 else 'warning' if emp.performance >= 60 else 'danger' %}
+                                        <span class="badge bg-{{ level_color }}">{{ level }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">{{ emp.attendance_rate|default(0) }}%</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewEmployeeDetails({{ emp.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="9" class="text-center text-muted">لا توجد بيانات</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // رسم بياني لتطور الأداء
+    const trendCtx = document.getElementById('performanceTrendChart').getContext('2d');
+    new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: {{ chart_labels|tojson }},
+            datasets: [{
+                label: 'متوسط الأداء',
+                data: {{ chart_data|tojson }},
+                borderColor: '#4e73df',
+                backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    // رسم بياني لتوزيع الأداء
+    const distCtx = document.getElementById('performanceDistributionChart').getContext('2d');
+    new Chart(distCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['ممتاز (90-100)', 'جيد جداً (80-89)', 'جيد (70-79)', 'مقبول (60-69)', 'ضعيف (<60)'],
+            datasets: [{
+                data: {{ distribution_data|tojson }},
+                backgroundColor: ['#1cc88a', '#4e73df', '#36b9cc', '#f6c23e', '#e74a3b']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // وظيفة البحث
+    document.getElementById('searchEmployee').addEventListener('keyup', function() {
+        let searchValue = this.value.toLowerCase();
+        let rows = document.querySelectorAll('#performanceTable tbody tr');
+
+        rows.forEach(row => {
+            let text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchValue) ? '' : 'none';
+        });
+    });
+});
+
+function viewEmployeeDetails(id) {
+    window.location.href = `/employees/${id}`;
+}
+
+function exportReport(format) {
+    alert(`جاري تصدير التقرير بصيغة ${format.toUpperCase()}`);
+}
+</script>
+
+<style>
+.border-left-primary { border-left: 4px solid #4e73df; }
+.border-left-success { border-left: 4px solid #1cc88a; }
+.border-left-info { border-left: 4px solid #36b9cc; }
+.border-left-warning { border-left: 4px solid #f6c23e; }
+</style>
+{% endblock %}

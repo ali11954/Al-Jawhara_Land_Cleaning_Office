@@ -1,10 +1,124 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<!-- templates/reports/evaluation_details.html -->
+{% extends "base.html" %}
+
+{% block title %}تفاصيل التقييمات حسب المعايير{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-warning">
+            <i class="fas fa-clipboard-list me-2"></i>
+            تفاصيل التقييمات حسب المعايير
+        </h2>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary" onclick="exportReport('pdf')">PDF</button>
+            <button class="btn btn-outline-success" onclick="exportReport('excel')">Excel</button>
+        </div>
+    </div>
+
+    <!-- بطاقات المعايير -->
+    <div class="row mb-4">
+        {% for criterion in criteria %}
+        <div class="col-md-3 mb-3">
+            <div class="card bg-{{ criterion.color }} text-white h-100">
+                <div class="card-body">
+                    <h5>{{ criterion.name }}</h5>
+                    <h2>{{ "%.1f"|format(criterion.avg) }}/5</h2>
+                    <div class="progress bg-light" style="height: 10px;">
+                        <div class="progress-bar bg-white" style="width: {{ criterion.avg*20 }}%;"></div>
+                    </div>
+                    <small class="mt-2 d-block">أعلى: {{ criterion.max }} - أدنى: {{ criterion.min }}</small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- رسم بياني للمقارنة -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-chart-bar me-2"></i>مقارنة المعايير
+                </div>
+                <div class="card-body">
+                    <canvas id="criteriaComparisonChart" style="height: 400px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول تفصيلي -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <i class="fas fa-table me-2"></i>تحليل تفصيلي للتقييمات
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>المعيار</th>
+                                <th>ممتاز (5)</th>
+                                <th>جيد جداً (4)</th>
+                                <th>جيد (3)</th>
+                                <th>مقبول (2)</th>
+                                <th>ضعيف (1)</th>
+                                <th>المجموع</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for criterion in criteria_details %}
+                            <tr>
+                                <td>{{ criterion.name }}</td>
+                                <td>{{ criterion.excellent }}</td>
+                                <td>{{ criterion.good }}</td>
+                                <td>{{ criterion.average }}</td>
+                                <td>{{ criterion.poor }}</td>
+                                <td>{{ criterion.very_poor }}</td>
+                                <td><strong>{{ criterion.total }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+new Chart(document.getElementById('criteriaComparisonChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ criteria_names|tojson }},
+        datasets: [
+            {
+                label: 'المتوسط',
+                data: {{ criteria_averages|tojson }},
+                backgroundColor: '#4e73df'
+            },
+            {
+                label: 'الأعلى',
+                data: {{ criteria_max|tojson }},
+                backgroundColor: '#1cc88a'
+            },
+            {
+                label: 'الأدنى',
+                data: {{ criteria_min|tojson }},
+                backgroundColor: '#e74a3b'
+            }
+        ]
+    },
+    options: {
+        scales: {
+            y: {
+                max: 5,
+                min: 0
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

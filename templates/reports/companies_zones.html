@@ -1,10 +1,447 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<!-- templates/reports/companies_zones.html -->
+{% extends "base.html" %}
+
+{% block title %}تقرير الشركات والمناطق{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- شريط العنوان مع إحصائيات حية -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-gradient-primary mb-1">
+                <i class="fas fa-building me-2"></i>
+                تقرير الشركات والمناطق
+            </h2>
+            <p class="text-muted mb-0">
+                <i class="fas fa-sync-alt fa-spin me-1"></i>
+                آخر تحديث: {{ now|arabic_date }} - {{ now|time }}
+            </p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </button>
+            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-modern btn-info" onclick="exportReport('print')">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
+        </div>
+    </div>
+
+    <!-- بطاقات إحصائيات الشركات -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card card-stats gradient-primary h-100">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col">
+                            <h5 class="text-white text-uppercase mb-1">إجمالي الشركات</h5>
+                            <span class="h2 font-weight-bold text-white mb-0">{{ total_companies }}</span>
+                            <p class="mt-2 text-white-50 mb-0">
+                                <i class="fas fa-check-circle me-1"></i> نشط: {{ active_companies }}
+                            </p>
+                        </div>
+                        <div class="col-auto">
+                            <div class="icon-circle bg-white-20">
+                                <i class="fas fa-building fa-2x text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card card-stats gradient-success h-100">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col">
+                            <h5 class="text-white text-uppercase mb-1">إجمالي المناطق</h5>
+                            <span class="h2 font-weight-bold text-white mb-0">{{ total_areas }}</span>
+                            <p class="mt-2 text-white-50 mb-0">
+                                <i class="fas fa-map-marker-alt me-1"></i> بمعدل {{ avg_areas_per_company }} لكل شركة
+                            </p>
+                        </div>
+                        <div class="col-auto">
+                            <div class="icon-circle bg-white-20">
+                                <i class="fas fa-map-marked-alt fa-2x text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card card-stats gradient-info h-100">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col">
+                            <h5 class="text-white text-uppercase mb-1">إجمالي الموظفين</h5>
+                            <span class="h2 font-weight-bold text-white mb-0">{{ total_employees_in_companies }}</span>
+                            <p class="mt-2 text-white-50 mb-0">
+                                <i class="fas fa-user-tie me-1"></i> مشرفين: {{ total_supervisors }}
+                            </p>
+                        </div>
+                        <div class="col-auto">
+                            <div class="icon-circle bg-white-20">
+                                <i class="fas fa-users fa-2x text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card card-stats gradient-warning h-100">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col">
+                            <h5 class="text-white text-uppercase mb-1">متوسط التقييم</h5>
+                            <span class="h2 font-weight-bold text-white mb-0">{{ "%.1f"|format(avg_company_rating) }}/5</span>
+                            <p class="mt-2 text-white-50 mb-0">
+                                <i class="fas fa-star me-1"></i> أعلى شركة: {{ top_rated_company }}
+                            </p>
+                        </div>
+                        <div class="col-auto">
+                            <div class="icon-circle bg-white-20">
+                                <i class="fas fa-star fa-2x text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- خريطة المناطق التفاعلية -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-map me-2"></i>خريطة توزيع المناطق
+                        </h6>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary active" onclick="changeMapView('companies')">الشركات</button>
+                            <button class="btn btn-outline-primary" onclick="changeMapView('areas')">المناطق</button>
+                            <button class="btn btn-outline-primary" onclick="changeMapView('employees')">الموظفين</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="companyMap" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول الشركات المتقدم -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-table me-2"></i>تفاصيل الشركات والمناطق
+                        </h6>
+                        <div class="d-flex">
+                            <div class="input-group input-group-sm me-2" style="width: 250px;">
+                                <span class="input-group-text bg-white border-end-0">
+                                    <i class="fas fa-search text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control border-start-0" id="searchCompany"
+                                       placeholder="بحث عن شركة...">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="companiesTable">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>الشركة</th>
+                                    <th>عدد المناطق</th>
+                                    <th>الموظفين</th>
+                                    <th>التقييم</th>
+                                    <th>حالة النشاط</th>
+                                    <th>أداء المناطق</th>
+                                    <th>التفاصيل</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for company in companies %}
+                                <tr class="company-row" data-company-id="{{ company.id }}">
+                                    <td>{{ loop.index }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="company-icon me-2" style="background-color: {{ company.color }}">
+                                                <i class="fas fa-building"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold">{{ company.name }}</div>
+                                                <small class="text-muted">{{ company.contact_person|default('') }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info rounded-pill">{{ company.areas_count }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary rounded-pill">{{ company.employees_count }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="stars-container me-2">
+                                                {% for i in range(5) %}
+                                                    {% if i < company.rating|int %}
+                                                        <i class="fas fa-star text-warning"></i>
+                                                    {% elif i < company.rating %}
+                                                        <i class="fas fa-star-half-alt text-warning"></i>
+                                                    {% else %}
+                                                        <i class="far fa-star text-warning"></i>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                            <span class="fw-bold">{{ "%.1f"|format(company.rating) }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if company.is_active %}
+                                            <span class="badge bg-success">نشط</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">غير نشط</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="width: 150px;">
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-{{ company.performance_color }}"
+                                                 style="width: {{ company.performance }}%;"></div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewCompanyDetails({{ company.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-info" onclick="showCompanyAreas({{ company.id }})">
+                                            <i class="fas fa-map-marked-alt"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تفاصيل المناطق (تظهر عند النقر) -->
+    <div class="row" id="areasDetailSection" style="display: none;">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h6 class="m-0" id="selectedCompanyName"></h6>
+                    <button class="btn btn-sm btn-light" onclick="hideAreasDetail()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table" id="areasTable">
+                            <thead>
+                                <tr>
+                                    <th>المنطقة</th>
+                                    <th>المشرف</th>
+                                    <th>عدد المواقع</th>
+                                    <th>عدد العمال</th>
+                                    <th>التقييم</th>
+                                    <th>الأداء</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="areasTableBody">
+                                <!-- يتم تعبئتها ديناميكياً -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet للخرائط -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// بيانات الشركات من Flask
+const companiesData = {{ companies_data|tojson }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    initMap();
+    initSearch();
+});
+
+function initMap() {
+    // إنشاء الخريطة
+    const map = L.map('companyMap').setView([24.7136, 46.6753], 10);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // إضافة علامات للشركات
+    companiesData.forEach(company => {
+        if (company.lat && company.lng) {
+            const marker = L.marker([company.lat, company.lng]).addTo(map);
+
+            // محتوى النافذة المنبثقة
+            const popupContent = `
+                <div style="text-align: right; direction: rtl;">
+                    <h6 class="fw-bold">${company.name}</h6>
+                    <p class="mb-1">المناطق: ${company.areas_count}</p>
+                    <p class="mb-1">الموظفين: ${company.employees_count}</p>
+                    <p class="mb-1">التقييم: ${company.rating}/5</p>
+                    <button class="btn btn-sm btn-primary mt-2" onclick="viewCompanyDetails(${company.id})">
+                        عرض التفاصيل
+                    </button>
+                </div>
+            `;
+
+            marker.bindPopup(popupContent);
+
+            // إضافة دائرة ملونة حسب الأداء
+            L.circle([company.lat, company.lng], {
+                color: getPerformanceColor(company.performance),
+                fillColor: getPerformanceColor(company.performance),
+                fillOpacity: 0.2,
+                radius: company.employees_count * 50
+            }).addTo(map);
+        }
+    });
+}
+
+function getPerformanceColor(performance) {
+    if (performance >= 80) return '#1cc88a';
+    if (performance >= 60) return '#f6c23e';
+    return '#e74a3b';
+}
+
+function initSearch() {
+    document.getElementById('searchCompany').addEventListener('keyup', function() {
+        const searchTerm = this.value.toLowerCase();
+        const rows = document.querySelectorAll('.company-row');
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchTerm) ? '' : 'none';
+        });
+    });
+}
+
+function viewCompanyDetails(companyId) {
+    window.location.href = `/companies/${companyId}`;
+}
+
+function showCompanyAreas(companyId) {
+    const company = companiesData.find(c => c.id === companyId);
+    if (!company) return;
+
+    document.getElementById('selectedCompanyName').textContent = `مناطق شركة: ${company.name}`;
+
+    const tbody = document.getElementById('areasTableBody');
+    tbody.innerHTML = '';
+
+    company.areas.forEach(area => {
+        const row = `
+            <tr>
+                <td>${area.name}</td>
+                <td>${area.supervisor_name || 'غير محدد'}</td>
+                <td><span class="badge bg-info">${area.locations_count}</span></td>
+                <td><span class="badge bg-primary">${area.workers_count}</span></td>
+                <td>
+                    <div class="stars-container">
+                        ${generateStars(area.rating)}
+                    </div>
+                </td>
+                <td>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-${getPerformanceColor(area.performance)}"
+                             style="width: ${area.performance}%;"></div>
+                    </div>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewAreaDetails(${area.id})">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        tbody.innerHTML += row;
+    });
+
+    document.getElementById('areasDetailSection').style.display = 'block';
+}
+
+function generateStars(rating) {
+    let stars = '';
+    for (let i = 0; i < 5; i++) {
+        if (i < Math.floor(rating)) {
+            stars += '<i class="fas fa-star text-warning"></i>';
+        } else if (i < rating) {
+            stars += '<i class="fas fa-star-half-alt text-warning"></i>';
+        } else {
+            stars += '<i class="far fa-star text-warning"></i>';
+        }
+    }
+    return stars;
+}
+
+function hideAreasDetail() {
+    document.getElementById('areasDetailSection').style.display = 'none';
+}
+
+function viewAreaDetails(areaId) {
+    window.location.href = `/areas/${areaId}`;
+}
+
+function changeMapView(view) {
+    // تغيير طريقة عرض الخريطة
+    alert(`تغيير عرض الخريطة إلى: ${view}`);
+}
+
+function exportReport(format) {
+    showLoading();
+    setTimeout(() => {
+        hideLoading();
+        alert(`جاري تصدير التقرير بصيغة ${format.toUpperCase()}`);
+    }, 1000);
+}
+</script>
+
+<style>
+.company-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.stars-container {
+    min-width: 100px;
+}
+</style>
+{% endblock %}

@@ -1,270 +1,585 @@
 {% extends "base.html" %}
 
-{% block title %}تعديل موظف - أرض الجوهرة للنظافة{% endblock %}
+{% block title %}تعديل موظف - {{ employee.full_name }}{% endblock %}
+
+{% block header %}تعديل موظف{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">
-            <i class="fas fa-user-edit text-primary"></i>
-            تعديل الموظف - {{ employee.full_name }}
-        </h1>
-        <a href="{{ url_for('employees_list') }}" class="btn btn-secondary btn-sm">
-            <i class="fas fa-arrow-right me-2"></i>رجوع للموظفين
-        </a>
-    </div>
-
-    <!-- رسائل التنبيه -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-            <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-{{ 'exclamation-circle' if category == 'error' else 'check-circle' }} me-2"></i>
-                    <div>{{ message }}</div>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-user-edit me-2"></i>تعديل بيانات الموظف: {{ employee.full_name }}
+                </h6>
             </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">بيانات الموظف</h6>
-                </div>
-                <div class="card-body">
-                    <form method="POST" id="editEmployeeForm">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="full_name" class="form-label">الاسم الكامل <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="full_name" name="full_name"
-                                       value="{{ employee.full_name }}" required
-                                       placeholder="أدخل الاسم الكامل">
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label for="position" class="form-label">المسمى الوظيفي <span class="text-danger">*</span></label>
-                                <select class="form-select" id="position" name="position" required>
-                                    <option value="supervisor" {% if employee.position == 'supervisor' %}selected{% endif %}>مشرف</option>
-                                    <option value="monitor" {% if employee.position == 'monitor' %}selected{% endif %}>مراقب</option>
-                                    <option value="worker" {% if employee.position == 'worker' %}selected{% endif %}>عامل</option>
-                                </select>
-                            </div>
+            <div class="card-body">
+                <form method="POST" id="employeeForm" class="needs-validation" novalidate>
+                    <!-- المسمى الوظيفي -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="position" class="form-label">
+                                <i class="fas fa-briefcase me-1"></i>المسمى الوظيفي <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="position" name="position" required
+                                    {% if current_user.role != 'owner' %}disabled{% endif %}>
+                                <option value="supervisor" {% if employee.position == 'supervisor' %}selected{% endif %}>مشرف</option>
+                                <option value="monitor" {% if employee.position == 'monitor' %}selected{% endif %}>مراقب نظافة</option>
+                                <option value="worker" {% if employee.position == 'worker' %}selected{% endif %}>عامل نظافة</option>
+                            </select>
+                            <div class="invalid-feedback">يرجى اختيار المسمى الوظيفي</div>
+                            {% if current_user.role != 'owner' %}
+                            <div class="form-text text-muted">لا يمكن تغيير المسمى الوظيفي</div>
+                            {% endif %}
                         </div>
+                    </div>
 
+                    <!-- جميع الحقول -->
+                    <div id="allFields">
+                        <!-- الاسم الكامل والهاتف -->
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="username" class="form-label">اسم المستخدم <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="username" name="username"
-                                       value="{{ employee.user.username }}" required
-                                       placeholder="أدخل اسم المستخدم">
+                                <label for="full_name" class="form-label">
+                                    <i class="fas fa-user me-1"></i>الاسم الكامل <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="full_name" name="full_name" required
+                                       value="{{ employee.full_name }}" placeholder="أدخل الاسم الكامل">
+                                <div class="invalid-feedback">يرجى إدخال الاسم الكامل</div>
                             </div>
 
                             <div class="col-md-6 mb-3">
-                                <label for="email" class="form-label">البريد الإلكتروني <span class="text-danger">*</span></label>
-                                <input type="email" class="form-control" id="email" name="email"
-                                       value="{{ employee.user.email }}" required
-                                       placeholder="example@company.com">
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="phone" class="form-label">رقم الهاتف</label>
+                                <label for="phone" class="form-label">
+                                    <i class="fas fa-phone me-1"></i>رقم الهاتف
+                                </label>
                                 <input type="tel" class="form-control" id="phone" name="phone"
-                                       value="{{ employee.phone or '' }}"
-                                       placeholder="05XXXXXXXX">
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label for="salary" class="form-label">الراتب (ريال سعودي)</label>
-                                <input type="number" class="form-control" id="salary" name="salary"
-                                       value="{{ employee.salary }}" step="0.01"
-                                       placeholder="0.00">
+                                       value="{{ employee.phone or '' }}" placeholder="+967 700 000 000" dir="ltr">
                             </div>
                         </div>
 
+                        <!-- الشركة (تظهر دائماً للمالك) -->
+                        {% if current_user.role == 'owner' %}
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="hire_date" class="form-label">تاريخ التعيين <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="hire_date" name="hire_date"
-                                       value="{{ employee.hire_date }}" required
-                                       max="{{ today }}">
+                                <label for="company_id" class="form-label">
+                                    <i class="fas fa-building me-1"></i>الشركة <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="company_id" name="company_id" required onchange="updateSupervisorsByCompany()">
+                                    <option value="">-- اختر الشركة --</option>
+                                    {% for company in companies %}
+                                    <option value="{{ company.id }}" {% if employee.company_id == company.id %}selected{% endif %}>
+                                        {{ company.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">يرجى اختيار الشركة</div>
+                                <small class="text-muted">تغيير الشركة سيؤدي إلى تحديث قائمة المشرفين المتاحين</small>
                             </div>
 
+                            <!-- معلومات الشركة الحالية -->
+                            {% if employee.company %}
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">الحالة</label>
-                                <div class="form-check mt-2">
+                                <div class="alert alert-info py-2">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    <strong>الشركة الحالية:</strong> {{ employee.company.name }}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- العنوان -->
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <label for="address" class="form-label">
+                                    <i class="fas fa-map-marker-alt me-1"></i>العنوان
+                                </label>
+                                <textarea class="form-control" id="address" name="address" rows="2"
+                                          placeholder="أدخل العنوان الكامل...">{{ employee.address or '' }}</textarea>
+                            </div>
+                        </div>
+
+                        <!-- الراتب وتاريخ التعيين والحالة -->
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="salary" class="form-label">
+                                    <i class="fas fa-money-bill me-1"></i>الراتب (ريال يمني)
+                                </label>
+                                <input type="number" class="form-control" id="salary" name="salary" step="0.01"
+                                       value="{{ employee.salary }}" placeholder="أدخل الراتب الشهري" min="0">
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label for="hire_date" class="form-label">
+                                    <i class="fas fa-calendar-alt me-1"></i>تاريخ التعيين <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" class="form-control" id="hire_date" name="hire_date"
+                                       value="{{ employee.hire_date }}" required max="{{ today }}">
+                                <div class="invalid-feedback">يرجى اختيار تاريخ التعيين</div>
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label d-block">
+                                    <i class="fas fa-toggle-on me-1"></i>الحالة
+                                </label>
+                                <div class="form-check form-switch mt-2">
                                     <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
                                            {% if employee.is_active %}checked{% endif %}>
                                     <label class="form-check-label" for="is_active">
-                                        موظف نشط
+                                        <span class="badge bg-{{ 'success' if employee.is_active else 'secondary' }}">
+                                            {{ 'نشط' if employee.is_active else 'غير نشط' }}
+                                        </span>
                                     </label>
                                 </div>
                                 <div class="form-text">يمكن تعطيل الموظف مؤقتاً</div>
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="address" class="form-label">العنوان</label>
-                            <textarea class="form-control" id="address" name="address" rows="3"
-                                      placeholder="أدخل العنوان الكامل">{{ employee.address or '' }}</textarea>
+                        <!-- المشرف المباشر - للمراقبين والعمال -->
+                        <div class="row" id="supervisorRow" style="display: {% if employee.position in ['monitor', 'worker'] %}block{% else %}none{% endif %};">
+                            <div class="col-md-6 mb-3">
+                                <label for="supervisor_id" class="form-label">
+                                    <i class="fas fa-user-tie me-1"></i>المشرف المباشر
+                                </label>
+                                <select class="form-select" id="supervisor_id" name="supervisor_id">
+                                    <option value="">-- بدون مشرف مباشر --</option>
+                                    {% for supervisor in supervisors %}
+                                    <option value="{{ supervisor.id }}"
+                                            data-company="{{ supervisor.company_id }}"
+                                            data-name="{{ supervisor.full_name }}"
+                                            {% if employee.supervisor_id == supervisor.id %}selected{% endif %}
+                                            class="supervisor-option company-{{ supervisor.company_id }}">
+                                        {{ supervisor.full_name }}
+                                        {% if supervisor.company %} - {{ supervisor.company.name }}{% endif %}
+                                        {% if supervisor.id == employee.supervisor_id %} (الحالي){% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1 text-info"></i>
+                                    اختر المشرف المسؤول عن هذا الموظف (سيتم فلترة المشرفين حسب الشركة المختارة)
+                                </div>
+                                {% if employee.supervisor %}
+                                <div class="mt-2">
+                                    <span class="badge bg-info">المشرف الحالي: {{ employee.supervisor.full_name }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
                         </div>
 
-                        <div class="row mt-4">
-                            <div class="col-12">
-                                <div class="card border-left-warning">
-                                    <div class="card-body">
-                                        <h6 class="text-warning">
-                                            <i class="fas fa-key me-2"></i>تغيير كلمة المرور
-                                        </h6>
-                                        <p class="text-muted small mb-3">اترك الحقول فارغة إذا كنت لا تريد تغيير كلمة المرور</p>
+                        <!-- حقول المستخدم - تظهر للمشرفين فقط -->
+                        <div id="userFields" style="display: {% if employee.position == 'supervisor' %}block{% else %}none{% endif %};">
+                            <hr class="my-4">
+                            <div class="alert alert-primary mb-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>معلومات تسجيل الدخول:</strong> بيانات حساب المشرف
+                            </div>
 
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label for="password" class="form-label">كلمة المرور الجديدة</label>
-                                                <input type="password" class="form-control" id="password" name="password"
-                                                       placeholder="أدخل كلمة المرور الجديدة">
-                                            </div>
-
-                                            <div class="col-md-6 mb-3">
-                                                <label for="confirm_password" class="form-label">تأكيد كلمة المرور</label>
-                                                <input type="password" class="form-control" id="confirm_password" name="confirm_password"
-                                                       placeholder="أعد إدخال كلمة المرور">
-                                            </div>
-                                        </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="username" class="form-label">
+                                        <i class="fas fa-user-circle me-1"></i>اسم المستخدم <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="username" name="username"
+                                               value="{{ employee.user.username if employee.user else '' }}"
+                                               placeholder="أدخل اسم المستخدم"
+                                               {% if employee.position == 'supervisor' %}required{% endif %}
+                                               autocomplete="off">
+                                        <button class="btn btn-outline-secondary" type="button" id="checkUsernameBtn" {% if not employee.user %}disabled{% endif %}>
+                                            <i class="fas fa-search"></i>
+                                        </button>
                                     </div>
+                                    <div class="invalid-feedback username-feedback"></div>
+                                    <div class="form-text">3 أحرف على الأقل</div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-key me-1"></i>تغيير كلمة المرور
+                                    </label>
+                                    <div class="alert alert-warning py-2 px-3 mb-2">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>
+                                        <small>اترك الحقول فارغة إذا كنت لا تريد تغيير كلمة المرور</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="password" class="form-label">
+                                        <i class="fas fa-key me-1"></i>كلمة المرور الجديدة
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="password" name="password"
+                                               placeholder="أدخل كلمة المرور الجديدة" autocomplete="off">
+                                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">6 أحرف على الأقل - اترك فارغاً إذا لم ترد التغيير</div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="confirm_password" class="form-label">
+                                        <i class="fas fa-check-circle me-1"></i>تأكيد كلمة المرور
+                                    </label>
+                                    <input type="password" class="form-control" id="confirm_password" name="confirm_password"
+                                           placeholder="أعد إدخال كلمة المرور" autocomplete="off">
+                                    <div class="invalid-feedback" id="passwordMatchFeedback"></div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12">
+                                    <button class="btn btn-sm btn-info" type="button" id="generatePasswordBtn">
+                                        <i class="fas fa-random me-1"></i>توليد كلمة مرور عشوائية
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="row mt-4">
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-warning">
-                                    <i class="fas fa-save me-2"></i>تحديث البيانات
-                                </button>
-                                <a href="{{ url_for('employees_list') }}" class="btn btn-secondary">
-                                    <i class="fas fa-times me-2"></i>إلغاء
-                                </a>
-                            </div>
+                        <!-- معلومات إضافية -->
+                        <div class="alert alert-info mt-4">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-info-circle me-2"></i>معلومات مهمة
+                            </h6>
+                            <ul class="mb-0 small">
+                                <li>جميع الحقول التي تحمل علامة <span class="text-danger">*</span> إلزامية</li>
+                                <li>يتم تحديد صلاحيات الموظف بناءً على المسمى الوظيفي</li>
+                                {% if employee.user %}
+                                <li class="text-primary">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    هذا الموظف لديه حساب مستخدم نشط (اسم المستخدم: {{ employee.user.username }})
+                                </li>
+                                {% endif %}
+                                {% if employee.company %}
+                                <li class="text-success">
+                                    <i class="fas fa-building me-1"></i>
+                                    الشركة الحالية: {{ employee.company.name }}
+                                </li>
+                                {% endif %}
+                                {% if employee.supervisor %}
+                                <li class="text-warning">
+                                    <i class="fas fa-user-tie me-1"></i>
+                                    المشرف الحالي: {{ employee.supervisor.full_name }}
+                                </li>
+                                {% endif %}
+                                <li class="text-info">تاريخ الإنشاء: {{ employee.created_at.strftime('%Y-%m-%d %H:%M') if employee.created_at else 'غير محدد' }}</li>
+                                <li class="text-info">آخر تحديث: {{ employee.updated_at.strftime('%Y-%m-%d %H:%M') if employee.updated_at else 'غير محدد' }}</li>
+                            </ul>
                         </div>
-                    </form>
-                </div>
-            </div>
-        </div>
 
-        <div class="col-lg-4">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">معلومات الحساب</h6>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <strong>تاريخ الإنشاء:</strong><br>
-                        <span class="text-muted">{{ employee.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                        <!-- أزرار الإجراءات -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="{{ url_for('employees_list') }}" class="btn btn-secondary me-md-2">
+                                <i class="fas fa-arrow-right me-1"></i>رجوع للموظفين
+                            </a>
+                            <button type="submit" class="btn btn-warning" id="submitBtn">
+                                <i class="fas fa-save me-1"></i>تحديث البيانات
+                            </button>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <strong>آخر تحديث:</strong><br>
-                        <span class="text-muted">{{ employee.updated_at.strftime('%Y-%m-%d %H:%M') }}</span>
-                    </div>
-                    <div class="mb-3">
-                        <strong>الحالة الحالية:</strong><br>
-                        <span class="badge bg-{{ 'success' if employee.is_active else 'secondary' }}">
-                            {{ 'نشط' if employee.is_active else 'غير نشط' }}
-                        </span>
-                    </div>
-                    <div class="mb-3">
-                        <strong>المسمى الوظيفي:</strong><br>
-                        <span class="badge bg-{{ 'warning' if employee.position == 'supervisor' else 'info' if employee.position == 'monitor' else 'secondary' }}">
-                            {% if employee.position == 'supervisor' %}
-                                مشرف
-                            {% elif employee.position == 'monitor' %}
-                                مراقب
-                            {% else %}
-                                عامل
-                            {% endif %}
-                        </span>
-                    </div>
-                    <div class="mb-3">
-                        <strong>مدة الخدمة:</strong><br>
-                        <span class="text-muted">
-                            {% set days = (today - employee.hire_date).days %}
-                            {% if days >= 365 %}
-                                {{ (days / 365)|round|int }} سنة
-                            {% elif days >= 30 %}
-                                {{ (days / 30)|round|int }} شهر
-                            {% else %}
-                                {{ days }} يوم
-                            {% endif %}
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">معلومات المسميات الوظيفية</h6>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <h6 class="text-warning">👨‍💼 مشرف</h6>
-                        <p class="text-muted small">إدارة المناطق والمواقع والأماكن التابعة له، متابعة التقييمات</p>
-                    </div>
-                    <div class="mb-3">
-                        <h6 class="text-info">👀 مراقب</h6>
-                        <p class="text-muted small">إدارة المواقع والأماكن التابعة له، إدخال التقييمات</p>
-                    </div>
-                    <div class="mb-3">
-                        <h6 class="text-secondary">👷 عامل</h6>
-                        <p class="text-muted small">تنفيذ أعمال النظافة، عرض التقييمات الخاصة به</p>
-                    </div>
-                </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
 <script>
-document.getElementById('editEmployeeForm').addEventListener('submit', function(e) {
-    const password = document.getElementById('password').value;
-    const confirmPassword = document.getElementById('confirm_password').value;
+document.addEventListener('DOMContentLoaded', function() {
+    const positionSelect = document.getElementById('position');
+    const supervisorRow = document.getElementById('supervisorRow');
+    const userFields = document.getElementById('userFields');
+    const companySelect = document.getElementById('company_id');
+    const supervisorSelect = document.getElementById('supervisor_id');
 
-    if (password && password.length < 6) {
-        e.preventDefault();
-        alert('⚠️ كلمة المرور يجب أن تكون 6 أحرف على الأقل');
-        document.getElementById('password').focus();
-        return false;
+    console.log('✅ تم تحميل صفحة تعديل الموظف');
+
+    // تحديث الحقول عند تغيير المسمى الوظيفي
+    positionSelect.addEventListener('change', function() {
+        const position = this.value;
+        console.log('📝 تم تغيير المسمى إلى:', position);
+
+        // إخفاء الحقول الخاصة أولاً
+        supervisorRow.style.display = 'none';
+        userFields.style.display = 'none';
+
+        // إعادة تعيين حقول المستخدم
+        if (document.getElementById('username')) {
+            document.getElementById('username').required = false;
+            document.getElementById('password').required = false;
+            document.getElementById('confirm_password').required = false;
+        }
+
+        // إظهار الحقول المناسبة حسب المسمى
+        if (position === 'supervisor') {
+            userFields.style.display = 'block';
+            document.getElementById('username').required = true;
+            console.log('✅ تم إظهار حقول المستخدم للمشرف');
+
+            // إخفاء المشرف المباشر إذا كان المشرف
+            if (supervisorSelect) {
+                supervisorSelect.value = '';
+            }
+        }
+        else if (position === 'monitor' || position === 'worker') {
+            supervisorRow.style.display = 'block';
+            console.log('✅ تم إظهار المشرف المباشر للمراقب/العامل');
+
+            // تحديث قائمة المشرفين بناءً على الشركة المختارة
+            if (companySelect) {
+                updateSupervisorsByCompany();
+            }
+        }
+    });
+
+    // دالة تحديث المشرفين حسب الشركة
+    window.updateSupervisorsByCompany = function() {
+        if (!companySelect || !supervisorSelect) return;
+
+        const companyId = companySelect.value;
+        console.log('🏢 تم اختيار الشركة:', companyId);
+
+        const options = supervisorSelect.querySelectorAll('.supervisor-option');
+        let hasVisibleOptions = false;
+
+        options.forEach(option => {
+            const optionCompany = option.getAttribute('data-company');
+
+            if (!companyId) {
+                // إذا لم يتم اختيار شركة، نظهر جميع المشرفين
+                option.style.display = '';
+                option.disabled = false;
+                hasVisibleOptions = true;
+            } else if (optionCompany === companyId) {
+                // مشرفين نفس الشركة المختارة
+                option.style.display = '';
+                option.disabled = false;
+                hasVisibleOptions = true;
+            } else {
+                // مشرفين شركات أخرى
+                option.style.display = 'none';
+                option.disabled = true;
+            }
+        });
+
+        // إذا كان الخيار المحدد مخفياً، نعيد تعيين القيمة
+        if (supervisorSelect.value) {
+            const selectedOption = supervisorSelect.options[supervisorSelect.selectedIndex];
+            if (selectedOption && selectedOption.disabled) {
+                supervisorSelect.value = '';
+                console.log('⚠️ تم إعادة تعيين المشرف المحدد لأنه من شركة مختلفة');
+            }
+        }
+
+        // إظهار رسالة إذا لم يكن هناك مشرفين
+        const noSupervisorsMsg = document.getElementById('noSupervisorsMsg');
+        if (!noSupervisorsMsg) {
+            const msg = document.createElement('option');
+            msg.id = 'noSupervisorsMsg';
+            msg.value = '';
+            msg.textContent = '-- لا يوجد مشرفين في هذه الشركة --';
+            msg.disabled = true;
+            msg.style.color = '#999';
+            if (!hasVisibleOptions && companyId) {
+                supervisorSelect.appendChild(msg);
+            }
+        } else {
+            noSupervisorsMsg.style.display = hasVisibleOptions ? 'none' : '';
+        }
+    };
+
+    // فلترة المشرفين عند تحميل الصفحة
+    if (companySelect && supervisorSelect) {
+        updateSupervisorsByCompany();
+
+        // إضافة مستمع حدث لتغيير الشركة
+        companySelect.addEventListener('change', function() {
+            updateSupervisorsByCompany();
+
+            // تحديث معلومات الشركة في الواجهة
+            const selectedCompany = companySelect.options[companySelect.selectedIndex];
+            if (selectedCompany && selectedCompany.value) {
+                console.log('✅ تم تغيير الشركة إلى:', selectedCompany.text);
+            }
+        });
     }
 
-    if (password !== confirmPassword) {
-        e.preventDefault();
-        alert('⚠️ كلمتا المرور غير متطابقتين');
-        document.getElementById('confirm_password').focus();
-        return false;
+    // التحقق من النموذج قبل الإرسال
+    document.getElementById('employeeForm').addEventListener('submit', function(e) {
+        const position = positionSelect.value;
+        const username = document.getElementById('username');
+        const password = document.getElementById('password');
+        const confirmPassword = document.getElementById('confirm_password');
+        const companyId = companySelect ? companySelect.value : null;
+
+        // التحقق من اختيار الشركة للمالك
+        {% if current_user.role == 'owner' %}
+        if (!companyId) {
+            e.preventDefault();
+            alert('⚠️ يجب اختيار الشركة');
+            companySelect.focus();
+            return false;
+        }
+        {% endif %}
+
+        // التحقق من اسم المستخدم للمشرفين
+        if (position === 'supervisor') {
+            if (!username.value) {
+                e.preventDefault();
+                alert('⚠️ اسم المستخدم مطلوب للمشرفين');
+                username.focus();
+                return false;
+            }
+
+            if (username.value.length < 3) {
+                e.preventDefault();
+                alert('⚠️ اسم المستخدم يجب أن يكون 3 أحرف على الأقل');
+                username.focus();
+                return false;
+            }
+        }
+
+        // التحقق من كلمة المرور إذا تم إدخالها
+        if (password && password.value) {
+            if (password.value.length < 6) {
+                e.preventDefault();
+                alert('⚠️ كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+                password.focus();
+                return false;
+            }
+
+            if (password.value !== confirmPassword.value) {
+                e.preventDefault();
+                alert('⚠️ كلمتا المرور غير متطابقتين');
+                confirmPassword.focus();
+                return false;
+            }
+        }
+
+        console.log('✅ تم التحقق من النموذج بنجاح');
+    });
+
+    // إظهار/إخفاء كلمة المرور
+    const togglePasswordBtn = document.getElementById('togglePassword');
+    if (togglePasswordBtn) {
+        togglePasswordBtn.addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const icon = this.querySelector('i');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+    }
+
+    // توليد كلمة مرور عشوائية
+    const generateBtn = document.getElementById('generatePasswordBtn');
+    if (generateBtn) {
+        generateBtn.addEventListener('click', function() {
+            const length = 8;
+            const charset = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            let password = "";
+            for (let i = 0; i < length; i++) {
+                password += charset.charAt(Math.floor(Math.random() * charset.length));
+            }
+            document.getElementById('password').value = password;
+            document.getElementById('confirm_password').value = password;
+
+            // إظهار رسالة نجاح
+            alert('✅ تم توليد كلمة مرور عشوائية بنجاح');
+        });
+    }
+
+    // تعيين الحد الأقصى لتاريخ اليوم
+    const hireDate = document.getElementById('hire_date');
+    if (hireDate) {
+        hireDate.max = new Date().toISOString().split('T')[0];
+    }
+
+    // التحقق من صحة البريد الإلكتروني إذا وجد
+    const emailInput = document.getElementById('email');
+    if (emailInput) {
+        emailInput.addEventListener('blur', function() {
+            const email = this.value;
+            if (email && !isValidEmail(email)) {
+                this.classList.add('is-invalid');
+                alert('⚠️ صيغة البريد الإلكتروني غير صحيحة');
+            } else {
+                this.classList.remove('is-invalid');
+            }
+        });
     }
 });
 
-// تعيين الحد الأقصى لتاريخ اليوم
-document.getElementById('hire_date').max = new Date().toISOString().split('T')[0];
+// دالة التحقق من صحة البريد الإلكتروني
+function isValidEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+}
 </script>
 
 <style>
-.card {
-    border: none;
-    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-}
-
-.border-left-warning {
-    border-left: 0.25rem solid #f6c23e !important;
-}
-
-.badge {
-    font-weight: 500;
-}
+    .card {
+        border: none;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+    }
+    .card-header {
+        background-color: #f8f9fc;
+        border-bottom: 1px solid #e3e6f0;
+    }
+    .form-label {
+        font-weight: 500;
+        color: #2c3e50;
+        margin-bottom: 0.3rem;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    }
+    .alert-primary {
+        background-color: #cce5ff;
+        border-color: #b8daff;
+        color: #004085;
+    }
+    .alert-info {
+        background-color: #e1f5fe;
+        border-color: #b3e5fc;
+        color: #01579b;
+    }
+    .alert-warning {
+        background-color: #fff3cd;
+        border-color: #ffeeba;
+        color: #856404;
+    }
+    .badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 0.75rem;
+    }
+    #allFields {
+        transition: all 0.3s ease;
+    }
+    .form-switch .form-check-input {
+        width: 3em;
+        height: 1.5em;
+        margin-left: 0.5rem;
+    }
+    .form-switch .form-check-input:checked {
+        background-color: #28a745;
+        border-color: #28a745;
+    }
+    .supervisor-option {
+        padding: 0.5rem;
+    }
+    #noSupervisorsMsg {
+        font-style: italic;
+        background-color: #f8f9fa;
+    }
 </style>
 {% endblock %}

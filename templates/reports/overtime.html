@@ -1,10 +1,189 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<!-- templates/reports/overtime.html -->
+{% extends "base.html" %}
+
+{% block title %}ساعات العمل الإضافية{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- شريط العنوان -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-gradient-warning mb-1">
+                <i class="fas fa-hourglass-half me-2"></i>
+                ساعات العمل الإضافية
+            </h2>
+            <p class="text-muted mb-0">تحليل متقدم لساعات العمل الإضافية والتكاليف</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">PDF</button>
+            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">Excel</button>
+        </div>
+    </div>
+
+    <!-- بطاقات إحصائيات العمل الإضافي -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card bg-gradient-primary text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6>إجمالي الساعات الإضافية</h6>
+                            <h2 class="text-white">{{ total_overtime_hours }}</h2>
+                        </div>
+                        <i class="fas fa-clock fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card bg-gradient-success text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6>متوسط الساعات/موظف</h6>
+                            <h2 class="text-white">{{ avg_overtime_per_employee }}</h2>
+                        </div>
+                        <i class="fas fa-chart-line fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card bg-gradient-warning text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6>أكثر موظف</h6>
+                            <h5 class="text-white">{{ top_overtime_employee }}</h5>
+                            <small>{{ top_overtime_hours }} ساعة</small>
+                        </div>
+                        <i class="fas fa-trophy fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card bg-gradient-danger text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6>التكلفة الإجمالية</h6>
+                            <h2 class="text-white">{{ total_overtime_cost }} ر.س</h2>
+                        </div>
+                        <i class="fas fa-money-bill-wave fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- رسم بياني للعمل الإضافي -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-bar me-2"></i>تحليل ساعات العمل الإضافية (شهري)
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="overtimeChart" style="height: 350px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول ساعات العمل الإضافية -->
+    <div class="card shadow">
+        <div class="card-header bg-white py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-table me-2"></i>تفاصيل ساعات العمل الإضافية
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>الموظف</th>
+                            <th>القسم</th>
+                            <th>الشهر</th>
+                            <th>الساعات الإضافية</th>
+                            <th>المعدل/ساعة</th>
+                            <th>التكلفة</th>
+                            <th>نسبة من الراتب</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for overtime in overtime_data %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm me-2" style="background-color: {{ overtime.employee_color }}">
+                                        {{ overtime.employee_name[:1] }}
+                                    </div>
+                                    {{ overtime.employee_name }}
+                                </div>
+                            </td>
+                            <td>{{ overtime.department }}</td>
+                            <td>{{ overtime.month }}</td>
+                            <td>
+                                <span class="fw-bold">{{ overtime.hours }}</span>
+                            </td>
+                            <td>{{ overtime.hourly_rate }} ر.س</td>
+                            <td class="fw-bold text-success">{{ overtime.cost }} ر.س</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="me-2">{{ overtime.percentage }}%</span>
+                                    <div class="progress flex-grow-1" style="height: 5px;">
+                                        <div class="progress-bar bg-warning" style="width: {{ overtime.percentage }}%;"></div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+new ApexCharts(document.querySelector("#overtimeChart"), {
+    series: [{
+        name: 'ساعات العمل الإضافية',
+        data: {{ overtime_chart_data|tojson }}
+    }],
+    chart: {
+        type: 'bar',
+        height: 350,
+        toolbar: { show: false },
+        fontFamily: 'Cairo, sans-serif'
+    },
+    colors: ['#f6c23e'],
+    plotOptions: {
+        bar: {
+            borderRadius: 10,
+            columnWidth: '50%'
+        }
+    },
+    xaxis: {
+        categories: {{ months_labels|tojson }},
+        labels: { style: { fontFamily: 'Cairo, sans-serif' } }
+    },
+    yaxis: {
+        title: { text: 'عدد الساعات' },
+        labels: { style: { fontFamily: 'Cairo, sans-serif' } }
+    },
+    dataLabels: {
+        enabled: true,
+        formatter: (val) => val + ' ساعة',
+        style: { fontFamily: 'Cairo, sans-serif' }
+    }
+}).render();
+</script>
+{% endblock %}

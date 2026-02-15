@@ -4,226 +4,386 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2 class="text-primary mb-1">التقييمات</h2>
-                    <p class="text-muted mb-0">عرض جميع تقييمات النظافة</p>
-                </div>
-                <a href="/evaluations/add" class="btn btn-success">
-                    <i class="fas fa-plus me-1"></i>إضافة تقييم
-                </a>
-            </div>
-
-            <div class="card shadow">
-                <div class="card-body">
-                    <div class="table-responsive">
-                      <table class="table table-bordered table-hover">
-    <thead class="table-light">
-        <tr>
-            <th class="text-dark fw-bold">التاريخ</th>
-            <th class="text-dark fw-bold">المكان</th>
-            <th class="text-dark fw-bold">الموظف المقيّم</th>
-            {% if current_user.role == 'owner' %}
-            <th class="text-dark fw-bold">المقيم</th>
-            {% endif %}
-            <th class="text-dark fw-bold">النتيجة</th>
-            <th class="text-dark fw-bold">الإجراءات</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for evaluation in evaluations %}
-        <tr class="evaluation-row">
-            <td class="text-dark">{{ evaluation.date.strftime('%Y-%m-%d') }}</td>
-            <td class="text-dark">{{ evaluation.place.name if evaluation.place else 'غير محدد' }}</td>
-            <td class="text-dark">{{ evaluation.evaluated_employee.full_name if evaluation.evaluated_employee else 'غير محدد' }}</td>
-            {% if current_user.role == 'owner' %}
-            <td class="text-dark">{{ evaluation.evaluator.full_name if evaluation.evaluator else 'غير محدد' }}</td>
-            {% endif %}
-            <td>
-                <span class="badge bg-{{ 'success' if evaluation.overall_score >= 4 else 'warning' if evaluation.overall_score >= 3 else 'danger' }} fs-6">
-                    {{ "%.1f"|format(evaluation.overall_score) }}/5
+    <!-- رأس الصفحة المحسن -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{{ url_for('dashboard') }}" class="text-decoration-none">
+                            <i class="fas fa-home me-1"></i>الرئيسية
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        <i class="fas fa-clipboard-check me-1"></i>التقييمات
+                    </li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-clipboard-check text-primary me-2"></i>
+                التقييمات
+            </h1>
+            <p class="text-muted mb-0">
+                <i class="fas fa-info-circle me-1"></i>
+                عرض جميع تقييمات النظافة في النظام
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <!-- إحصائيات سريعة -->
+            <div class="d-none d-md-block">
+                <span class="badge bg-info p-2 me-2">
+                    <i class="fas fa-chart-line me-1"></i>
+                    إجمالي: {{ evaluations|length }}
                 </span>
-            </td>
-            <td>
-                <button class="btn btn-info btn-sm view-evaluation" data-id="{{ evaluation.id }}">
-                    <i class="fas fa-eye"></i> عرض
-                </button>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+            </div>
+            <a href="{{ url_for('add_evaluation') }}" class="btn btn-success">
+                <i class="fas fa-plus me-1"></i>إضافة تقييم جديد
+            </a>
+            {% if current_user.role == 'owner' %}
+            <a href="{{ url_for('supervisor_evaluations_list') }}" class="btn btn-info">
+                <i class="fas fa-user-tie me-1"></i>تقييمات المشرفين
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- رسائل التنبيه -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-{{ 'exclamation-circle' if category == 'error' else 'check-circle' }} me-2"></i>
+                    <div>{{ message }}</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- بطاقات الإحصائيات السريعة -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                إجمالي التقييمات
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ evaluations|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                متوسط التقييم
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% set ns = namespace(total=0) %}
+                                {% for eval in evaluations %}
+                                    {% set ns.total = ns.total + eval.overall_score %}
+                                {% endfor %}
+                                {% if evaluations %}
+                                    {{ "%.1f"|format(ns.total / evaluations|length) }}/5
+                                {% else %}
+                                    0/5
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-star fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                هذا الشهر
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% set current_month = today.month %}
+                                {% set current_year = today.year %}
+                                {% set month_count = namespace(count=0) %}
+                                {% for eval in evaluations %}
+                                    {% if eval.date.month == current_month and eval.date.year == current_year %}
+                                        {% set month_count.count = month_count.count + 1 %}
+                                    {% endif %}
+                                {% endfor %}
+                                {{ month_count.count }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                اليوم
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% set today_count = namespace(count=0) %}
+                                {% for eval in evaluations %}
+                                    {% if eval.date == today %}
+                                        {% set today_count.count = today_count.count + 1 %}
+                                    {% endif %}
+                                {% endfor %}
+                                {{ today_count.count }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- بطاقة التقييمات الرئيسية -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list me-2"></i>قائمة التقييمات
+            </h6>
+            <div class="d-flex gap-2">
+                <!-- أزرار الفلترة -->
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-primary filter-btn active" data-filter="all">الكل</button>
+                    <button type="button" class="btn btn-outline-success filter-btn" data-filter="excellent">ممتاز (≥4)</button>
+                    <button type="button" class="btn btn-outline-warning filter-btn" data-filter="good">جيد (≥3)</button>
+                    <button type="button" class="btn btn-outline-danger filter-btn" data-filter="poor">ضعيف (<3)</button>
+                </div>
+                <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="بحث في التقييمات..." style="width: 250px;">
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="evaluationsTable" width="100%" cellspacing="0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-dark fw-bold text-center">#</th>
+                            <th class="text-dark fw-bold">التاريخ</th>
+                            <th class="text-dark fw-bold">المكان</th>
+                            <th class="text-dark fw-bold">الموظف المقيّم</th>
+                            {% if current_user.role == 'owner' %}
+                            <th class="text-dark fw-bold">المقيم</th>
+                            {% endif %}
+                            <th class="text-dark fw-bold text-center">النتيجة</th>
+                            <th class="text-dark fw-bold text-center">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for evaluation in evaluations %}
+                        <tr class="evaluation-row">
+                            <td class="text-dark text-center">{{ loop.index }}</td>
+                            <td class="text-dark">
+                                <i class="fas fa-calendar-alt text-primary me-1"></i>
+                                <span dir="ltr">{{ evaluation.date.strftime('%Y-%m-%d') }}</span>
+                                <br>
+                                <small class="text-muted">{{ evaluation.date|time_ago }}</small>
+                            </td>
+                            <td class="text-dark">
+                                <i class="fas fa-map-marker-alt text-info me-1"></i>
+                                {{ evaluation.place.name if evaluation.place else 'غير محدد' }}
+                            </td>
+                            <td class="text-dark">
+                                <i class="fas fa-user text-success me-1"></i>
+                                {{ evaluation.evaluated_employee.full_name if evaluation.evaluated_employee else 'غير محدد' }}
+                                <br>
+                                <small class="text-muted">
+                                    {% if evaluation.evaluated_employee and evaluation.evaluated_employee.position %}
+                                        {% if evaluation.evaluated_employee.position == 'supervisor' %}
+                                            مشرف
+                                        {% elif evaluation.evaluated_employee.position == 'monitor' %}
+                                            مراقب
+                                        {% elif evaluation.evaluated_employee.position == 'worker' %}
+                                            عامل
+                                        {% endif %}
+                                    {% endif %}
+                                </small>
+                            </td>
+                            {% if current_user.role == 'owner' %}
+                            <td class="text-dark">
+                                <i class="fas fa-user-tie text-warning me-1"></i>
+                                {{ evaluation.evaluator.full_name if evaluation.evaluator else 'غير محدد' }}
+                            </td>
+                            {% endif %}
+                            <td class="text-center">
+                                <span class="badge bg-{{ 'success' if evaluation.overall_score >= 4 else 'warning' if evaluation.overall_score >= 3 else 'danger' }} fs-6 p-2">
+                                    <i class="fas fa-star me-1"></i>
+                                    {{ "%.1f"|format(evaluation.overall_score) }}/5
+                                </span>
+                                <br>
+                                <small class="text-muted mt-1 d-block">
+                                    <i class="fas fa-broom text-primary" title="النظافة: {{ evaluation.cleanliness }}/5"></i>
+                                    <i class="fas fa-sitemap text-info mx-1" title="التنظيم: {{ evaluation.organization }}/5"></i>
+                                    <i class="fas fa-tools text-warning mx-1" title="المعدات: {{ evaluation.equipment_condition }}/5"></i>
+                                    <i class="fas fa-clock text-success mx-1" title="وقت الدوام: {{ evaluation.time|default(3) }}/5"></i>
+                                    <i class="fas fa-shield-alt text-danger" title="السلامة: {{ evaluation.safety_measures }}/5"></i>
+                                </small>
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-info btn-sm view-evaluation" data-id="{{ evaluation.id }}" title="عرض التفاصيل">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                {% if current_user.role == 'owner' %}
+                                <button class="btn btn-danger btn-sm delete-evaluation" data-id="{{ evaluation.id }}" title="حذف" style="display: none;">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="{{ '7' if current_user.role == 'owner' else '6' }}" class="text-center py-5">
+                                <div class="text-center">
+                                    <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+                                    <h5 class="text-muted">لا توجد تقييمات</h5>
+                                    <p class="text-muted">لم يتم إضافة أي تقييمات بعد</p>
+                                    <a href="{{ url_for('add_evaluation') }}" class="btn btn-primary">
+                                        <i class="fas fa-plus me-2"></i>إضافة أول تقييم
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- معلومات الصفحة -->
+            {% if evaluations %}
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <p class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        عرض {{ evaluations|length }} تقييم
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <button class="btn btn-sm btn-outline-primary" onclick="window.print()">
+                        <i class="fas fa-print me-1"></i>طباعة
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" id="exportExcel">
+                        <i class="fas fa-file-excel me-1"></i>تصدير Excel
+                    </button>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
 <!-- Modal for Evaluation Details -->
 <div class="modal fade" id="evaluationDetailsModal" tabindex="-1" aria-labelledby="evaluationDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="evaluationDetailsModalLabel">تفاصيل التقييم</h5>
+                <h5 class="modal-title" id="evaluationDetailsModalLabel">
+                    <i class="fas fa-clipboard-check me-2"></i>تفاصيل التقييم
+                </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="evaluationDetailsContent">
-                <!-- Content will be loaded here by JavaScript -->
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                    <p class="mt-2 text-muted">جاري تحميل بيانات التقييم...</p>
+                </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>إغلاق
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-/* تخصيص الألوان لتحسين الوضوح */
-.table-light {
-    background-color: #f8f9fa !important;
-    border-bottom: 2px solid #dee2e6;
-}
+<!-- Modal للتأكيد على الحذف -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>تأكيد الحذف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>هل أنت متأكد من حذف هذا التقييم؟</p>
+                <p class="text-muted small">لا يمكن التراجع عن هذا الإجراء</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>إلغاء
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="fas fa-trash me-2"></i>حذف
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
-.table-light th {
-    border-bottom: 2px solid #dee2e6;
-    font-weight: 700;
-    font-size: 1rem;
-    padding: 12px 8px;
-}
-
-.evaluation-row:hover {
-    background-color: #f8f9fa !important;
-    transform: translateY(-1px);
-    transition: all 0.2s ease;
-}
-
-.evaluation-row td {
-    border-color: #dee2e6 !important;
-    padding: 10px 8px;
-    vertical-align: middle;
-}
-
-.badge-success {
-    background-color: #28a745 !important;
-    color: white !important;
-    font-weight: 600;
-}
-
-.badge-warning {
-    background-color: #ffc107 !important;
-    color: #212529 !important;
-    font-weight: 600;
-}
-
-.badge-danger {
-    background-color: #dc3545 !important;
-    color: white !important;
-    font-weight: 600;
-}
-
-.text-dark {
-    color: #343a40 !important;
-    font-weight: 500;
-}
-
-.text-muted {
-    color: #6c757d !important;
-}
-
-.card {
-    border: 1px solid #e3e6f0;
-    border-radius: 10px;
-}
-
-.card-body {
-    background-color: #ffffff;
-    border-radius: 10px;
-}
-
-.table-hover tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.08);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.btn-info {
-    background-color: #17a2b8;
-    border-color: #17a2b8;
-    color: white;
-    font-weight: 500;
-    border-radius: 6px;
-    padding: 6px 12px;
-}
-
-.btn-info:hover {
-    background-color: #138496;
-    border-color: #117a8b;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-/* تحسين مظهر الجدول */
-.table {
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.table th {
-    background-color: #f8f9fa;
-    border-top: none;
-    font-size: 0.95rem;
-}
-
-.table td {
-    border-top: 1px solid #f0f0f0;
-}
-
-/* تحسين التباين للألوان */
-.text-dark {
-    color: #2c3e50 !important;
-}
-
-.table-light th {
-    color: #2c3e50 !important;
-}
-
-/* تحسين responsive */
-@media (max-width: 768px) {
-    .table-responsive {
-        border-radius: 8px;
-    }
-
-    .table th,
-    .table td {
-        padding: 8px 6px;
-        font-size: 0.9rem;
-    }
-
-    .btn-sm {
-        padding: 4px 8px;
-        font-size: 0.8rem;
-    }
-}
-</style>
-
+{% block scripts %}
 <script>
-// إضافة event listeners للأزرار
-document.addEventListener('DOMContentLoaded', function() {
-    // إضافة event listener لأزرار العرض
-    const viewButtons = document.querySelectorAll('.view-evaluation');
-    viewButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const evaluationId = this.getAttribute('data-id');
-            viewEvaluation(evaluationId);
-        });
-    });
-});
+let currentEvaluationId = null;
 
+// دالة لعرض مؤشر التحميل
+function showLoading() {
+    const content = document.getElementById('evaluationDetailsContent');
+    if (content) {
+        content.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">جاري التحميل...</span>
+                </div>
+                <p class="mt-2 text-muted">جاري تحميل بيانات التقييم...</p>
+            </div>
+        `;
+    }
+}
+
+// دالة لإخفاء مؤشر التحميل
+function hideLoading() {
+    // لا حاجة لها الآن
+}
+
+// عرض تفاصيل التقييم
 function viewEvaluation(evaluationId) {
     showLoading();
+    const modal = new bootstrap.Modal(document.getElementById('evaluationDetailsModal'));
+    modal.show();
+
     fetch(`/api/evaluation/${evaluationId}`)
         .then(response => {
             if (!response.ok) {
@@ -237,92 +397,160 @@ function viewEvaluation(evaluationId) {
                 const modalContent = `
                     <div class="row">
                         <div class="col-12">
-                            <h5 class="text-primary mb-3">تفاصيل التقييم</h5>
-                            <hr>
-                            <div class="row mb-3">
+                            <!-- معلومات أساسية -->
+                            <div class="row mb-4">
                                 <div class="col-md-6">
-                                    <strong class="text-dark">التاريخ:</strong>
-                                    <span class="text-dark">${evaluation.date}</span>
-                                </div>
-                                <div class="col-md-6">
-                                    <strong class="text-dark">المقيّم:</strong>
-                                    <span class="text-dark">${evaluation.evaluator || 'غير محدد'}</span>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <strong class="text-dark">المكان:</strong>
-                                    <span class="text-dark">${evaluation.place || 'غير محدد'}</span>
+                                    <div class="info-card p-3 bg-light rounded">
+                                        <h6 class="text-primary mb-3"><i class="fas fa-info-circle me-2"></i>معلومات أساسية</h6>
+                                        <p><strong>التاريخ:</strong> ${evaluation.date}</p>
+                                        <p><strong>المكان:</strong> ${evaluation.place || 'غير محدد'}</p>
+                                        <p><strong>الموظف المقيّم:</strong> ${evaluation.evaluated_employee || 'غير محدد'}</p>
+                                        <p><strong>المقيّم:</strong> ${evaluation.evaluator || 'غير محدد'}</p>
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <strong class="text-dark">الموظف المقيّم:</strong>
-                                    <span class="text-dark">${evaluation.evaluated_employee || 'غير محدد'}</span>
-                                </div>
-                            </div>
-                            ${evaluation.company ? `
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <strong class="text-dark">الشركة:</strong>
-                                    <span class="text-dark">${evaluation.company}</span>
-                                </div>
-                                <div class="col-md-6">
-                                    <strong class="text-dark">المنطقة:</strong>
-                                    <span class="text-dark">${evaluation.area || 'غير محدد'}</span>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <strong class="text-dark">الموقع:</strong>
-                                    <span class="text-dark">${evaluation.location || 'غير محدد'}</span>
-                                </div>
-                            </div>
-                            ` : ''}
-                            <div class="row mb-3">
-                                <div class="col-md-3">
-                                    <strong class="text-dark">النظافة:</strong><br>
-                                    <span class="badge bg-${evaluation.cleanliness >= 4 ? 'success' : evaluation.cleanliness >= 3 ? 'warning' : 'danger'} mt-1">
-                                        ${evaluation.cleanliness}/5
-                                    </span>
-                                </div>
-                                <div class="col-md-3">
-                                    <strong class="text-dark">التنظيم:</strong><br>
-                                    <span class="badge bg-${evaluation.organization >= 4 ? 'success' : evaluation.organization >= 3 ? 'warning' : 'danger'} mt-1">
-                                        ${evaluation.organization}/5
-                                    </span>
-                                </div>
-                                <div class="col-md-3">
-                                    <strong class="text-dark">حالة المعدات:</strong><br>
-                                    <span class="badge bg-${evaluation.equipment_condition >= 4 ? 'success' : evaluation.equipment_condition >= 3 ? 'warning' : 'danger'} mt-1">
-                                        ${evaluation.equipment_condition}/5
-                                    </span>
-                                </div>
-                                <div class="col-md-3">
-                                    <strong class="text-dark">إجراءات السلامة:</strong><br>
-                                    <span class="badge bg-${evaluation.safety_measures >= 4 ? 'success' : evaluation.safety_measures >= 3 ? 'warning' : 'danger'} mt-1">
-                                        ${evaluation.safety_measures}/5
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-12">
-                                    <strong class="text-dark">التقييم العام:</strong>
-                                    <span class="badge bg-${evaluation.overall_score >= 4 ? 'success' : evaluation.overall_score >= 3 ? 'warning' : 'danger'} fs-6 mt-1">
-                                        ${evaluation.overall_score.toFixed(1)}/5
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-12">
-                                    <strong class="text-dark">التعليقات:</strong>
-                                    <div class="mt-2 p-3 bg-light rounded border">
-                                        <p class="mb-0 text-dark">${evaluation.comments || 'لا توجد تعليقات'}</p>
+                                    <div class="info-card p-3 bg-light rounded">
+                                        <h6 class="text-primary mb-3"><i class="fas fa-building me-2"></i>الموقع التنظيمي</h6>
+                                        ${evaluation.company ? `<p><strong>الشركة:</strong> ${evaluation.company}</p>` : ''}
+                                        ${evaluation.area ? `<p><strong>المنطقة:</strong> ${evaluation.area}</p>` : ''}
+                                        ${evaluation.location ? `<p><strong>الموقع:</strong> ${evaluation.location}</p>` : ''}
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- نقاط التقييم (5 معايير) -->
+                            <h6 class="text-primary mb-3"><i class="fas fa-star me-2"></i>نقاط التقييم</h6>
+                            <div class="row mb-4">
+                                <div class="col-md-2 mb-2">
+                                    <div class="card bg-light h-100">
+                                        <div class="card-body text-center p-2">
+                                            <i class="fas fa-broom text-primary mb-1"></i><br>
+                                            <strong class="text-dark small">النظافة</strong><br>
+                                            <span class="badge bg-${evaluation.cleanliness >= 4 ? 'success' : evaluation.cleanliness >= 3 ? 'warning' : 'danger'} mt-1">
+                                                ${evaluation.cleanliness}/5
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 mb-2">
+                                    <div class="card bg-light h-100">
+                                        <div class="card-body text-center p-2">
+                                            <i class="fas fa-sitemap text-info mb-1"></i><br>
+                                            <strong class="text-dark small">التنظيم</strong><br>
+                                            <span class="badge bg-${evaluation.organization >= 4 ? 'success' : evaluation.organization >= 3 ? 'warning' : 'danger'} mt-1">
+                                                ${evaluation.organization}/5
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 mb-2">
+                                    <div class="card bg-light h-100">
+                                        <div class="card-body text-center p-2">
+                                            <i class="fas fa-tools text-warning mb-1"></i><br>
+                                            <strong class="text-dark small">المعدات</strong><br>
+                                            <span class="badge bg-${evaluation.equipment_condition >= 4 ? 'success' : evaluation.equipment_condition >= 3 ? 'warning' : 'danger'} mt-1">
+                                                ${evaluation.equipment_condition}/5
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 mb-2">
+                                    <div class="card bg-light h-100">
+                                        <div class="card-body text-center p-2">
+                                            <i class="fas fa-clock text-success mb-1"></i><br>
+                                            <strong class="text-dark small">وقت الدوام</strong><br>
+                                            <span class="badge bg-${evaluation.time >= 4 ? 'success' : evaluation.time >= 3 ? 'warning' : 'danger'} mt-1">
+                                                ${evaluation.time || 3}/5
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 mb-2">
+                                    <div class="card bg-light h-100">
+                                        <div class="card-body text-center p-2">
+                                            <i class="fas fa-shield-alt text-danger mb-1"></i><br>
+                                            <strong class="text-dark small">السلامة</strong><br>
+                                            <span class="badge bg-${evaluation.safety_measures >= 4 ? 'success' : evaluation.safety_measures >= 3 ? 'warning' : 'danger'} mt-1">
+                                                ${evaluation.safety_measures}/5
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 mb-2">
+                                    <div class="card bg-light h-100">
+                                        <div class="card-body text-center p-2">
+                                            <i class="fas fa-calculator text-secondary mb-1"></i><br>
+                                            <strong class="text-dark small">المعدل</strong><br>
+                                            <span class="badge bg-${evaluation.overall_score >= 4 ? 'success' : evaluation.overall_score >= 3 ? 'warning' : 'danger'} mt-1">
+                                                ${evaluation.overall_score.toFixed(1)}/5
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ملخص الأداء مع أشرطة التقدم -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <div class="card border-0 bg-light">
+                                        <div class="card-body">
+                                            <h6 class="text-primary mb-2"><i class="fas fa-chart-pie me-2"></i>ملخص الأداء</h6>
+                                            <div class="progress mb-2" style="height: 25px;">
+                                                <div class="progress-bar bg-success" role="progressbar"
+                                                     style="width: ${(evaluation.cleanliness/5)*100}%">
+                                                    النظافة ${evaluation.cleanliness}/5
+                                                </div>
+                                            </div>
+                                            <div class="progress mb-2" style="height: 25px;">
+                                                <div class="progress-bar bg-info" role="progressbar"
+                                                     style="width: ${(evaluation.organization/5)*100}%">
+                                                    التنظيم ${evaluation.organization}/5
+                                                </div>
+                                            </div>
+                                            <div class="progress mb-2" style="height: 25px;">
+                                                <div class="progress-bar bg-warning" role="progressbar"
+                                                     style="width: ${(evaluation.equipment_condition/5)*100}%">
+                                                    المعدات ${evaluation.equipment_condition}/5
+                                                </div>
+                                            </div>
+                                            <div class="progress mb-2" style="height: 25px;">
+                                                <div class="progress-bar bg-success" role="progressbar"
+                                                     style="width: ${((evaluation.time || 3)/5)*100}%">
+                                                    وقت الدوام ${evaluation.time || 3}/5
+                                                </div>
+                                            </div>
+                                            <div class="progress mb-2" style="height: 25px;">
+                                                <div class="progress-bar bg-danger" role="progressbar"
+                                                     style="width: ${(evaluation.safety_measures/5)*100}%">
+                                                    السلامة ${evaluation.safety_measures}/5
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- التعليقات -->
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0"><i class="fas fa-comment me-2"></i>التعليقات</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <p class="mb-0">${evaluation.comments || 'لا توجد تعليقات'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             ${evaluation.created_at ? `
                             <div class="row mt-3">
                                 <div class="col-12">
-                                    <small class="text-muted">تم الإنشاء في: ${evaluation.created_at}</small>
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>
+                                        تم الإنشاء: ${evaluation.created_at}
+                                    </small>
                                 </div>
                             </div>
                             ` : ''}
@@ -330,19 +558,308 @@ function viewEvaluation(evaluationId) {
                     </div>
                 `;
                 document.getElementById('evaluationDetailsContent').innerHTML = modalContent;
-                const modal = new bootstrap.Modal(document.getElementById('evaluationDetailsModal'));
-                modal.show();
             } else {
                 throw new Error(data.message || 'Failed to fetch evaluation data');
             }
         })
         .catch(error => {
             console.error('Error fetching evaluation data:', error);
-            alert('حدث خطأ أثناء جلب بيانات التقييم: ' + error.message);
-        })
-        .finally(() => {
-            hideLoading();
+            document.getElementById('evaluationDetailsContent').innerHTML = `
+                <div class="alert alert-danger m-3">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    حدث خطأ أثناء جلب بيانات التقييم: ${error.message}
+                </div>
+            `;
         });
 }
+
+// حذف التقييم
+function deleteEvaluation(evaluationId) {
+    currentEvaluationId = evaluationId;
+    const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    modal.show();
+}
+
+// تأكيد الحذف
+document.getElementById('confirmDeleteBtn')?.addEventListener('click', function() {
+    if (currentEvaluationId) {
+        fetch(`/api/evaluation/${currentEvaluationId}`, {
+            method: 'DELETE',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('حدث خطأ أثناء حذف التقييم: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('حدث خطأ أثناء حذف التقييم');
+        })
+        .finally(() => {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal'));
+            modal.hide();
+        });
+    }
+});
+
+// إضافة event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // أزرار العرض
+    document.querySelectorAll('.view-evaluation').forEach(button => {
+        button.addEventListener('click', function() {
+            const evaluationId = this.getAttribute('data-id');
+            viewEvaluation(evaluationId);
+        });
+    });
+
+    // أزرار الحذف (إذا كانت موجودة)
+    document.querySelectorAll('.delete-evaluation').forEach(button => {
+        button.addEventListener('click', function() {
+            const evaluationId = this.getAttribute('data-id');
+            deleteEvaluation(evaluationId);
+        });
+    });
+
+    // البحث في الجدول
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const tableRows = document.querySelectorAll('#evaluationsTable tbody tr');
+
+            tableRows.forEach(row => {
+                if (row.querySelector('td[colspan]')) return; // تجاهل صف "لا توجد بيانات"
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchValue) ? '' : 'none';
+            });
+        });
+    }
+
+    // فلترة التقييمات حسب النتيجة
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const filter = this.dataset.filter;
+            const rows = document.querySelectorAll('#evaluationsTable tbody tr');
+
+            // تحديث حالة الأزرار
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+
+            rows.forEach(row => {
+                if (row.querySelector('td[colspan]')) return; // تجاهل صف "لا توجد بيانات"
+
+                const scoreCell = row.querySelector('td:nth-child(6) .badge');
+                if (!scoreCell) return;
+
+                const scoreText = scoreCell.textContent.trim();
+                const score = parseFloat(scoreText.split('/')[0]);
+
+                let show = true;
+                if (filter === 'excellent') show = score >= 4;
+                else if (filter === 'good') show = score >= 3 && score < 4;
+                else if (filter === 'poor') show = score < 3;
+
+                row.style.display = show ? '' : 'none';
+            });
+
+            // تحديث شريط البحث
+            if (searchInput) {
+                searchInput.value = '';
+            }
+        });
+    });
+
+    // تصدير Excel
+    document.getElementById('exportExcel')?.addEventListener('click', function() {
+        alert('سيتم إضافة خاصية تصدير Excel قريباً');
+    });
+});
 </script>
+
+<style>
+/* أنماط محسنة */
+.card {
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+}
+
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+
+.evaluation-row {
+    transition: all 0.2s ease;
+}
+
+.evaluation-row:hover {
+    background-color: #f8f9fc !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.badge {
+    font-weight: 500;
+    padding: 0.5rem 0.75rem;
+}
+
+.table th {
+    font-weight: 600;
+    color: #4e73df;
+    border-top: none;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
+}
+
+.info-card {
+    background-color: #f8f9fc;
+    border-radius: 0.5rem;
+}
+
+.info-card p {
+    margin-bottom: 0.5rem;
+}
+
+.info-card p:last-child {
+    margin-bottom: 0;
+}
+
+.progress {
+    border-radius: 0.5rem;
+    background-color: #eaecf4;
+}
+
+.progress-bar {
+    border-radius: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* تحسين المظهر للشاشات الصغيرة */
+@media (max-width: 768px) {
+    .table-responsive {
+        border-radius: 0.5rem;
+    }
+
+    .badge {
+        font-size: 0.8rem;
+        padding: 0.3rem 0.5rem;
+    }
+
+    .btn-sm {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.75rem;
+    }
+
+    .progress {
+        height: 20px !important;
+    }
+
+    .progress-bar {
+        font-size: 0.7rem;
+    }
+}
+
+/* تحسين مظهر المودال */
+.modal-content {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.modal-header {
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.modal-footer {
+    border-top: 1px solid #e3e6f0;
+}
+
+/* تحسين مظهر breadcrumb */
+.breadcrumb {
+    background: none;
+    padding: 0;
+    margin-bottom: 0.5rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: "›";
+    color: #6c757d;
+}
+
+.breadcrumb-item a {
+    color: #4e73df;
+    transition: color 0.2s;
+}
+
+.breadcrumb-item a:hover {
+    color: #224abe;
+    text-decoration: underline !important;
+}
+
+/* تحسين عرض بطاقات المعايير */
+.card.bg-light {
+    background-color: #f8f9fc !important;
+    border: 1px solid #e3e6f0 !important;
+}
+
+.card.bg-light .card-body {
+    padding: 0.75rem !important;
+}
+
+.card.bg-light i {
+    font-size: 1.2rem;
+}
+
+/* تحسين أزرار الفلترة */
+.filter-btn.active {
+    z-index: 1;
+}
+
+.btn-group .btn-outline-primary.active {
+    background-color: #4e73df;
+    color: white;
+}
+
+.btn-group .btn-outline-success.active {
+    background-color: #1cc88a;
+    color: white;
+}
+
+.btn-group .btn-outline-warning.active {
+    background-color: #f6c23e;
+    color: white;
+}
+
+.btn-group .btn-outline-danger.active {
+    background-color: #e74a3b;
+    color: white;
+}
+</style>
 {% endblock %}

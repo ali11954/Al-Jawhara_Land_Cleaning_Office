@@ -1,10 +1,573 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<!-- templates/reports/supervisor_detailed_evaluation.html -->
+{% extends "base.html" %}
+
+{% block title %}تقييم المشرفين التفصيلي{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- شريط العنوان -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-gradient-evaluation mb-1">
+                <i class="fas fa-clipboard-check me-2"></i>
+                تقييم المشرفين التفصيلي
+            </h2>
+            <p class="text-muted mb-0">تحليل متعدد المعايير لأداء المشرفين مع توصيات التطوير</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </button>
+            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-modern btn-info" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
+        </div>
+    </div>
+
+    <!-- بطاقات المتوسطات الرئيسية -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card leadership-card gradient-gold h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white text-uppercase mb-1">متابعة العمال</h6>
+                            <h2 class="text-white mb-0">{{ avg_workers_followup }}%</h2>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-users fa-2x text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-white-50">
+                        <i class="fas fa-chart-line me-1"></i> أداء الفرق
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card leadership-card gradient-silver h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white text-uppercase mb-1">كفاءة العمل</h6>
+                            <h2 class="text-white mb-0">{{ avg_work_efficiency }}%</h2>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-chart-line fa-2x text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-white-50">
+                        <i class="fas fa-clock me-1"></i> إنتاجية
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card leadership-card gradient-bronze h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white text-uppercase mb-1">جودة التقارير</h6>
+                            <h2 class="text-white mb-0">{{ avg_reports_quality }}%</h2>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-file-alt fa-2x text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-white-50">
+                        <i class="fas fa-check-circle me-1"></i> دقة وتوثيق
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card leadership-card gradient-platinum h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white text-uppercase mb-1">الالتزام</h6>
+                            <h2 class="text-white mb-0">{{ avg_compliance }}%</h2>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-check-double fa-2x text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-white-50">
+                        <i class="fas fa-shield-alt me-1"></i> سياسات وإجراءات
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- صف إضافي من بطاقات المتوسطات -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card leadership-card" style="background: linear-gradient(135deg, #4e73df, #224abe);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white text-uppercase mb-1">السلامة</h6>
+                            <h2 class="text-white mb-0">{{ avg_safety }}%</h2>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-hard-hat fa-2x text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card leadership-card" style="background: linear-gradient(135deg, #1cc88a, #13855c);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white text-uppercase mb-1">الانضباط</h6>
+                            <h2 class="text-white mb-0">{{ avg_attendance }}%</h2>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-clock fa-2x text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card leadership-card" style="background: linear-gradient(135deg, #36b9cc, #258391);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white text-uppercase mb-1">القيادة</h6>
+                            <h2 class="text-white mb-0">{{ avg_leadership }}%</h2>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-crown fa-2x text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card leadership-card" style="background: linear-gradient(135deg, #f6c23e, #dda20a);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white text-uppercase mb-1">حل المشكلات</h6>
+                            <h2 class="text-white mb-0">{{ avg_problem_solving }}%</h2>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-puzzle-piece fa-2x text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مصفوفة تقييم المشرفين -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-th me-2"></i>مصفوفة تقييم المشرفين
+                </h6>
+                <div class="d-flex">
+                    <div class="input-group input-group-sm me-2" style="width: 250px;">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0" id="searchSupervisor"
+                               placeholder="بحث عن مشرف...">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered evaluation-matrix">
+                    <thead class="bg-light">
+                        <tr>
+                            <th style="min-width: 200px;">المعيار</th>
+                            {% for supervisor in supervisors %}
+                            <th class="text-center">{{ supervisor.name }}</th>
+                            {% endfor %}
+                            <th class="text-center bg-primary text-white">المتوسط</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="fw-bold">
+                                <i class="fas fa-users text-primary me-2"></i>
+                                متابعة العمال
+                            </td>
+                            {% for sup in supervisors %}
+                            <td class="text-center">
+                                <span class="badge bg-{{ sup.workers_followup_color }}">{{ sup.workers_followup }}%</span>
+                            </td>
+                            {% endfor %}
+                            <td class="text-center fw-bold bg-light">{{ avg_workers_followup }}%</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold">
+                                <i class="fas fa-chart-line text-success me-2"></i>
+                                كفاءة العمل
+                            </td>
+                            {% for sup in supervisors %}
+                            <td class="text-center">
+                                <span class="badge bg-{{ sup.work_efficiency_color }}">{{ sup.work_efficiency }}%</span>
+                            </td>
+                            {% endfor %}
+                            <td class="text-center fw-bold bg-light">{{ avg_work_efficiency }}%</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold">
+                                <i class="fas fa-file-alt text-info me-2"></i>
+                                جودة التقارير
+                            </td>
+                            {% for sup in supervisors %}
+                            <td class="text-center">
+                                <span class="badge bg-{{ sup.reports_quality_color }}">{{ sup.reports_quality }}%</span>
+                            </td>
+                            {% endfor %}
+                            <td class="text-center fw-bold bg-light">{{ avg_reports_quality }}%</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold">
+                                <i class="fas fa-check-double text-warning me-2"></i>
+                                الالتزام بالسياسات
+                            </td>
+                            {% for sup in supervisors %}
+                            <td class="text-center">
+                                <span class="badge bg-{{ sup.compliance_color }}">{{ sup.compliance }}%</span>
+                            </td>
+                            {% endfor %}
+                            <td class="text-center fw-bold bg-light">{{ avg_compliance }}%</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold">
+                                <i class="fas fa-hard-hat text-danger me-2"></i>
+                                إجراءات السلامة
+                            </td>
+                            {% for sup in supervisors %}
+                            <td class="text-center">
+                                <span class="badge bg-{{ sup.safety_color }}">{{ sup.safety }}%</span>
+                            </td>
+                            {% endfor %}
+                            <td class="text-center fw-bold bg-light">{{ avg_safety }}%</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold">
+                                <i class="fas fa-clock text-secondary me-2"></i>
+                                الانضباط الوظيفي
+                            </td>
+                            {% for sup in supervisors %}
+                            <td class="text-center">
+                                <span class="badge bg-{{ sup.attendance_color }}">{{ sup.attendance }}%</span>
+                            </td>
+                            {% endfor %}
+                            <td class="text-center fw-bold bg-light">{{ avg_attendance }}%</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold">
+                                <i class="fas fa-crown text-warning me-2"></i>
+                                المهارات القيادية
+                            </td>
+                            {% for sup in supervisors %}
+                            <td class="text-center">
+                                <span class="badge bg-{{ sup.leadership_color }}">{{ sup.leadership }}%</span>
+                            </td>
+                            {% endfor %}
+                            <td class="text-center fw-bold bg-light">{{ avg_leadership }}%</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold">
+                                <i class="fas fa-puzzle-piece text-info me-2"></i>
+                                حل المشكلات
+                            </td>
+                            {% for sup in supervisors %}
+                            <td class="text-center">
+                                <span class="badge bg-{{ sup.problem_solving_color }}">{{ sup.problem_solving }}%</span>
+                            </td>
+                            {% endfor %}
+                            <td class="text-center fw-bold bg-light">{{ avg_problem_solving }}%</td>
+                        </tr>
+                        <tr class="bg-primary text-white">
+                            <td class="fw-bold">
+                                <i class="fas fa-star me-2"></i>
+                                المعدل العام
+                            </td>
+                            {% for sup in supervisors %}
+                            <td class="text-center fw-bold">{{ sup.overall }}%</td>
+                            {% endfor %}
+                            <td class="text-center fw-bold">{{ avg_overall }}%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- تحليل نقاط القوة والضعف -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow h-100">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-check-circle me-2"></i>نقاط القوة لدى المشرفين
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for strength in strengths %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="fas fa-star text-warning me-2"></i>
+                                {{ strength.criterion }}
+                            </span>
+                            <span class="badge bg-success rounded-pill">{{ strength.percentage }}%</span>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-muted py-3">لا توجد نقاط قوة محددة</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow h-100">
+                <div class="card-header bg-warning text-dark">
+                    <i class="fas fa-exclamation-triangle me-2"></i>فرص التحسين
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for weakness in weaknesses %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="fas fa-arrow-up text-danger me-2"></i>
+                                {{ weakness.criterion }}
+                            </span>
+                            <span class="badge bg-warning rounded-pill">{{ weakness.percentage }}%</span>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-muted py-3">لا توجد فرص تحسين محددة</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- رسم بياني لتطور الأداء -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-chart-line me-2"></i>تطور أداء المشرفين (آخر 6 أشهر)
+                </h6>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary active" onclick="changeChartType('line')">خطي</button>
+                    <button class="btn btn-outline-primary" onclick="changeChartType('bar')">أعمدة</button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="evolutionChart" style="height: 400px;"></div>
+        </div>
+    </div>
+
+    <!-- بطاقة المعدل العام -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center py-4">
+                    <h3 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        المعدل العام لأداء المشرفين: {{ avg_overall }}%
+                    </h3>
+                    <p class="mb-0 mt-2 text-white-50">تقييم شامل لجميع معايير الأداء</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ApexCharts -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    initEvolutionChart();
+    initSearch();
+});
+
+function initEvolutionChart() {
+    const options = {
+        series: {{ evolution_series|tojson }},
+        chart: {
+            type: 'line',
+            height: 400,
+            toolbar: { show: false },
+            fontFamily: 'Cairo, sans-serif'
+        },
+        colors: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
+        stroke: { curve: 'smooth', width: 3 },
+        markers: { size: 5, hover: { size: 8 } },
+        xaxis: {
+            categories: {{ evolution_months|tojson }},
+            labels: { style: { fontFamily: 'Cairo, sans-serif' } }
+        },
+        yaxis: {
+            min: 0,
+            max: 100,
+            labels: {
+                formatter: (val) => val + '%',
+                style: { fontFamily: 'Cairo, sans-serif' }
+            }
+        },
+        tooltip: {
+            y: { formatter: (val) => val + '%' },
+            title: { formatter: (seriesName) => seriesName }
+        },
+        legend: {
+            position: 'top',
+            fontFamily: 'Cairo, sans-serif',
+            markers: { width: 12, height: 12 }
+        }
+    };
+
+    const chart = new ApexCharts(document.querySelector("#evolutionChart"), options);
+    chart.render();
+}
+
+function initSearch() {
+    document.getElementById('searchSupervisor').addEventListener('keyup', function() {
+        const searchTerm = this.value.toLowerCase();
+        const rows = document.querySelectorAll('.evaluation-matrix tbody tr');
+
+        // هذا بسيط لمصفوفة التقييم - يمكن تطويره حسب الحاجة
+        console.log('بحث:', searchTerm);
+    });
+}
+
+function changeChartType(type) {
+    alert(`تغيير نوع الرسم البياني إلى: ${type}`);
+}
+
+function exportReport(format) {
+    alert(`جاري تصدير التقرير بصيغة ${format.toUpperCase()}`);
+}
+</script>
+
+<style>
+.text-gradient-evaluation {
+    background: linear-gradient(135deg, #4e73df 0%, #1cc88a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.leadership-card {
+    border-radius: 15px;
+    border: none;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.leadership-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.15) !important;
+}
+
+.gradient-gold { background: linear-gradient(135deg, #f6c23e, #f4a100); }
+.gradient-silver { background: linear-gradient(135deg, #858796, #6c757d); }
+.gradient-bronze { background: linear-gradient(135deg, #cd7f32, #b87333); }
+.gradient-platinum { background: linear-gradient(135deg, #4e73df, #224abe); }
+
+.icon-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bg-white-20 {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.evaluation-matrix {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.evaluation-matrix th,
+.evaluation-matrix td {
+    vertical-align: middle;
+    padding: 1rem 0.75rem;
+}
+
+.evaluation-matrix tbody tr:hover {
+    background-color: #f8f9fc;
+}
+
+.badge {
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 20px;
+}
+
+.list-group-item {
+    border: none;
+    border-bottom: 1px solid #e3e6f0;
+    padding: 1rem;
+    background: transparent;
+}
+
+.list-group-item:last-child {
+    border-bottom: none;
+}
+
+.card {
+    border-radius: 15px;
+    border: none;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+}
+
+.btn-modern {
+    border-radius: 25px;
+    padding: 0.5rem 1.5rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: all 0.3s;
+}
+
+.btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+}
+
+.text-white-50 {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+@media print {
+    .btn-group, .btn-modern {
+        display: none !important;
+    }
+
+    .card {
+        break-inside: avoid;
+        border: 1px solid #ddd !important;
+    }
+}
+</style>
+{% endblock %}

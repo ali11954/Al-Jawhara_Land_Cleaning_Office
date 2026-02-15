@@ -1,10 +1,208 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}تقييمات المشرفين - أرض الجوهرة للنظافة{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- رأس الصفحة -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{{ url_for('dashboard') }}" class="text-decoration-none">
+                            <i class="fas fa-home me-1"></i>الرئيسية
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{{ url_for('evaluations_list') }}" class="text-decoration-none">
+                            <i class="fas fa-clipboard-check me-1"></i>التقييمات
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        <i class="fas fa-user-tie me-1"></i>تقييمات المشرفين
+                    </li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-user-tie text-success me-2"></i>
+                تقييمات المشرفين
+            </h1>
+            <p class="text-muted mb-0">
+                <i class="fas fa-info-circle me-1"></i>
+                عرض تقييمات أداء المشرفين
+            </p>
+        </div>
+        <div>
+            <a href="{{ url_for('add_supervisor_evaluation') }}" class="btn btn-success">
+                <i class="fas fa-plus me-1"></i>إضافة تقييم مشرف
+            </a>
+        </div>
+    </div>
+
+    <!-- رسائل التنبيه -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- بطاقة التقييمات -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list me-2"></i>قائمة تقييمات المشرفين
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>التاريخ</th>
+                            <th>المشرف</th>
+                            <th>الشركة</th>
+                            <th>المقيم</th>
+                            <th>النتيجة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for evaluation in evaluations %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ evaluation.date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ evaluation.supervisor.full_name if evaluation.supervisor else 'غير محدد' }}</td>
+                            <td>{{ evaluation.company.name if evaluation.company else 'غير محدد' }}</td>
+                            <td>{{ evaluation.evaluator.full_name if evaluation.evaluator else 'غير محدد' }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if evaluation.overall_score >= 4 else 'warning' if evaluation.overall_score >= 3 else 'danger' }}">
+                                    {{ "%.1f"|format(evaluation.overall_score) }}/5
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-info btn-sm view-supervisor-evaluation" data-id="{{ evaluation.id }}">
+                                    <i class="fas fa-eye"></i> عرض
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">لا توجد تقييمات للمشرفين</p>
+                                <a href="{{ url_for('add_supervisor_evaluation') }}" class="btn btn-primary btn-sm">
+                                    إضافة أول تقييم
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Evaluation Details -->
+<div class="modal fade" id="supervisorEvaluationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-tie me-2"></i>تفاصيل تقييم المشرف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="supervisorEvaluationContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-success" role="status"></div>
+                    <p class="mt-2">جاري التحميل...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.view-supervisor-evaluation').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const id = this.dataset.id;
+        const modal = new bootstrap.Modal(document.getElementById('supervisorEvaluationModal'));
+
+        fetch(`/api/supervisor-evaluation/${id}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const e = data.data;
+                    const content = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>التاريخ:</strong> ${e.date}</p>
+                                <p><strong>المشرف:</strong> ${e.supervisor}</p>
+                                <p><strong>الشركة:</strong> ${e.company}</p>
+                                <p><strong>المقيم:</strong> ${e.evaluator}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>النتيجة العامة:</strong>
+                                    <span class="badge bg-success">${e.overall_score.toFixed(1)}/5</span>
+                                </p>
+                            </div>
+                        </div>
+                        <hr>
+                        <h6>تفاصيل التقييم:</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>متابعة العمال:</strong> ${e.workers_followup}/5</p>
+                                <p class="text-muted">${e.workers_followup_notes || 'لا توجد ملاحظات'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>الكفاءة:</strong> ${e.work_efficiency}/5</p>
+                                <p class="text-muted">${e.efficiency_notes || 'لا توجد ملاحظات'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>التقارير:</strong> ${e.reports_submission}/5</p>
+                                <p class="text-muted">${e.reports_notes || 'لا توجد ملاحظات'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>السياسات:</strong> ${e.policies_compliance}/5</p>
+                                <p class="text-muted">${e.policies_notes || 'لا توجد ملاحظات'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>السلامة:</strong> ${e.safety_procedures}/5</p>
+                                <p class="text-muted">${e.safety_notes || 'لا توجد ملاحظات'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>وقت العمل:</strong> ${e.attendance_commitment}/5</p>
+                                <p class="text-muted">${e.attendance_notes || 'لا توجد ملاحظات'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>القيادة:</strong> ${e.leadership_skills}/5</p>
+                                <p class="text-muted">${e.leadership_notes || 'لا توجد ملاحظات'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>حل المشكلات:</strong> ${e.problem_solving}/5</p>
+                                <p class="text-muted">${e.problem_solving_notes || 'لا توجد ملاحظات'}</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <p><strong>ملاحظات عامة:</strong> ${e.general_comments || 'لا توجد'}</p>
+                    `;
+                    document.getElementById('supervisorEvaluationContent').innerHTML = content;
+                }
+            });
+
+        modal.show();
+    });
+});
+</script>
+{% endblock %}

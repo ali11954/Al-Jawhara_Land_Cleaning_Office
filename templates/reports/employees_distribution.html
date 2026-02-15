@@ -1,10 +1,286 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<!-- templates/reports/employees_distribution.html -->
+{% extends "base.html" %}
+
+{% block title %}توزيع الموظفين على الشركات{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- شريط العنوان -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-gradient-success mb-1">
+                <i class="fas fa-chart-pie me-2"></i>
+                توزيع الموظفين على الشركات
+            </h2>
+            <p class="text-muted mb-0">تحليل متقدم لتوزيع الكوادر البشرية</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">PDF</button>
+            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">Excel</button>
+        </div>
+    </div>
+
+    <!-- رسوم بيانية متقدمة -->
+    <div class="row mb-4">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-bar me-2"></i>توزيع الموظفين حسب الشركة
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="distributionBarChart" style="height: 350px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-pie me-2"></i>النسب المئوية
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="distributionPieChart" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تحليل الهيكل التنظيمي -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-sitemap me-2"></i>الهيكل التنظيمي للشركات
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for company in distribution_data %}
+                        <div class="col-md-4 mb-4">
+                            <div class="org-chart-card">
+                                <div class="org-header" style="background-color: {{ company.color }};">
+                                    <h5 class="text-white mb-0">{{ company.name }}</h5>
+                                </div>
+                                <div class="org-body">
+                                    <div class="org-stat">
+                                        <span class="stat-label">إجمالي الموظفين</span>
+                                        <span class="stat-value">{{ company.total_employees }}</span>
+                                    </div>
+                                    <div class="org-stat">
+                                        <span class="stat-label">المشرفين</span>
+                                        <span class="stat-value">{{ company.supervisors }}</span>
+                                    </div>
+                                    <div class="org-stat">
+                                        <span class="stat-label">المراقبين</span>
+                                        <span class="stat-value">{{ company.monitors }}</span>
+                                    </div>
+                                    <div class="org-stat">
+                                        <span class="stat-label">العمال</span>
+                                        <span class="stat-value">{{ company.workers }}</span>
+                                    </div>
+                                    <div class="progress mt-3" style="height: 8px;">
+                                        <div class="progress-bar bg-success" style="width: {{ (company.supervisors / company.total_employees * 100) if company.total_employees > 0 else 0 }}%;"></div>
+                                        <div class="progress-bar bg-info" style="width: {{ (company.monitors / company.total_employees * 100) if company.total_employees > 0 else 0 }}%;"></div>
+                                        <div class="progress-bar bg-primary" style="width: {{ (company.workers / company.total_employees * 100) if company.total_employees > 0 else 0 }}%;"></div>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-2 small">
+                                        <span><span class="badge bg-success">مشرف</span> {{ company.supervisors }}</span>
+                                        <span><span class="badge bg-info">مراقب</span> {{ company.monitors }}</span>
+                                        <span><span class="badge bg-primary">عامل</span> {{ company.workers }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول التوزيع التفصيلي -->
+    <div class="card shadow">
+        <div class="card-header bg-white py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-table me-2"></i>التوزيع التفصيلي
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>الشركة</th>
+                            <th>إجمالي الموظفين</th>
+                            <th>المشرفين</th>
+                            <th>المراقبين</th>
+                            <th>العمال</th>
+                            <th>نسبة المشرفين</th>
+                            <th>نسبة العمال</th>
+                            <th>الكثافة الوظيفية</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for company in distribution_data %}
+                        <tr>
+                            <td class="fw-bold">{{ company.name }}</td>
+                            <td>{{ company.total_employees }}</td>
+                            <td>{{ company.supervisors }}</td>
+                            <td>{{ company.monitors }}</td>
+                            <td>{{ company.workers }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="me-2">{{ ((company.supervisors / company.total_employees * 100) if company.total_employees > 0 else 0)|int }}%</span>
+                                    <div class="progress flex-grow-1" style="height: 5px;">
+                                        <div class="progress-bar bg-success" style="width: {{ (company.supervisors / company.total_employees * 100) if company.total_employees > 0 else 0 }}%;"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="me-2">{{ ((company.workers / company.total_employees * 100) if company.total_employees > 0 else 0)|int }}%</span>
+                                    <div class="progress flex-grow-1" style="height: 5px;">
+                                        <div class="progress-bar bg-primary" style="width: {{ (company.workers / company.total_employees * 100) if company.total_employees > 0 else 0 }}%;"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ "%.1f"|format(company.total_employees / company.areas_count) if company.areas_count > 0 else 0 }} موظف/منطقة</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ApexCharts -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+const distributionData = {{ distribution_data|tojson }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // رسم بياني أعمدة
+    const barOptions = {
+        series: [{
+            name: 'المشرفين',
+            data: distributionData.map(c => c.supervisors)
+        }, {
+            name: 'المراقبين',
+            data: distributionData.map(c => c.monitors)
+        }, {
+            name: 'العمال',
+            data: distributionData.map(c => c.workers)
+        }],
+        chart: {
+            type: 'bar',
+            height: 350,
+            stacked: true,
+            toolbar: { show: false },
+            fontFamily: 'Cairo, sans-serif'
+        },
+        colors: ['#1cc88a', '#36b9cc', '#4e73df'],
+        plotOptions: {
+            bar: {
+                horizontal: false,
+                columnWidth: '55%',
+                endingShape: 'rounded'
+            }
+        },
+        xaxis: {
+            categories: distributionData.map(c => c.name),
+            labels: { style: { fontFamily: 'Cairo, sans-serif' } }
+        },
+        yaxis: {
+            title: { text: 'عدد الموظفين' },
+            labels: { style: { fontFamily: 'Cairo, sans-serif' } }
+        },
+        legend: {
+            position: 'top',
+            fontFamily: 'Cairo, sans-serif'
+        },
+        tooltip: {
+            y: { formatter: (val) => val + ' موظف' }
+        }
+    };
+
+    const barChart = new ApexCharts(document.querySelector("#distributionBarChart"), barOptions);
+    barChart.render();
+
+    // رسم بياني دائري
+    const pieOptions = {
+        series: distributionData.map(c => c.total_employees),
+        chart: {
+            type: 'pie',
+            height: 300,
+            fontFamily: 'Cairo, sans-serif'
+        },
+        labels: distributionData.map(c => c.name),
+        colors: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
+        legend: {
+            position: 'bottom',
+            fontFamily: 'Cairo, sans-serif'
+        },
+        tooltip: {
+            y: { formatter: (val) => val + ' موظف' }
+        }
+    };
+
+    const pieChart = new ApexCharts(document.querySelector("#distributionPieChart"), pieOptions);
+    pieChart.render();
+});
+</script>
+
+<style>
+.org-chart-card {
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    transition: transform 0.3s;
+}
+
+.org-chart-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+.org-header {
+    padding: 1rem;
+    text-align: center;
+}
+
+.org-body {
+    padding: 1.5rem;
+    background: white;
+}
+
+.org-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e3e6f0;
+}
+
+.org-stat:last-child {
+    border-bottom: none;
+}
+
+.stat-label {
+    color: #858796;
+    font-size: 0.9rem;
+}
+
+.stat-value {
+    font-weight: bold;
+    color: #5a5c69;
+}
+</style>
+{% endblock %}

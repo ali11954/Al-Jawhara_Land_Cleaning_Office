@@ -1,10 +1,615 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}إضافة تقييم مشرف - أرض الجوهرة للنظافة{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- رأس الصفحة المحسن -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{{ url_for('dashboard') }}" class="text-decoration-none">
+                            <i class="fas fa-home me-1"></i>الرئيسية
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{{ url_for('supervisor_evaluations_list') }}" class="text-decoration-none">
+                            <i class="fas fa-user-tie me-1"></i>تقييمات المشرفين
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        <i class="fas fa-plus-circle me-1"></i>إضافة تقييم
+                    </li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-user-tie text-success me-2"></i>
+                إضافة تقييم مشرف
+            </h1>
+            <p class="text-muted mb-0">
+                <i class="fas fa-info-circle me-1"></i>
+                تقييم أداء المشرفين بناءً على 8 معايير مختلفة
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('supervisor_evaluations_list') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right me-1"></i>رجوع
+            </a>
+        </div>
+    </div>
+
+    <!-- رسائل التنبيه -->
+    <div id="alertContainer"></div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- نموذج تقييم المشرف -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 bg-success text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-clipboard-check me-2"></i>نموذج تقييم المشرف
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="supervisorEvaluationForm" class="needs-validation" novalidate>
+                        <!-- التاريخ -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="sup_date" class="form-label">
+                                    <i class="fas fa-calendar-alt text-primary me-1"></i>
+                                    تاريخ التقييم <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" class="form-control" id="sup_date" name="date"
+                                       value="{{ today.isoformat() }}" max="{{ today.isoformat() }}" required>
+                                <div class="invalid-feedback">يرجى اختيار تاريخ التقييم</div>
+                            </div>
+                        </div>
+
+                        <!-- المشرف والشركة -->
+                        <div class="row mb-3">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <label for="sup_supervisor_id" class="form-label">
+                                    <i class="fas fa-user-tie text-warning me-1"></i>
+                                    المشرف <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="sup_supervisor_id" name="supervisor_id" required onchange="updateCompanyFromSupervisor()">
+                                    <option value="">-- اختر المشرف --</option>
+                                    {% for supervisor in supervisors %}
+                                    <option value="{{ supervisor.id }}" data-company="{{ supervisor.company_id }}" data-company-name="{{ supervisor.company.name if supervisor.company else '' }}">
+                                        {{ supervisor.full_name }}
+                                        {% if supervisor.company %} - {{ supervisor.company.name }}{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">يرجى اختيار المشرف</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="sup_company_id" class="form-label">
+                                    <i class="fas fa-building text-primary me-1"></i>
+                                    الشركة <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="sup_company_id" name="company_id" required>
+                                    <option value="">-- اختر الشركة --</option>
+                                    {% for company in companies %}
+                                    <option value="{{ company.id }}">{{ company.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">يرجى اختيار الشركة</div>
+                            </div>
+                        </div>
+
+                        <!-- معلومات إضافية -->
+                        <div class="alert alert-info mb-4">
+                            <div class="d-flex">
+                                <div class="me-3">
+                                    <i class="fas fa-info-circle fa-2x"></i>
+                                </div>
+                                <div>
+                                    <h6 class="alert-heading mb-1">معلومات هامة</h6>
+                                    <p class="mb-0 small">يتم تقييم المشرف بناءً على 8 معايير مختلفة. كل معيار من 1 إلى 5</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- مجالات التقييم -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <h6 class="text-success mb-3">
+                                    <i class="fas fa-star me-2"></i>مجالات تقييم المشرف
+                                </h6>
+                            </div>
+
+                            <!-- الصف الأول: 1-4 -->
+                            <div class="col-md-6 mb-4">
+                                <div class="card border-right-success h-100">
+                                    <div class="card-header bg-light py-2">
+                                        <h6 class="mb-0 text-success">
+                                            <i class="fas fa-users me-1"></i>1. متابعة العمال
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <select class="form-select mb-2" id="workers_followup" name="workers_followup" required>
+                                            <option value="">اختر التقييم...</option>
+                                            {% for i in range(1, 6) %}
+                                            <option value="{{ i }}">{{ i }} -
+                                                {% if i == 1 %}ضعيف جداً{% elif i == 2 %}ضعيف{% elif i == 3 %}متوسط{% elif i == 4 %}جيد{% else %}ممتاز{% endif %}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <textarea class="form-control" name="workers_followup_notes" rows="2" placeholder="ملاحظات على متابعة العمال (اختياري)"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <div class="card border-right-success h-100">
+                                    <div class="card-header bg-light py-2">
+                                        <h6 class="mb-0 text-success">
+                                            <i class="fas fa-chart-line me-1"></i>2. الكفاءة في العمل
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <select class="form-select mb-2" id="work_efficiency" name="work_efficiency" required>
+                                            <option value="">اختر التقييم...</option>
+                                            {% for i in range(1, 6) %}
+                                            <option value="{{ i }}">{{ i }} -
+                                                {% if i == 1 %}ضعيف جداً{% elif i == 2 %}ضعيف{% elif i == 3 %}متوسط{% elif i == 4 %}جيد{% else %}ممتاز{% endif %}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <textarea class="form-control" name="efficiency_notes" rows="2" placeholder="ملاحظات على الكفاءة (اختياري)"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <div class="card border-right-success h-100">
+                                    <div class="card-header bg-light py-2">
+                                        <h6 class="mb-0 text-success">
+                                            <i class="fas fa-file-alt me-1"></i>3. الرفع بالتقارير
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <select class="form-select mb-2" id="reports_submission" name="reports_submission" required>
+                                            <option value="">اختر التقييم...</option>
+                                            {% for i in range(1, 6) %}
+                                            <option value="{{ i }}">{{ i }} -
+                                                {% if i == 1 %}ضعيف جداً{% elif i == 2 %}ضعيف{% elif i == 3 %}متوسط{% elif i == 4 %}جيد{% else %}ممتاز{% endif %}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <textarea class="form-control" name="reports_notes" rows="2" placeholder="ملاحظات على التقارير (اختياري)"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <div class="card border-right-success h-100">
+                                    <div class="card-header bg-light py-2">
+                                        <h6 class="mb-0 text-success">
+                                            <i class="fas fa-gavel me-1"></i>4. الالتزام بالسياسات
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <select class="form-select mb-2" id="policies_compliance" name="policies_compliance" required>
+                                            <option value="">اختر التقييم...</option>
+                                            {% for i in range(1, 6) %}
+                                            <option value="{{ i }}">{{ i }} -
+                                                {% if i == 1 %}ضعيف جداً{% elif i == 2 %}ضعيف{% elif i == 3 %}متوسط{% elif i == 4 %}جيد{% else %}ممتاز{% endif %}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <textarea class="form-control" name="policies_notes" rows="2" placeholder="ملاحظات على الالتزام بالسياسات (اختياري)"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- الصف الثاني: 5-8 -->
+                            <div class="col-md-6 mb-4">
+                                <div class="card border-right-success h-100">
+                                    <div class="card-header bg-light py-2">
+                                        <h6 class="mb-0 text-success">
+                                            <i class="fas fa-shield-alt me-1"></i>5. إجراءات السلامة
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <select class="form-select mb-2" id="safety_procedures" name="safety_procedures" required>
+                                            <option value="">اختر التقييم...</option>
+                                            {% for i in range(1, 6) %}
+                                            <option value="{{ i }}">{{ i }} -
+                                                {% if i == 1 %}ضعيف جداً{% elif i == 2 %}ضعيف{% elif i == 3 %}متوسط{% elif i == 4 %}جيد{% else %}ممتاز{% endif %}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <textarea class="form-control" name="safety_notes" rows="2" placeholder="ملاحظات على إجراءات السلامة (اختياري)"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <div class="card border-right-success h-100">
+                                    <div class="card-header bg-light py-2">
+                                        <h6 class="mb-0 text-success">
+                                            <i class="fas fa-clock me-1"></i>6. الالتزام بوقت العمل
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <select class="form-select mb-2" id="attendance_commitment" name="attendance_commitment" required>
+                                            <option value="">اختر التقييم...</option>
+                                            {% for i in range(1, 6) %}
+                                            <option value="{{ i }}">{{ i }} -
+                                                {% if i == 1 %}ضعيف جداً{% elif i == 2 %}ضعيف{% elif i == 3 %}متوسط{% elif i == 4 %}جيد{% else %}ممتاز{% endif %}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <textarea class="form-control" name="attendance_notes" rows="2" placeholder="ملاحظات على وقت العمل (اختياري)"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <div class="card border-right-success h-100">
+                                    <div class="card-header bg-light py-2">
+                                        <h6 class="mb-0 text-success">
+                                            <i class="fas fa-crown me-1"></i>7. مهارات القيادة
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <select class="form-select mb-2" id="leadership_skills" name="leadership_skills" required>
+                                            <option value="">اختر التقييم...</option>
+                                            {% for i in range(1, 6) %}
+                                            <option value="{{ i }}">{{ i }} -
+                                                {% if i == 1 %}ضعيف جداً{% elif i == 2 %}ضعيف{% elif i == 3 %}متوسط{% elif i == 4 %}جيد{% else %}ممتاز{% endif %}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <textarea class="form-control" name="leadership_notes" rows="2" placeholder="ملاحظات على مهارات القيادة (اختياري)"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <div class="card border-right-success h-100">
+                                    <div class="card-header bg-light py-2">
+                                        <h6 class="mb-0 text-success">
+                                            <i class="fas fa-puzzle-piece me-1"></i>8. حل المشكلات
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <select class="form-select mb-2" id="problem_solving" name="problem_solving" required>
+                                            <option value="">اختر التقييم...</option>
+                                            {% for i in range(1, 6) %}
+                                            <option value="{{ i }}">{{ i }} -
+                                                {% if i == 1 %}ضعيف جداً{% elif i == 2 %}ضعيف{% elif i == 3 %}متوسط{% elif i == 4 %}جيد{% else %}ممتاز{% endif %}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <textarea class="form-control" name="problem_solving_notes" rows="2" placeholder="ملاحظات على حل المشكلات (اختياري)"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ملاحظات عامة -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <label for="general_comments" class="form-label">
+                                    <i class="fas fa-comment-dots text-primary me-1"></i>
+                                    ملاحظات عامة
+                                </label>
+                                <textarea class="form-control" id="general_comments" name="general_comments" rows="4"
+                                          placeholder="أدخل أي ملاحظات عامة عن أداء المشرف..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- أزرار الإجراءات -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('supervisor_evaluations_list') }}" class="btn btn-secondary me-md-2">
+                                <i class="fas fa-times me-1"></i>إلغاء
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-1"></i>حفظ تقييم المشرف
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- لوحة المعلومات -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-info-circle me-2"></i>تعليمات التقييم
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success mb-3">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>معايير تقييم المشرف:</strong>
+                    </div>
+
+                    <ul class="list-unstyled">
+                        <li class="mb-3">
+                            <div class="d-flex">
+                                <div class="me-2 text-success">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div>
+                                    <strong>1. متابعة العمال</strong>
+                                    <p class="text-muted small mb-0">مدى متابعة وإشراف العمال وتوجيههم</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="mb-3">
+                            <div class="d-flex">
+                                <div class="me-2 text-success">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <div>
+                                    <strong>2. الكفاءة في العمل</strong>
+                                    <p class="text-muted small mb-0">كفاءة تنفيذ المهام وجودة العمل</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="mb-3">
+                            <div class="d-flex">
+                                <div class="me-2 text-success">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div>
+                                    <strong>3. الرفع بالتقارير</strong>
+                                    <p class="text-muted small mb-0">جودة وانتظام التقارير المرفوعة</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="mb-3">
+                            <div class="d-flex">
+                                <div class="me-2 text-success">
+                                    <i class="fas fa-gavel"></i>
+                                </div>
+                                <div>
+                                    <strong>4. الالتزام بالسياسات</strong>
+                                    <p class="text-muted small mb-0">الالتزام بسياسات وإجراءات الشركة</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="mb-3">
+                            <div class="d-flex">
+                                <div class="me-2 text-success">
+                                    <i class="fas fa-shield-alt"></i>
+                                </div>
+                                <div>
+                                    <strong>5. إجراءات السلامة</strong>
+                                    <p class="text-muted small mb-0">تطبيق إجراءات السلامة والصحة المهنية</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="mb-3">
+                            <div class="d-flex">
+                                <div class="me-2 text-success">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div>
+                                    <strong>6. الالتزام بوقت العمل</strong>
+                                    <p class="text-muted small mb-0">الالتزام بمواعيد العمل والحضور</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="mb-3">
+                            <div class="d-flex">
+                                <div class="me-2 text-success">
+                                    <i class="fas fa-crown"></i>
+                                </div>
+                                <div>
+                                    <strong>7. مهارات القيادة</strong>
+                                    <p class="text-muted small mb-0">مهارات القيادة والتوجيه واتخاذ القرارات</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="mb-3">
+                            <div class="d-flex">
+                                <div class="me-2 text-success">
+                                    <i class="fas fa-puzzle-piece"></i>
+                                </div>
+                                <div>
+                                    <strong>8. حل المشكلات</strong>
+                                    <p class="text-muted small mb-0">القدرة على حل المشكلات والتعامل مع التحديات</p>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+
+                    <hr>
+
+                    <h6 class="text-primary">مقياس التقييم:</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-star text-warning me-2"></i><strong>1:</strong> ضعيف جداً</li>
+                        <li><i class="fas fa-star text-warning me-2"></i><strong>2:</strong> ضعيف</li>
+                        <li><i class="fas fa-star text-warning me-2"></i><strong>3:</strong> متوسط</li>
+                        <li><i class="fas fa-star text-warning me-2"></i><strong>4:</strong> جيد</li>
+                        <li><i class="fas fa-star text-warning me-2"></i><strong>5:</strong> ممتاز</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- بطاقة إضافية للمساعدة -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-question-circle me-2"></i>مساعدة
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="small">
+                        <i class="fas fa-info-circle text-info me-1"></i>
+                        يتم حساب التقييم العام تلقائياً كمتوسط لجميع المعايير الثمانية.
+                    </p>
+                    <p class="small mb-0">
+                        <i class="fas fa-pen text-success me-1"></i>
+                        يمكنك إضافة ملاحظات لكل معيار لتوضيح نقاط القوة والضعف.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// تحديث الشركة تلقائياً عند اختيار المشرف
+function updateCompanyFromSupervisor() {
+    const supervisorSelect = document.getElementById('sup_supervisor_id');
+    const companySelect = document.getElementById('sup_company_id');
+
+    const selectedOption = supervisorSelect.options[supervisorSelect.selectedIndex];
+    const companyId = selectedOption ? selectedOption.getAttribute('data-company') : null;
+
+    if (companyId) {
+        companySelect.value = companyId;
+    }
+}
+
+// دالة لعرض التنبيهات
+function showAlert(message, type) {
+    const alertContainer = document.getElementById('alertContainer');
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="fas ${icon} me-2 fs-5"></i>
+                <div>${message}</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+
+    alertContainer.innerHTML = alertHtml;
+
+    setTimeout(() => {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            alert.remove();
+        });
+    }, 5000);
+}
+
+// تهيئة الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ صفحة إضافة تقييم المشرف جاهزة');
+
+    // التحقق من النموذج قبل الإرسال
+    const form = document.getElementById('supervisorEvaluationForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const requiredFields = this.querySelectorAll('[required]');
+            let isValid = true;
+
+            requiredFields.forEach(field => {
+                if (!field.value) {
+                    field.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+
+            if (!isValid) {
+                e.preventDefault();
+                showAlert('❌ يرجى ملء جميع الحقول المطلوبة', 'error');
+            }
+        });
+    }
+
+    // إذا كان هناك مشرف واحد فقط، نختاره تلقائياً
+    const supervisorSelect = document.getElementById('sup_supervisor_id');
+    if (supervisorSelect && supervisorSelect.options.length === 2) { // خيار افتراضي + مشرف واحد
+        supervisorSelect.selectedIndex = 1;
+        updateCompanyFromSupervisor();
+    }
+});
+
+// تحديث تاريخ التقييم
+const dateInput = document.getElementById('sup_date');
+if (dateInput) {
+    dateInput.max = new Date().toISOString().split('T')[0];
+}
+</script>
+
+<style>
+.card {
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+}
+
+.form-label {
+    font-weight: 500;
+    color: #2c3e50;
+    margin-bottom: 0.3rem;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.is-invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.alert {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.border-right-success {
+    border-right: 3px solid #28a745 !important;
+}
+
+.breadcrumb {
+    background: none;
+    padding: 0;
+    margin-bottom: 0.5rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: "›";
+    color: #6c757d;
+}
+
+.breadcrumb-item a {
+    color: #4e73df;
+    transition: color 0.2s;
+}
+
+.breadcrumb-item a:hover {
+    color: #224abe;
+    text-decoration: underline !important;
+}
+
+/* تحسين المظهر للشاشات الصغيرة */
+@media (max-width: 768px) {
+    .card-header h6 {
+        font-size: 1rem;
+    }
+
+    .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+}
+</style>
+{% endblock %}

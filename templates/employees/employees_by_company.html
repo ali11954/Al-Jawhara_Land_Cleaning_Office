@@ -1,10 +1,116 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}موظفي {{ company }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">الرئيسية</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('employees_list') }}">الموظفين</a></li>
+                    <li class="breadcrumb-item active">{{ company }}</li>
+                </ol>
+            </nav>
+            <h2 class="text-primary">
+                <i class="fas fa-building me-2"></i>موظفي شركة {{ company }}
+            </h2>
+        </div>
+        <a href="{{ url_for('employees_list') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-right me-2"></i>العودة
+        </a>
+    </div>
+
+    <!-- إحصائيات سريعة -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="text-white-50">إجمالي الموظفين</h6>
+                    <h3>{{ company_stats.total }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning">
+                <div class="card-body">
+                    <h6 class="text-dark">المشرفين</h6>
+                    <h3 class="text-dark">{{ company_stats.supervisors }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="text-white-50">المراقبين</h6>
+                    <h3>{{ company_stats.monitors }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <h6 class="text-white-50">عمال النظافة</h6>
+                    <h3>{{ company_stats.workers }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول الموظفين -->
+    <div class="card shadow">
+        <div class="card-header">
+            <h6 class="m-0 font-weight-bold text-primary">
+                قائمة الموظفين في {{ company }}
+            </h6>
+        </div>
+        <div class="card-body">
+            {% if employees %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>الاسم</th>
+                            <th>المنصب</th>
+                            <th>المشرف</th>
+                            <th>الهاتف</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for emp in employees %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ emp.full_name }}</td>
+                            <td>
+                                <span class="badge {% if emp.position == 'supervisor' %}bg-warning{% elif emp.position == 'monitor' %}bg-info{% else %}bg-secondary{% endif %}">
+                                    {{ emp.position_ar }}
+                                </span>
+                            </td>
+                            <td>{{ emp.supervisor.full_name if emp.supervisor else 'بدون مشرف' }}</td>
+                            <td>{{ emp.phone or 'غير محدد' }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if emp.is_active else 'danger' }}">
+                                    {{ 'نشط' if emp.is_active else 'غير نشط' }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('view_employee', id=emp.id) }}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-center text-muted py-4">لا يوجد موظفين في هذه الشركة</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

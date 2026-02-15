@@ -8,17 +8,43 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h2 class="text-primary mb-1">إدارة الموظفين</h2>
-                    <p class="text-muted mb-0">عرض وإدارة جميع الموظفين في النظام</p>
+                    <h2 class="text-primary mb-1">
+                        {% if current_user.role == 'supervisor' %}
+                        <i class="fas fa-user-tie"></i> العمال التابعين لي
+                        {% elif current_user.role == 'monitor' %}
+                        <i class="fas fa-eye"></i> العمال في موقعي
+                        {% else %}
+                        <i class="fas fa-users-cog"></i> إدارة الموظفين
+                        {% endif %}
+                    </h2>
+                    <p class="text-muted mb-0">
+                        {% if current_user.role == 'supervisor' %}
+                        عرض وإدارة العمال المربوطين معك
+                        {% elif current_user.role == 'monitor' %}
+                        عرض وإدارة عمال النظافة في موقعك
+                        {% else %}
+                        عرض وإدارة جميع الموظفين في النظام
+                        {% endif %}
+                    </p>
                 </div>
-                {% if current_user.is_authenticated and current_user.role == 'owner' %}
-                <a href="/employees/add" class="btn btn-success">
-                    <i class="fas fa-plus me-1"></i>إضافة موظف جديد
-                </a>
-                {% endif %}
+                <div class="d-flex gap-2">
+                    {% if current_user.role == 'owner' %}
+                    <a href="/employees/add" class="btn btn-success">
+                        <i class="fas fa-plus me-1"></i>إضافة موظف جديد
+                    </a>
+                    <button class="btn btn-info" onclick="showAssignSupervisorModal()">
+                        <i class="fas fa-link me-1"></i>ربط العمال بالمشرفين
+                    </button>
+                    {% endif %}
+                    {% if current_user.role in ['owner', 'supervisor'] %}
+                    <a href="{{ url_for('prepare_attendance') }}" class="btn btn-primary">
+                        <i class="fas fa-clipboard-check me-1"></i>نظام التحضير
+                    </a>
+                    {% endif %}
+                </div>
             </div>
 
-            <!-- بطاقات الإحصائيات -->
+            <!-- بطاقات الإحصائيات المخصصة حسب الصلاحية -->
             <div class="row mb-4">
                 <div class="col-xl-3 col-md-6 mb-4">
                     <div class="card border-left-primary shadow h-100 py-2">
@@ -26,9 +52,15 @@
                             <div class="row no-gutters align-items-center">
                                 <div class="col mr-2">
                                     <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        {% if current_user.role == 'supervisor' %}
+                                        إجمالي العمال التابعين
+                                        {% elif current_user.role == 'monitor' %}
+                                        إجمالي العمال في موقعي
+                                        {% else %}
                                         إجمالي الموظفين
+                                        {% endif %}
                                     </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ employees|length }}</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ employees|length if employees else 0 }}</div>
                                 </div>
                                 <div class="col-auto">
                                     <i class="fas fa-users fa-2x text-gray-300"></i>
@@ -44,10 +76,10 @@
                             <div class="row no-gutters align-items-center">
                                 <div class="col mr-2">
                                     <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                        الموظفين النشطين
+                                        الحاضرون اليوم
                                     </div>
                                     <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                        {{ employees|selectattr('is_active')|list|length }}
+                                        {{ present_today|default(0) }}
                                     </div>
                                 </div>
                                 <div class="col-auto">
@@ -64,6 +96,50 @@
                             <div class="row no-gutters align-items-center">
                                 <div class="col mr-2">
                                     <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        المتأخرون اليوم
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        {{ late_today|default(0) }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-clock fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-danger shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                        الغائبون اليوم
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        {{ absent_today|default(0) }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-user-times fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- إحصائيات إضافية للمالك -->
+            {% if current_user.role == 'owner' and employees %}
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
                                         المشرفين
                                     </div>
                                     <div class="h5 mb-0 font-weight-bold text-gray-800">
@@ -79,11 +155,31 @@
                 </div>
 
                 <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-left-info shadow h-100 py-2">
+                    <div class="card border-left-secondary shadow h-100 py-2">
                         <div class="card-body">
                             <div class="row no-gutters align-items-center">
                                 <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                    <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                                        المراقبين
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        {{ employees|selectattr('position', 'equalto', 'monitor')|list|length }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-eye fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
                                         عمال النظافة
                                     </div>
                                     <div class="h5 mb-0 font-weight-bold text-gray-800">
@@ -97,95 +193,308 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        بدون مشرف
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        {{ employees|selectattr('supervisor_id', 'none')|list|length }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-user-slash fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <!-- بطاقات إضافية للشركات -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card shadow mb-4">
+                        <div class="card-header bg-gradient-primary text-white py-3">
+                            <h6 class="m-0 font-weight-bold">
+                                <i class="fas fa-building me-2"></i>الشركات
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% set company_stats = {} %}
+                                {% for emp in employees %}
+                                    {% if emp.company %}
+                                        {% if emp.company not in company_stats %}
+                                            {% set _ = company_stats.update({emp.company: {'total': 0, 'supervisors': 0, 'monitors': 0, 'workers': 0}}) %}
+                                        {% endif %}
+                                        {% set _ = company_stats[emp.company].update({'total': company_stats[emp.company].total + 1}) %}
+                                        {% if emp.position == 'supervisor' %}
+                                            {% set _ = company_stats[emp.company].update({'supervisors': company_stats[emp.company].supervisors + 1}) %}
+                                        {% elif emp.position == 'monitor' %}
+                                            {% set _ = company_stats[emp.company].update({'monitors': company_stats[emp.company].monitors + 1}) %}
+                                        {% else %}
+                                            {% set _ = company_stats[emp.company].update({'workers': company_stats[emp.company].workers + 1}) %}
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% for company, stats in company_stats.items() %}
+                                <div class="col-xl-3 col-md-6 mb-3">
+                                    <div class="card border-bottom-{{ 'primary' if loop.index % 4 == 1 else 'success' if loop.index % 4 == 2 else 'info' if loop.index % 4 == 3 else 'warning' }} shadow h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <h6 class="fw-bold mb-0">{{ company }}</h6>
+                                                <span class="badge bg-primary rounded-pill">{{ stats.total }}</span>
+                                            </div>
+                                            <div class="small text-muted mb-2">
+                                                <i class="fas fa-user-tie text-warning me-1"></i> {{ stats.supervisors }} مشرف |
+                                                <i class="fas fa-eye text-info me-1"></i> {{ stats.monitors }} مراقب |
+                                                <i class="fas fa-broom text-secondary me-1"></i> {{ stats.workers }} عامل
+                                            </div>
+                                            <div class="progress" style="height: 5px;">
+                                                <div class="progress-bar bg-warning" role="progressbar"
+                                                     style="width: {{ (stats.supervisors / stats.total * 100) if stats.total > 0 else 0 }}%"></div>
+                                                <div class="progress-bar bg-info" role="progressbar"
+                                                     style="width: {{ (stats.monitors / stats.total * 100) if stats.total > 0 else 0 }}%"></div>
+                                                <div class="progress-bar bg-secondary" role="progressbar"
+                                                     style="width: {{ (stats.workers / stats.total * 100) if stats.total > 0 else 0 }}%"></div>
+                                            </div>
+                                            <div class="mt-2 text-center">
+                                                <button class="btn btn-sm btn-outline-primary" onclick="filterByCompany('{{ company }}')">
+                                                    <i class="fas fa-filter me-1"></i>عرض الموظفين
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-info" onclick="showCompanyStats('{{ company }}')">
+                                                    <i class="fas fa-chart-bar me-1"></i>إحصائيات
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- زر التحضير السريع للمشرفين -->
+            {% if current_user.role in ['supervisor', 'monitor'] and employees %}
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card bg-light border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <h5 class="mb-1">
+                                        <i class="fas fa-clock text-primary me-2"></i>
+                                        تحضير سريع لليوم ({{ today.strftime('%Y-%m-%d') if today else '' }})
+                                    </h5>
+                                    <p class="text-muted mb-0 small">
+                                        يمكنك تسجيل حضور {{ employees|length }} عامل بشكل سريع
+                                    </p>
+                                </div>
+                                <a href="{{ url_for('prepare_attendance') }}" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-clipboard-check me-2"></i>
+                                    ابدأ التحضير
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- أزرار التصفية حسب الشركة -->
+            {% if current_user.role == 'owner' and company_stats %}
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="btn-group flex-wrap" role="group" id="companyFilterButtons">
+                        <button class="btn btn-outline-primary active" onclick="filterByCompany('all')">
+                            <i class="fas fa-users me-1"></i>الكل
+                        </button>
+                        {% for company in company_stats.keys() %}
+                        <button class="btn btn-outline-primary" onclick="filterByCompany('{{ company }}')">
+                            <i class="fas fa-building me-1"></i>{{ company }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
 
             <!-- جدول الموظفين -->
             <div class="card shadow">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-list me-2"></i>قائمة الموظفين
+                        <i class="fas fa-list me-2"></i>
+                        {% if current_user.role == 'supervisor' %}
+                        قائمة العمال التابعين
+                        <span class="badge bg-primary ms-2">{{ employees|length if employees else 0 }}</span>
+                        {% elif current_user.role == 'monitor' %}
+                        قائمة العمال في موقعك
+                        <span class="badge bg-info ms-2">{{ employees|length if employees else 0 }}</span>
+                        {% else %}
+                        قائمة الموظفين
+                        <span class="badge bg-primary ms-2">{{ employees|length if employees else 0 }}</span>
+                        {% endif %}
                     </h6>
                     <div class="d-flex gap-2">
+                        {% if company_stats %}
+                        <select class="form-select form-select-sm" id="companySelect" style="width: 200px;" onchange="filterByCompanySelect(this.value)">
+                            <option value="all">جميع الشركات</option>
+                            {% for company in company_stats.keys() %}
+                            <option value="{{ company }}">{{ company }}</option>
+                            {% endfor %}
+                        </select>
+                        {% endif %}
+                        <div class="input-group input-group-sm" style="width: 250px;">
+                            <input type="text" class="form-control" id="searchInput" placeholder="بحث عن موظف...">
+                            <button class="btn btn-outline-secondary" type="button">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
                         <button class="btn btn-outline-primary btn-sm" onclick="refreshPage()">
                             <i class="fas fa-sync-alt me-1"></i>تحديث
-                        </button>
-                        <button class="btn btn-outline-secondary btn-sm" onclick="printPage()">
-                            <i class="fas fa-print me-1"></i>طباعة
                         </button>
                     </div>
                 </div>
                 <div class="card-body">
                     {% if employees %}
                     <div class="table-responsive">
-                        <table class="table table-hover table-bordered">
+                        <table class="table table-hover table-bordered" id="employeesTable">
                             <thead class="table-light">
                                 <tr>
                                     <th>#</th>
                                     <th>الاسم الكامل</th>
                                     <th>المسمى الوظيفي</th>
+                                    <th>الشركة</th>
+                                    <th>المشرف المباشر</th>
                                     <th>الهاتف</th>
                                     <th>تاريخ التعيين</th>
-                                    <th>الراتب</th>
                                     <th>الحالة</th>
+                                    <th>حضور اليوم</th>
                                     <th>الإجراءات</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for employee in employees %}
-                                <tr>
+                                <tr data-company="{{ employee.company or '' }}">
                                     <td>{{ loop.index }}</td>
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <div class="avatar-circle-sm me-2">
-                                                <span class="initials-sm">{{ employee.full_name[0] }}</span>
+                                            <div class="avatar-circle-sm me-2 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                                                 style="width: 35px; height: 35px;">
+                                                <span class="fw-bold">{{ employee.full_name[0] if employee.full_name else '?' }}</span>
                                             </div>
                                             <div>
                                                 <div class="fw-bold">{{ employee.full_name }}</div>
-                                                <small class="text-muted">{{ employee.user.username if employee.user else 'لا يوجد حساب' }}</small>
+                                                <small class="text-muted">
+                                                    {% if employee.user %}
+                                                    <i class="fas fa-user-check text-success"></i> {{ employee.user.username }}
+                                                    {% else %}
+                                                    <i class="fas fa-user-slash text-danger"></i> لا يوجد حساب
+                                                    {% endif %}
+                                                </small>
                                             </div>
                                         </div>
                                     </td>
                                     <td>
                                         {% if employee.position == 'supervisor' %}
-                                        <span class="badge bg-warning text-dark">
+                                        <span class="badge bg-warning text-dark px-3 py-2">
                                             <i class="fas fa-user-tie me-1"></i>مشرف
                                         </span>
                                         {% elif employee.position == 'monitor' %}
-                                        <span class="badge bg-info">
+                                        <span class="badge bg-info text-white px-3 py-2">
                                             <i class="fas fa-eye me-1"></i>مراقب
                                         </span>
                                         {% else %}
-                                        <span class="badge bg-secondary">
+                                        <span class="badge bg-secondary px-3 py-2">
                                             <i class="fas fa-broom me-1"></i>عامل نظافة
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if employee.company %}
+                                        <span class="badge bg-primary px-3 py-2">
+                                            <i class="fas fa-building me-1"></i>{{ employee.company }}
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-secondary px-3 py-2">
+                                            <i class="fas fa-building me-1"></i>غير محدد
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if employee.supervisor %}
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-user-tie text-warning me-1"></i>
+                                            {{ employee.supervisor.full_name }}
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">
+                                            <i class="fas fa-minus-circle me-1"></i>بدون مشرف
                                         </span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if employee.phone %}
                                         <a href="tel:{{ employee.phone }}" class="text-decoration-none">
-                                            <i class="fas fa-phone me-1"></i>{{ employee.phone }}
+                                            <i class="fas fa-phone-alt text-success me-1"></i>{{ employee.phone }}
                                         </a>
                                         {% else %}
                                         <span class="text-muted">غير محدد</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ employee.hire_date.strftime('%Y-%m-%d') }}</td>
                                     <td>
-                                        {% if employee.salary %}
-                                        <span class="fw-bold text-success">{{ employee.salary }} ر.ي</span>
-                                        {% else %}
-                                        <span class="text-muted">غير محدد</span>
-                                        {% endif %}
+                                        <i class="fas fa-calendar-alt text-primary me-1"></i>
+                                        {{ employee.hire_date.strftime('%Y-%m-%d') if employee.hire_date else 'غير محدد' }}
                                     </td>
                                     <td>
                                         {% if employee.is_active %}
-                                        <span class="badge bg-success">
+                                        <span class="badge bg-success px-3 py-2">
                                             <i class="fas fa-check-circle me-1"></i>نشط
                                         </span>
                                         {% else %}
-                                        <span class="badge bg-danger">
+                                        <span class="badge bg-danger px-3 py-2">
                                             <i class="fas fa-times-circle me-1"></i>غير نشط
                                         </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if today and employee.attendance %}
+                                            {% set today_attendance = employee.attendance|selectattr('date', 'equalto', today)|list %}
+                                            {% if today_attendance %}
+                                                {% if today_attendance[0].status == 'present' %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check"></i> حاضر
+                                                </span>
+                                                {% elif today_attendance[0].status == 'late' %}
+                                                <span class="badge bg-warning">
+                                                    <i class="fas fa-clock"></i> متأخر
+                                                </span>
+                                                {% else %}
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-times"></i> غائب
+                                                </span>
+                                                {% endif %}
+                                            {% else %}
+                                                {% if current_user.role in ['owner', 'supervisor', 'monitor'] %}
+                                                <a href="{{ url_for('add_attendance') }}?employee_id={{ employee.id }}"
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-pen"></i> تسجيل
+                                                </a>
+                                                {% else %}
+                                                <span class="text-muted">لم يسجل</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">لم يسجل</span>
                                         {% endif %}
                                     </td>
                                     <td>
@@ -194,7 +503,7 @@
                                                     title="عرض التفاصيل">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            {% if current_user.is_authenticated and current_user.role == 'owner' %}
+                                            {% if current_user.role == 'owner' %}
                                             <a href="/employees/edit/{{ employee.id }}" class="btn btn-outline-warning"
                                                title="تعديل البيانات">
                                                 <i class="fas fa-edit"></i>
@@ -204,6 +513,12 @@
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                             {% endif %}
+                                            {% if current_user.role in ['supervisor', 'monitor'] and employee.position == 'worker' %}
+                                            <a href="{{ url_for('add_attendance') }}?employee_id={{ employee.id }}"
+                                               class="btn btn-outline-success" title="تسجيل حضور">
+                                                <i class="fas fa-clock"></i>
+                                            </a>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>
@@ -211,12 +526,46 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- إحصائيات إضافية أسفل الجدول -->
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="alert alert-info mb-0">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>إجمالي:</strong> {{ employees|length }} موظف |
+                                <strong>نشط:</strong> {{ employees|selectattr('is_active')|list|length }} |
+                                <strong>غير نشط:</strong> {{ employees|rejectattr('is_active')|list|length }}
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-start">
+                            <small class="text-muted">
+                                آخر تحديث: {{ now.strftime('%Y-%m-%d %H:%M') if now else '' }}
+                            </small>
+                        </div>
+                    </div>
+
                     {% else %}
                     <div class="text-center py-5">
                         <i class="fas fa-users fa-4x text-muted mb-3"></i>
-                        <h4 class="text-muted">لا توجد موظفين</h4>
-                        <p class="text-muted mb-4">لم يتم إضافة أي موظفين إلى النظام بعد</p>
-                        {% if current_user.is_authenticated and current_user.role == 'owner' %}
+                        <h4 class="text-muted">
+                            {% if current_user.role == 'supervisor' %}
+                            لا يوجد عمال تابعين لك
+                            {% elif current_user.role == 'monitor' %}
+                            لا يوجد عمال في موقعك
+                            {% else %}
+                            لا توجد موظفين
+                            {% endif %}
+                        </h4>
+                        <p class="text-muted mb-4">
+                            {% if current_user.role == 'supervisor' %}
+                            لم يتم ربط أي عمال بك بعد. تواصل مع المالك لربط العمال.
+                            {% elif current_user.role == 'monitor' %}
+                            لم يتم تعيين عمال في موقعك بعد. تواصل مع المشرف.
+                            {% else %}
+                            لم يتم إضافة أي موظفين إلى النظام بعد
+                            {% endif %}
+                        </p>
+                        {% if current_user.role == 'owner' %}
                         <a href="/employees/add" class="btn btn-primary btn-lg">
                             <i class="fas fa-plus me-2"></i>إضافة أول موظف
                         </a>
@@ -226,13 +575,13 @@
                 </div>
             </div>
 
-            <!-- معلومات إضافية -->
-            {% if employees %}
+            <!-- معلومات إضافية للمالك -->
+            {% if employees and current_user.role == 'owner' %}
             <div class="row mt-4">
                 <div class="col-md-6">
                     <div class="card border-info shadow">
                         <div class="card-header bg-info text-white">
-                            <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>توزيع الموظفين</h6>
+                            <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>توزيع الموظفين حسب المنصب</h6>
                         </div>
                         <div class="card-body">
                             <canvas id="employeeChart" height="200"></canvas>
@@ -242,37 +591,55 @@
                 <div class="col-md-6">
                     <div class="card border-success shadow">
                         <div class="card-header bg-success text-white">
-                            <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>معلومات سريعة</h6>
+                            <h6 class="mb-0"><i class="fas fa-project-diagram me-2"></i>توزيع العمال على المشرفين</h6>
                         </div>
                         <div class="card-body">
                             <div class="list-group list-group-flush">
+                                {% set supervisors = employees|selectattr('position', 'equalto', 'supervisor')|list %}
+                                {% for supervisor in supervisors %}
                                 <div class="list-group-item d-flex justify-content-between align-items-center">
-                                    إجمالي الموظفين
-                                    <span class="badge bg-primary rounded-pill">{{ employees|length }}</span>
-                                </div>
-                                <div class="list-group-item d-flex justify-content-between align-items-center">
-                                    الموظفين النشطين
-                                    <span class="badge bg-success rounded-pill">{{ employees|selectattr('is_active')|list|length }}</span>
-                                </div>
-                                <div class="list-group-item d-flex justify-content-between align-items-center">
-                                    الموظفين غير النشطين
-                                    <span class="badge bg-danger rounded-pill">{{ employees|rejectattr('is_active')|list|length }}</span>
-                                </div>
-                                <div class="list-group-item d-flex justify-content-between align-items-center">
-                                    أحدث موظف
-                                    <small class="text-muted">
-                                        {% if employees|length > 0 %}
-                                        {{ employees|sort(attribute='created_at', reverse=true)|first|attr('full_name') }}
-                                        {% else %}
-                                        لا يوجد
+                                    <div>
+                                        <i class="fas fa-user-tie text-warning me-2"></i>
+                                        {{ supervisor.full_name }}
+                                        {% if supervisor.company %}
+                                        <span class="badge bg-info me-2">{{ supervisor.company }}</span>
                                         {% endif %}
-                                    </small>
+                                    </div>
+                                    <span class="badge bg-primary rounded-pill">
+                                        {{ supervisor.subordinates|selectattr('is_active')|list|length }} عامل
+                                    </span>
+                                </div>
+                                {% endfor %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center bg-light">
+                                    <div>
+                                        <i class="fas fa-user-slash text-danger me-2"></i>
+                                        بدون مشرف
+                                    </div>
+                                    <span class="badge bg-danger rounded-pill">
+                                        {{ employees|selectattr('supervisor_id', 'none')|list|length }}
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- رسم بياني توزيع الشركات -->
+            {% if company_stats %}
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card border-primary shadow">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>توزيع الموظفين حسب الشركة</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="companyChart" height="100"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
             {% endif %}
         </div>
     </div>
@@ -282,20 +649,152 @@
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title text-danger">تأكيد الحذف</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    تأكيد الحذف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="text-center">
-                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <i class="fas fa-exclamation-circle fa-4x text-warning mb-3"></i>
                     <h5>هل أنت متأكد من حذف هذا الموظف؟</h5>
                     <p class="text-muted">هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع بيانات الموظف المرتبطة.</p>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                <a href="#" id="confirmDeleteBtn" class="btn btn-danger">نعم، احذف الموظف</a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إلغاء
+                </button>
+                <a href="#" id="confirmDeleteBtn" class="btn btn-danger">
+                    <i class="fas fa-trash me-1"></i>نعم، احذف الموظف
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- مودال تعيين المشرف (للمالك فقط) -->
+<div class="modal fade" id="assignSupervisorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-link me-2"></i>
+                    تعيين مشرف للعمال
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignSupervisorForm">
+                    <div class="mb-3">
+                        <label class="form-label">اختر العامل</label>
+                        <select class="form-control" id="workerSelect" required>
+                            <option value="">-- اختر العامل --</option>
+                            {% for emp in employees if emp and emp.position == 'worker' %}
+                            <option value="{{ emp.id }}" data-company="{{ emp.company or '' }}">{{ emp.full_name }} ({{ emp.company or 'غير محدد' }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">اختر المشرف</label>
+                        <select class="form-control" id="supervisorSelect" required>
+                            <option value="">-- اختر المشرف --</option>
+                            {% for sup in employees if sup and sup.position == 'supervisor' %}
+                            <option value="{{ sup.id }}" data-company="{{ sup.company or '' }}">{{ sup.full_name }} ({{ sup.company or 'غير محدد' }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="alert alert-info" id="supervisorMatchAlert" style="display: none;">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <span id="matchMessage"></span>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إلغاء
+                </button>
+                <button type="button" class="btn btn-primary" onclick="assignSupervisor()">
+                    <i class="fas fa-save me-1"></i>تعيين المشرف
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- مودال تفاصيل الموظف -->
+<div class="modal fade" id="employeeDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-circle me-2"></i>
+                    تفاصيل الموظف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="employeeDetailsContent">
+                <!-- يتم تعبئته عبر JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إغلاق
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- مودال إحصائيات الشركة -->
+<div class="modal fade" id="companyStatsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    إحصائيات الشركة
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="companyStatsContent">
+                <!-- يتم تعبئته عبر JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إغلاق
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- مودال تقرير سريع -->
+<div class="modal fade" id="quickReportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-alt me-2"></i>
+                    تقرير سريع
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="quickReportContent">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إغلاق
+                </button>
+                <button type="button" class="btn btn-primary" onclick="printReport()">
+                    <i class="fas fa-print me-1"></i>طباعة
+                </button>
             </div>
         </div>
     </div>
@@ -303,107 +802,638 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
+// دالة تحديث الصفحة
 function refreshPage() {
     window.location.reload();
 }
 
-function printPage() {
-    window.print();
-}
-
+// دالة تأكيد الحذف
 function confirmDelete(employeeId) {
-    // تعيين رابط الحذف في الزر
     document.getElementById('confirmDeleteBtn').href = '/employees/delete/' + employeeId;
-
-    // فتح المودال
     const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
     deleteModal.show();
 }
 
+// دالة عرض تفاصيل الموظف
 function viewEmployee(employeeId) {
-    showLoading();
     fetch(`/api/employees/${employeeId}`)
         .then(response => response.json())
-        .then(employee => {
-            const modalContent = `
-                <div class="row">
-                    <div class="col-md-4 text-center">
-                        <div class="avatar-circle-large mx-auto mb-3" style="width: 80px; height: 80px; background-color: #4e73df; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                            <span class="initials-large" style="color: white; font-weight: 600; font-size: 1.5rem;">${employee.full_name ? employee.full_name[0] : '?'}</span>
+        .then(data => {
+            if (data.success) {
+                const emp = data.data;
+                const modalContent = `
+                    <div class="row">
+                        <div class="col-md-4 text-center border-end">
+                            <div class="avatar-circle-large mx-auto mb-3"
+                                 style="width: 100px; height: 100px; background-color: #4e73df; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <span style="color: white; font-weight: 600; font-size: 2rem;">${emp.full_name ? emp.full_name[0] : '?'}</span>
+                            </div>
+                            <h4>${emp.full_name || 'غير محدد'}</h4>
+                            <span class="badge ${emp.position === 'supervisor' ? 'bg-warning' : emp.position === 'monitor' ? 'bg-info' : 'bg-secondary'} px-3 py-2">
+                                ${emp.position_ar || emp.position}
+                            </span>
+                            <hr>
+                            <div class="mt-3">
+                                <small class="text-muted d-block">الشركة</small>
+                                <h5><span class="badge bg-primary">${emp.company || 'غير محدد'}</span></h5>
+                            </div>
+                            <div class="mt-3">
+                                <small class="text-muted d-block">مستوى الأداء</small>
+                                <h5 class="text-${emp.avg_score >= 4 ? 'success' : emp.avg_score >= 3 ? 'warning' : 'danger'}">
+                                    ${emp.performance_level || 'غير محدد'}
+                                </h5>
+                            </div>
                         </div>
-                        <h4>${employee.full_name || 'غير محدد'}</h4>
-                        <span class="badge ${employee.position === 'supervisor' ? 'bg-warning' : employee.position === 'monitor' ? 'bg-info' : 'bg-secondary'}">
-                            ${employee.position === 'supervisor' ? 'مشرف' : employee.position === 'monitor' ? 'مراقب' : 'عامل'}
-                        </span>
+                        <div class="col-md-8">
+                            <div class="row mb-3">
+                                <div class="col-sm-6">
+                                    <div class="border-bottom pb-2 mb-2">
+                                        <small class="text-muted">اسم المستخدم</small>
+                                        <div><i class="fas fa-user me-2"></i>${emp.username || 'غير محدد'}</div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="border-bottom pb-2 mb-2">
+                                        <small class="text-muted">البريد الإلكتروني</small>
+                                        <div><i class="fas fa-envelope me-2"></i>${emp.email || 'غير محدد'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-sm-6">
+                                    <div class="border-bottom pb-2 mb-2">
+                                        <small class="text-muted">رقم الهاتف</small>
+                                        <div><i class="fas fa-phone me-2"></i>${emp.phone || 'غير محدد'}</div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="border-bottom pb-2 mb-2">
+                                        <small class="text-muted">الراتب</small>
+                                        <div><i class="fas fa-money-bill me-2 text-success"></i>${emp.salary || 0} ريال</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-sm-6">
+                                    <div class="border-bottom pb-2 mb-2">
+                                        <small class="text-muted">تاريخ التعيين</small>
+                                        <div><i class="fas fa-calendar-alt me-2"></i>${emp.hire_date || 'غير محدد'}</div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="border-bottom pb-2 mb-2">
+                                        <small class="text-muted">الحالة</small>
+                                        <div>
+                                            <span class="badge ${emp.is_active ? 'bg-success' : 'bg-danger'}">
+                                                ${emp.is_active ? 'نشط' : 'غير نشط'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-sm-6">
+                                    <div class="border-bottom pb-2 mb-2">
+                                        <small class="text-muted">عدد التقييمات</small>
+                                        <div><i class="fas fa-star me-2 text-warning"></i>${emp.total_evaluations || 0}</div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="border-bottom pb-2 mb-2">
+                                        <small class="text-muted">متوسط التقييم</small>
+                                        <div>
+                                            <i class="fas fa-chart-line me-2 text-info"></i>
+                                            ${(emp.avg_score || 0).toFixed(1)} / 5
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="border-bottom pb-2 mb-2">
+                                        <small class="text-muted">العنوان</small>
+                                        <div><i class="fas fa-map-marker-alt me-2 text-danger"></i>${emp.address || 'غير محدد'}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-8">
-                        <div class="row mb-3">
-                            <div class="col-sm-6">
-                                <strong>اسم المستخدم:</strong> ${employee.username || 'غير محدد'}
-                            </div>
-                            <div class="col-sm-6">
-                                <strong>البريد الإلكتروني:</strong> ${employee.email || 'غير محدد'}
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-sm-6">
-                                <strong>رقم الهاتف:</strong> ${employee.phone || 'غير محدد'}
-                            </div>
-                            <div class="col-sm-6">
-                                <strong>الراتب:</strong> ${employee.salary || 0} ريال
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-sm-6">
-                                <strong>تاريخ التعيين:</strong> ${employee.hire_date || 'غير محدد'}
-                            </div>
-                            <div class="col-sm-6">
-                                <strong>الحالة:</strong>
-                                <span class="badge ${employee.is_active ? 'bg-success' : 'bg-danger'}">
-                                    ${employee.is_active ? 'نشط' : 'غير نشط'}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-sm-6">
-                                <strong>عدد التقييمات:</strong> ${employee.total_evaluations || 0}
-                            </div>
-                            <div class="col-sm-6">
-                                <strong>متوسط التقييم:</strong> ${(employee.avg_score || 0).toFixed(1)}
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12">
-                                <strong>العنوان:</strong>
-                                <p class="mt-1">${employee.address || 'غير محدد'}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.getElementById('employeeDetailsContent').innerHTML = modalContent;
-            const modal = new bootstrap.Modal(document.getElementById('employeeDetailsModal'));
-            modal.show();
+                `;
+                document.getElementById('employeeDetailsContent').innerHTML = modalContent;
+                const modal = new bootstrap.Modal(document.getElementById('employeeDetailsModal'));
+                modal.show();
+            } else {
+                alert('حدث خطأ في جلب بيانات الموظف');
+            }
         })
         .catch(error => {
-            console.error('Error fetching employee data:', error);
-            alert('حدث خطأ أثناء جلب بيانات الموظف');
-        })
-        .finally(() => {
-            hideLoading();
+            console.error('Error:', error);
+            alert('حدث خطأ في جلب بيانات الموظف');
         });
 }
 
-// مخطط توزيع الموظفين
+// دالة عرض مودال تعيين المشرف
+function showAssignSupervisorModal() {
+    const modal = new bootstrap.Modal(document.getElementById('assignSupervisorModal'));
+    modal.show();
+
+    // إضافة مستمعي الأحداث للتحقق من تطابق الشركات
+    document.getElementById('workerSelect').addEventListener('change', checkSupervisorMatch);
+    document.getElementById('supervisorSelect').addEventListener('change', checkSupervisorMatch);
+}
+
+// دالة التحقق من تطابق شركة العامل مع المشرف
+function checkSupervisorMatch() {
+    const workerSelect = document.getElementById('workerSelect');
+    const supervisorSelect = document.getElementById('supervisorSelect');
+    const alert = document.getElementById('supervisorMatchAlert');
+    const message = document.getElementById('matchMessage');
+
+    if (workerSelect.value && supervisorSelect.value) {
+        const workerCompany = workerSelect.options[workerSelect.selectedIndex].getAttribute('data-company');
+        const supervisorCompany = supervisorSelect.options[supervisorSelect.selectedIndex].getAttribute('data-company');
+
+        if (workerCompany === supervisorCompany) {
+            alert.style.display = 'block';
+            alert.className = 'alert alert-success';
+            message.innerHTML = '<i class="fas fa-check-circle me-2"></i>تطابق الشركة - يمكنك تعيين المشرف';
+        } else {
+            alert.style.display = 'block';
+            alert.className = 'alert alert-warning';
+            message.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>تنبيه: العامل والمشرف من شركتين مختلفتين';
+        }
+    } else {
+        alert.style.display = 'none';
+    }
+}
+
+// دالة تعيين المشرف
+function assignSupervisor() {
+    const workerId = document.getElementById('workerSelect').value;
+    const supervisorId = document.getElementById('supervisorSelect').value;
+
+    if (!workerId || !supervisorId) {
+        alert('الرجاء اختيار العامل والمشرف');
+        return;
+    }
+
+    // تأكيد من المستخدم إذا كانت الشركات مختلفة
+    const workerSelect = document.getElementById('workerSelect');
+    const supervisorSelect = document.getElementById('supervisorSelect');
+    const workerCompany = workerSelect.options[workerSelect.selectedIndex].getAttribute('data-company');
+    const supervisorCompany = supervisorSelect.options[supervisorSelect.selectedIndex].getAttribute('data-company');
+
+    if (workerCompany !== supervisorCompany) {
+        if (!confirm('تحذير: العامل والمشرف من شركتين مختلفتين. هل تريد المتابعة؟')) {
+            return;
+        }
+    }
+
+    const formData = new FormData();
+    formData.append('employee_id', workerId);
+    formData.append('supervisor_id', supervisorId);
+
+    fetch('/employees/assign-supervisor', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('تم تعيين المشرف بنجاح');
+            location.reload();
+        } else {
+            alert(data.message || 'حدث خطأ في تعيين المشرف');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('حدث خطأ في تعيين المشرف');
+    });
+}
+
+// دوال التصفية حسب الشركة
+function filterByCompany(company) {
+    filterTable(company);
+
+    // تحديث حالة الأزرار
+    const buttons = document.querySelectorAll('#companyFilterButtons .btn');
+    if (buttons.length > 0) {
+        buttons.forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+    }
+
+    // تحديث الـ select
+    const select = document.getElementById('companySelect');
+    if (select) {
+        select.value = company;
+    }
+
+    // حفظ التفضيل
+    saveFilterPreference(company);
+}
+
+function filterByCompanySelect(company) {
+    filterTable(company);
+
+    // تحديث حالة الأزرار
+    const buttons = document.querySelectorAll('#companyFilterButtons .btn');
+    if (buttons.length > 0) {
+        buttons.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.textContent.includes(company) || (company === 'all' && btn.textContent.includes('الكل'))) {
+                btn.classList.add('active');
+            }
+        });
+    }
+
+    // حفظ التفضيل
+    saveFilterPreference(company);
+}
+
+function filterTable(company) {
+    const table = document.getElementById('employeesTable');
+    if (!table) return;
+
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    for (let row of rows) {
+        if (company === 'all') {
+            row.style.display = '';
+        } else {
+            const rowCompany = row.getAttribute('data-company');
+            if (rowCompany === company) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        }
+    }
+}
+
+// دالة البحث في الجدول
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            const searchText = this.value.toLowerCase();
+            const table = document.getElementById('employeesTable');
+            if (!table) return;
+
+            const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+            const select = document.getElementById('companySelect');
+            const currentFilter = select ? select.value : 'all';
+
+            for (let row of rows) {
+                // تحقق من تصفية الشركة أولاً
+                if (currentFilter !== 'all' && row.getAttribute('data-company') !== currentFilter) {
+                    row.style.display = 'none';
+                    continue;
+                }
+
+                // ثم تطبيق البحث
+                const nameCell = row.cells[1];
+                const positionCell = row.cells[2];
+                const companyCell = row.cells[3];
+
+                if (nameCell && positionCell && companyCell) {
+                    const name = nameCell.textContent.toLowerCase();
+                    const position = positionCell.textContent.toLowerCase();
+                    const company = companyCell.textContent.toLowerCase();
+
+                    if (name.includes(searchText) || position.includes(searchText) || company.includes(searchText)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            }
+        });
+    }
+});
+
+// دالة إعادة تعيين التصفية
+function resetFilters() {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.value = '';
+    }
+
+    const select = document.getElementById('companySelect');
+    if (select) {
+        select.value = 'all';
+    }
+
+    filterTable('all');
+
+    // تحديث حالة أزرار التصفية
+    const buttons = document.querySelectorAll('#companyFilterButtons .btn');
+    if (buttons.length > 0) {
+        buttons.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.textContent.includes('الكل')) {
+                btn.classList.add('active');
+            }
+        });
+    }
+
+    // حفظ التفضيل
+    saveFilterPreference('all');
+}
+
+// دالة تصدير الجدول إلى Excel
+function exportToExcel() {
+    const table = document.getElementById('employeesTable');
+    if (!table) return;
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.table_to_sheet(table);
+    XLSX.utils.book_append_sheet(wb, ws, "الموظفين");
+    XLSX.writeFile(wb, `employees_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// دالة طباعة الجدول
+function printTable() {
+    window.print();
+}
+
+// دالة عرض إحصائيات الشركة - نسخة محسنة
+function showCompanyStats(company) {
+    const modal = new bootstrap.Modal(document.getElementById('companyStatsModal'));
+    modal.show();
+
+    // عرض رسالة تحميل
+    document.getElementById('companyStatsContent').innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">جاري التحميل...</span>
+            </div>
+            <h6 class="text-muted">جاري تحميل إحصائيات ${company}...</h6>
+        </div>
+    `;
+
+    // محاولة جلب البيانات من الخادم
+    fetch(`/api/company-stats/${encodeURIComponent(company)}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                displayCompanyStats(company, data.data);
+            } else {
+                showCompanyStatsError(company, data.message || 'حدث خطأ في جلب الإحصائيات');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // إذا فشل الاتصال بالخادم، استخدم البيانات المحلية
+            useLocalCompanyStats(company);
+        });
+}
+
+// دالة عرض الإحصائيات
+function displayCompanyStats(company, stats) {
+    let statsHtml = `
+        <div class="text-center mb-4">
+            <h5 class="text-primary">
+                <i class="fas fa-building me-2"></i>
+                إحصائيات شركة ${company}
+            </h5>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center py-3">
+                        <h6 class="text-white-50">إجمالي الموظفين</h6>
+                        <h2 class="mb-0">${stats.total}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center py-3">
+                        <h6 class="text-white-50">نسبة الحضور اليوم</h6>
+                        <h2 class="mb-0">${stats.today_attendance}%</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-2">
+            <div class="col-4">
+                <div class="card bg-warning">
+                    <div class="card-body text-center py-2">
+                        <h3 class="mb-0">${stats.supervisors}</h3>
+                        <small>مشرفين</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center py-2">
+                        <h3 class="mb-0">${stats.monitors}</h3>
+                        <small>مراقبين</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="card bg-secondary text-white">
+                    <div class="card-body text-center py-2">
+                        <h3 class="mb-0">${stats.workers}</h3>
+                        <small>عمال</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr class="my-3">
+
+        <div class="row">
+            <div class="col-6">
+                <div class="text-center">
+                    <div class="text-success">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                    <h5 class="text-success mb-0">${stats.active}</h5>
+                    <small class="text-muted">نشط</small>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="text-center">
+                    <div class="text-danger">
+                        <i class="fas fa-times-circle fa-2x"></i>
+                    </div>
+                    <h5 class="text-danger mb-0">${stats.inactive}</h5>
+                    <small class="text-muted">غير نشط</small>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('companyStatsContent').innerHTML = statsHtml;
+}
+
+// دالة عرض الخطأ
+function showCompanyStatsError(company, errorMessage) {
+    document.getElementById('companyStatsContent').innerHTML = `
+        <div class="text-center py-4">
+            <div class="text-danger mb-3">
+                <i class="fas fa-exclamation-circle fa-4x"></i>
+            </div>
+            <h5 class="text-danger">خطأ في تحميل الإحصائيات</h5>
+            <p class="text-muted mb-3">${errorMessage}</p>
+            <button class="btn btn-primary" onclick="showCompanyStats('${company}')">
+                <i class="fas fa-sync-alt me-2"></i>إعادة المحاولة
+            </button>
+            <button class="btn btn-secondary" onclick="useLocalCompanyStats('${company}')">
+                <i class="fas fa-database me-2"></i>استخدام البيانات المحلية
+            </button>
+        </div>
+    `;
+}
+
+// دالة استخدام البيانات المحلية (بديل عند فشل الاتصال بالخادم)
+function useLocalCompanyStats(company) {
+    // البحث عن الموظفين في الجدول
+    const table = document.getElementById('employeesTable');
+    if (!table) return;
+
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+    let total = 0;
+    let supervisors = 0;
+    let monitors = 0;
+    let workers = 0;
+    let active = 0;
+    let inactive = 0;
+
+    for (let row of rows) {
+        const rowCompany = row.getAttribute('data-company');
+        if (rowCompany === company) {
+            total++;
+
+            // تحديد المنصب
+            const positionCell = row.cells[2];
+            if (positionCell) {
+                const positionText = positionCell.textContent;
+                if (positionText.includes('مشرف')) {
+                    supervisors++;
+                } else if (positionText.includes('مراقب')) {
+                    monitors++;
+                } else {
+                    workers++;
+                }
+            }
+
+            // تحديد الحالة
+            const statusCell = row.cells[7];
+            if (statusCell) {
+                if (statusCell.textContent.includes('نشط')) {
+                    active++;
+                } else {
+                    inactive++;
+                }
+            }
+        }
+    }
+
+    // حساب حضور اليوم (تقريبي)
+    let presentToday = 0;
+    for (let row of rows) {
+        const rowCompany = row.getAttribute('data-company');
+        if (rowCompany === company) {
+            const attendanceCell = row.cells[8];
+            if (attendanceCell) {
+                const attendanceText = attendanceCell.textContent;
+                if (attendanceText.includes('حاضر') || attendanceText.includes('متأخر')) {
+                    presentToday++;
+                }
+            }
+        }
+    }
+
+    const attendanceRate = total > 0 ? Math.round((presentToday / total) * 100) : 0;
+
+    // عرض الإحصائيات المحلية
+    displayCompanyStats(company, {
+        total: total,
+        supervisors: supervisors,
+        monitors: monitors,
+        workers: workers,
+        active: active,
+        inactive: inactive,
+        today_attendance: attendanceRate
+    });
+
+    // إظهار تنبيه بأن البيانات محلية
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-warning mt-3 mb-0';
+    alert.innerHTML = '<i class="fas fa-info-circle me-2"></i>يتم عرض بيانات محلية بسبب مشكلة في الاتصال بالخادم';
+    document.getElementById('companyStatsContent').appendChild(alert);
+}
+// دالة عرض تقرير سريع
+function showQuickReport() {
+    const modal = new bootstrap.Modal(document.getElementById('quickReportModal'));
+    modal.show();
+
+    // محاكاة تحميل التقرير
+    setTimeout(() => {
+        const reportContent = `
+            <div class="row">
+                <div class="col-12">
+                    <h6 class="text-primary mb-3"><i class="fas fa-chart-line me-2"></i>ملخص سريع</h6>
+                    <table class="table table-bordered">
+                        <tr>
+                            <th>إجمالي الموظفين</th>
+                            <td>{{ employees|length if employees else 0 }}</td>
+                        </tr>
+                        <tr>
+                            <th>الحاضرون اليوم</th>
+                            <td>{{ present_today|default(0) }}</td>
+                        </tr>
+                        <tr>
+                            <th>نسبة الحضور</th>
+                            <td>{{ (present_today|default(0) / employees|length * 100)|round|int if employees and employees|length > 0 else 0 }}%</td>
+                        </tr>
+                        <tr>
+                            <th>عدد الشركات</th>
+                            <td>{{ company_stats.keys()|list|length if company_stats else 0 }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        `;
+        document.getElementById('quickReportContent').innerHTML = reportContent;
+    }, 1000);
+}
+
+// دالة طباعة التقرير
+function printReport() {
+    window.print();
+}
+
+// مخطط توزيع الموظفين حسب المنصب
 document.addEventListener('DOMContentLoaded', function() {
     const ctx = document.getElementById('employeeChart');
     if (ctx) {
+        {% if employees %}
         const supervisors = {{ employees|selectattr('position', 'equalto', 'supervisor')|list|length }};
         const monitors = {{ employees|selectattr('position', 'equalto', 'monitor')|list|length }};
         const workers = {{ employees|selectattr('position', 'equalto', 'worker')|list|length }};
+        {% else %}
+        const supervisors = 0;
+        const monitors = 0;
+        const workers = 0;
+        {% endif %}
 
-        const chart = new Chart(ctx.getContext('2d'), {
+        new Chart(ctx.getContext('2d'), {
             type: 'doughnut',
             data: {
                 labels: ['المشرفين', 'المراقبين', 'عمال النظافة'],
@@ -430,6 +1460,427 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // مخطط توزيع الموظفين حسب الشركة
+    const companyCtx = document.getElementById('companyChart');
+    if (companyCtx) {
+        const companies = {};
+        {% if employees %}
+            {% for emp in employees %}
+                {% if emp.company %}
+                    companies['{{ emp.company }}'] = (companies['{{ emp.company }}'] || 0) + 1;
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+
+        const companyNames = Object.keys(companies);
+        const companyCounts = Object.values(companies);
+        const colors = ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796'];
+
+        new Chart(companyCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: companyNames,
+                datasets: [{
+                    label: 'عدد الموظفين',
+                    data: companyCounts,
+                    backgroundColor: colors.slice(0, companyNames.length),
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            callback: function(value) {
+                                return value;
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.raw} موظف`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+
+// تفعيل tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+// إضافة اختصارات لوحة المفاتيح
+document.addEventListener('keydown', function(e) {
+    // Ctrl+F للبحث
+    if (e.ctrlKey && e.key === 'f') {
+        e.preventDefault();
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.focus();
+        }
+    }
+    // Ctrl+R للتحديث
+    if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        refreshPage();
+    }
+    // Ctrl+E للتصدير إلى Excel
+    if (e.ctrlKey && e.key === 'e') {
+        e.preventDefault();
+        exportToExcel();
+    }
+    // Ctrl+P للطباعة
+    if (e.ctrlKey && e.key === 'p') {
+        e.preventDefault();
+        printTable();
+    }
+    // Esc لإلغاء التصفية
+    if (e.key === 'Escape') {
+        resetFilters();
+    }
+});
+
+// حفظ تفضيلات المستخدم في localStorage
+function saveFilterPreference(company) {
+    try {
+        localStorage.setItem('preferredCompany', company);
+    } catch(e) {
+        console.log('LocalStorage not available');
+    }
+}
+
+function loadFilterPreference() {
+    try {
+        const preferred = localStorage.getItem('preferredCompany');
+        if (preferred && preferred !== 'all' && preferred !== 'null') {
+            const select = document.getElementById('companySelect');
+            if (select) {
+                select.value = preferred;
+                filterTable(preferred);
+
+                // تحديث حالة الأزرار
+                const buttons = document.querySelectorAll('#companyFilterButtons .btn');
+                if (buttons.length > 0) {
+                    buttons.forEach(btn => {
+                        btn.classList.remove('active');
+                        if (btn.textContent.includes(preferred)) {
+                            btn.classList.add('active');
+                        }
+                    });
+                }
+            }
+        }
+    } catch(e) {
+        console.log('Error loading preference');
+    }
+}
+
+// تحميل التفضيلات عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    loadFilterPreference();
+});
+
+// تحديث إحصائيات الشركة كل 5 دقائق
+setInterval(function() {
+    const modal = document.getElementById('companyStatsModal');
+    if (modal && modal.classList.contains('show')) {
+        const titleElement = document.querySelector('#companyStatsModal .modal-title');
+        if (titleElement) {
+            const companyName = titleElement.textContent.replace('إحصائيات ', '').replace('شركة ', '');
+            showCompanyStats(companyName);
+        }
+    }
+}, 300000);
+
+// إضافة أزرار إضافية للتحكم
+document.addEventListener('DOMContentLoaded', function() {
+    const toolbar = document.querySelector('.card-header .d-flex.gap-2');
+    if (toolbar) {
+        const exportBtn = document.createElement('button');
+        exportBtn.className = 'btn btn-outline-success btn-sm';
+        exportBtn.innerHTML = '<i class="fas fa-file-excel me-1"></i>تصدير';
+        exportBtn.onclick = exportToExcel;
+        exportBtn.title = 'تصدير إلى Excel (Ctrl+E)';
+
+        const printBtn = document.createElement('button');
+        printBtn.className = 'btn btn-outline-info btn-sm';
+        printBtn.innerHTML = '<i class="fas fa-print me-1"></i>طباعة';
+        printBtn.onclick = printTable;
+        printBtn.title = 'طباعة الجدول (Ctrl+P)';
+
+        const reportBtn = document.createElement('button');
+        reportBtn.className = 'btn btn-outline-warning btn-sm';
+        reportBtn.innerHTML = '<i class="fas fa-chart-pie me-1"></i>تقرير';
+        reportBtn.onclick = showQuickReport;
+        reportBtn.title = 'تقرير سريع';
+
+        toolbar.appendChild(exportBtn);
+        toolbar.appendChild(printBtn);
+        toolbar.appendChild(reportBtn);
+    }
 });
 </script>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+/* تحسينات إضافية للشركات */
+.border-bottom-primary {
+    border-bottom: 3px solid #4e73df !important;
+}
+.border-bottom-success {
+    border-bottom: 3px solid #1cc88a !important;
+}
+.border-bottom-info {
+    border-bottom: 3px solid #36b9cc !important;
+}
+.border-bottom-warning {
+    border-bottom: 3px solid #f6c23e !important;
+}
+.border-bottom-danger {
+    border-bottom: 3px solid #e74a3b !important;
+}
+
+/* تنسيق بطاقات الشركات */
+.card.h-100 {
+    transition: transform 0.2s;
+}
+.card.h-100:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important;
+}
+
+/* تنسيق أزرار التصفية */
+#companyFilterButtons .btn {
+    border-radius: 20px;
+    margin: 2px;
+    padding: 5px 15px;
+}
+#companyFilterButtons .btn.active {
+    background-color: #4e73df;
+    color: white;
+    border-color: #4e73df;
+}
+
+/* تنسيق شريط التقدم في بطاقات الشركات */
+.progress {
+    height: 5px;
+    border-radius: 3px;
+    overflow: hidden;
+}
+.progress-bar {
+    transition: width 0.5s ease;
+}
+
+/* تنسيق الجدول */
+.table th {
+    font-weight: 600;
+    color: #4e73df;
+    border-bottom-width: 2px;
+}
+.table td {
+    vertical-align: middle;
+}
+
+/* تنسيق الصور الرمزية */
+.avatar-circle-sm {
+    width: 35px;
+    height: 35px;
+    background-color: #4e73df;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.avatar-circle-large {
+    width: 100px;
+    height: 100px;
+    background-color: #4e73df;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 2rem;
+}
+
+/* تنسيق الشارات */
+.badge {
+    font-weight: 500;
+    padding: 0.5em 1em;
+}
+
+/* تنسيق رسالة عدم وجود بيانات */
+.text-center.py-5 {
+    background: linear-gradient(135deg, #f8f9fc 0%, #eaecf4 100%);
+    border-radius: 10px;
+}
+
+/* تنسيقات للطباعة */
+@media print {
+    .btn, .modal, .breadcrumb, .d-flex.gap-2, #companyFilterButtons {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #dee2e6 !important;
+        box-shadow: none !important;
+    }
+    .table {
+        border-collapse: collapse !important;
+    }
+    .table td, .table th {
+        background-color: #fff !important;
+        color: #000 !important;
+    }
+}
+
+/* تنسيقات للشاشات الصغيرة */
+@media (max-width: 768px) {
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: start !important;
+        gap: 10px;
+    }
+    #companyFilterButtons {
+        display: flex;
+        flex-wrap: wrap;
+    }
+    #companyFilterButtons .btn {
+        flex: 1 1 auto;
+        margin: 2px;
+    }
+    .input-group {
+        width: 100% !important;
+        margin-top: 10px;
+    }
+}
+
+/* تأثيرات حركية */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.card {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* تنسيق scrollbar مخصص */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+    background: #4e73df;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #224abe;
+}
+
+/* تنسيق tooltip مخصص */
+.tooltip-inner {
+    background-color: #4e73df;
+    color: white;
+    border-radius: 5px;
+    padding: 5px 10px;
+}
+.tooltip-arrow::before {
+    border-top-color: #4e73df !important;
+}
+
+/* تنسيق المودال */
+.modal-content {
+    border: none;
+    border-radius: 15px;
+    overflow: hidden;
+}
+.modal-header {
+    border-bottom: none;
+    padding: 1.5rem;
+}
+.modal-body {
+    padding: 2rem;
+}
+.modal-footer {
+    border-top: none;
+    padding: 1.5rem;
+}
+
+/* تنسيق شارات الحضور */
+.badge.bg-success, .badge.bg-warning, .badge.bg-danger {
+    min-width: 70px;
+    text-align: center;
+}
+
+/* تنسيق أزرار الإجراءات */
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 5px;
+    margin: 0 2px;
+}
+.btn-group-sm .btn:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s;
+}
+
+/* تنسيق مؤشرات الأداء */
+.progress-sm {
+    height: 0.5rem;
+    border-radius: 0.25rem;
+}
+
+/* تنسيق النصوص المساعدة */
+.text-xs {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* تنسيق الحدود الملونة */
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+.border-left-danger {
+    border-left: 0.25rem solid #e74a3b !important;
+}
+</style>
 {% endblock %}

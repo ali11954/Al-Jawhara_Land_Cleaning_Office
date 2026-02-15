@@ -1,10 +1,459 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<!-- templates/reports/attendance_record_advanced.html -->
+{% extends "base.html" %}
+
+{% block title %}سجل الحضور والانصراف المتقدم{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- شريط العنوان -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-gradient-info mb-1">
+                <i class="fas fa-clock me-2"></i>
+                سجل الحضور والانصراف المتقدم
+            </h2>
+            <p class="text-muted mb-0">تحليل لحظي للحضور مع مؤشرات الأداء والتوقعات</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </button>
+            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-modern btn-info" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
+        </div>
+    </div>
+
+    <!-- بطاقات الأداء الحية -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card card-stats gradient-primary h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="text-white text-uppercase mb-1">الحضور اليوم</h5>
+                            <span class="h2 font-weight-bold text-white mb-0">{{ present_today }}</span>
+                            <p class="mt-2 text-white-50 mb-0">
+                                <i class="fas fa-percentage me-1"></i> {{ attendance_rate_today }}%
+                            </p>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-user-check fa-2x text-white"></i>
+                        </div>
+                    </div>
+                    <div class="progress progress-white mt-3" style="height: 5px;">
+                        <div class="progress-bar bg-white" role="progressbar"
+                             style="width: {{ attendance_rate_today }}%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card card-stats gradient-danger h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="text-white text-uppercase mb-1">الغياب اليوم</h5>
+                            <span class="h2 font-weight-bold text-white mb-0">{{ absent_today }}</span>
+                            <p class="mt-2 text-white-50 mb-0">
+                                <i class="fas fa-exclamation-triangle me-1"></i> {{ absence_rate_today }}%
+                            </p>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-user-times fa-2x text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card card-stats gradient-warning h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="text-white text-uppercase mb-1">التأخير اليوم</h5>
+                            <span class="h2 font-weight-bold text-white mb-0">{{ late_today }}</span>
+                            <p class="mt-2 text-white-50 mb-0">
+                                <i class="fas fa-clock me-1"></i> متوسط {{ avg_late_minutes }} دقيقة
+                            </p>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-hourglass-half fa-2x text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card card-stats gradient-success h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="text-white text-uppercase mb-1">الموظفين النشطين</h5>
+                            <span class="h2 font-weight-bold text-white mb-0">{{ active_employees }}</span>
+                            <p class="mt-2 text-white-50 mb-0">
+                                <i class="fas fa-chart-line me-1"></i> من أصل {{ total_employees }}
+                            </p>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-users fa-2x text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- فلترة متقدمة -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-white py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter me-2"></i>خيارات البحث المتقدم
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3" id="filterForm">
+                <div class="col-md-3">
+                    <label class="form-label">التاريخ</label>
+                    <input type="date" name="date" class="form-control" value="{{ selected_date }}" id="datePicker">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الشركة</label>
+                    <select name="company" class="form-select" id="companyFilter">
+                        <option value="">جميع الشركات</option>
+                        {% for company in companies %}
+                        <option value="{{ company.id }}" {% if company.id == selected_company %}selected{% endif %}>
+                            {{ company.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الموظف</label>
+                    <select name="employee" class="form-select" id="employeeFilter">
+                        <option value="">جميع الموظفين</option>
+                        {% for emp in employees %}
+                        <option value="{{ emp.id }}" {% if emp.id == selected_employee %}selected{% endif %}>
+                            {{ emp.full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الحالة</label>
+                    <select name="status" class="form-select" id="statusFilter">
+                        <option value="">الكل</option>
+                        <option value="present">حاضر</option>
+                        <option value="absent">غائب</option>
+                        <option value="late">متأخر</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i> تطبيق الفلترة
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="resetFilters()">
+                        <i class="fas fa-redo me-1"></i> إعادة تعيين
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- الرسوم البيانية -->
+    <div class="row mb-4">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-chart-line me-2"></i>اتجاهات الحضور (آخر 30 يوم)
+                        </h6>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary active" onclick="changeChartPeriod('week')">أسبوعي</button>
+                            <button class="btn btn-outline-primary" onclick="changeChartPeriod('month')">شهري</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="attendanceTrendChart" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-pie me-2"></i>توزيع الحضور
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="attendancePieChart" style="height: 250px;"></div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><span class="badge bg-success me-2">&nbsp;</span> حاضر</span>
+                            <span class="fw-bold">{{ present_today }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><span class="badge bg-danger me-2">&nbsp;</span> غائب</span>
+                            <span class="fw-bold">{{ absent_today }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><span class="badge bg-warning me-2">&nbsp;</span> متأخر</span>
+                            <span class="fw-bold">{{ late_today }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول الحضور المتقدم -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-table me-2"></i>سجل الحضور والانصراف
+                </h6>
+                <div class="d-flex">
+                    <div class="input-group input-group-sm me-2" style="width: 250px;">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0" id="searchAttendance"
+                               placeholder="بحث في الجدول...">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="attendanceTable">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>#</th>
+                            <th>الموظف</th>
+                            <th>القسم</th>
+                            <th>الشركة</th>
+                            <th>التاريخ</th>
+                            <th>الحضور</th>
+                            <th>الانصراف</th>
+                            <th>الحالة</th>
+                            <th>وقت التأخير</th>
+                            <th>ملاحظات</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in attendance_records %}
+                        <tr class="attendance-row" data-status="{{ record.status }}">
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm me-2" style="background-color: {{ record.employee.color }}">
+                                        {{ record.employee.full_name[:1] }}
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold">{{ record.employee.full_name }}</div>
+                                        <small class="text-muted">{{ record.employee.position_ar }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ record.employee.department|default('غير محدد') }}</td>
+                            <td>{{ record.employee.company_name|default('غير محدد') }}</td>
+                            <td>{{ record.date|arabic_date }}</td>
+                            <td>
+                                {% if record.check_in %}
+                                <span class="badge bg-light text-dark">{{ record.check_in|time }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.check_out %}
+                                <span class="badge bg-light text-dark">{{ record.check_out|time }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.status == 'present' %}
+                                <span class="badge bg-success">حاضر</span>
+                                {% elif record.status == 'absent' %}
+                                <span class="badge bg-danger">غائب</span>
+                                {% elif record.status == 'late' %}
+                                <span class="badge bg-warning">متأخر</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.late_minutes %}
+                                <span class="text-danger">{{ record.late_minutes }} دقيقة</span>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>{{ record.notes|truncate(30) or '-' }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewAttendanceDetails({{ record.id }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-warning" onclick="editAttendance({{ record.id }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="11" class="text-center text-muted">لا توجد سجلات حضور</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ApexCharts -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+const attendanceData = {{ attendance_chart_data|tojson }};
+let trendChart;
+
+document.addEventListener('DOMContentLoaded', function() {
+    initCharts();
+    initSearch();
+});
+
+function initCharts() {
+    // رسم بياني للاتجاهات
+    const trendOptions = {
+        series: [{
+            name: 'الحضور',
+            data: attendanceData.daily_present
+        }, {
+            name: 'الغياب',
+            data: attendanceData.daily_absent
+        }, {
+            name: 'التأخير',
+            data: attendanceData.daily_late
+        }],
+        chart: {
+            type: 'area',
+            height: 300,
+            toolbar: { show: false },
+            fontFamily: 'Cairo, sans-serif'
+        },
+        colors: ['#1cc88a', '#e74a3b', '#f6c23e'],
+        dataLabels: { enabled: false },
+        stroke: { curve: 'smooth', width: 2 },
+        fill: {
+            type: 'gradient',
+            gradient: {
+                shadeIntensity: 1,
+                opacityFrom: 0.7,
+                opacityTo: 0.3
+            }
+        },
+        xaxis: {
+            categories: attendanceData.dates,
+            labels: { style: { fontFamily: 'Cairo, sans-serif' } }
+        },
+        yaxis: {
+            labels: { style: { fontFamily: 'Cairo, sans-serif' } }
+        },
+        legend: {
+            position: 'top',
+            fontFamily: 'Cairo, sans-serif'
+        }
+    };
+
+    trendChart = new ApexCharts(document.querySelector("#attendanceTrendChart"), trendOptions);
+    trendChart.render();
+
+    // رسم بياني دائري
+    const pieOptions = {
+        series: [{{ present_today }}, {{ absent_today }}, {{ late_today }}],
+        chart: {
+            type: 'pie',
+            height: 250,
+            fontFamily: 'Cairo, sans-serif'
+        },
+        labels: ['حاضر', 'غائب', 'متأخر'],
+        colors: ['#1cc88a', '#e74a3b', '#f6c23e'],
+        legend: { show: false },
+        dataLabels: { enabled: false }
+    };
+
+    const pieChart = new ApexCharts(document.querySelector("#attendancePieChart"), pieOptions);
+    pieChart.render();
+}
+
+function initSearch() {
+    document.getElementById('searchAttendance').addEventListener('keyup', function() {
+        const searchTerm = this.value.toLowerCase();
+        const rows = document.querySelectorAll('.attendance-row');
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchTerm) ? '' : 'none';
+        });
+    });
+
+    document.getElementById('statusFilter').addEventListener('change', function() {
+        const status = this.value;
+        const rows = document.querySelectorAll('.attendance-row');
+
+        rows.forEach(row => {
+            if (!status || row.dataset.status === status) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+}
+
+function resetFilters() {
+    document.getElementById('datePicker').value = '{{ today }}';
+    document.getElementById('companyFilter').value = '';
+    document.getElementById('employeeFilter').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('filterForm').submit();
+}
+
+function viewAttendanceDetails(id) {
+    window.location.href = `/attendance/${id}`;
+}
+
+function editAttendance(id) {
+    window.location.href = `/attendance/edit/${id}`;
+}
+
+function changeChartPeriod(period) {
+    // تحديث الرسم البياني حسب الفترة
+    alert(`تغيير الفترة إلى: ${period}`);
+}
+</script>
+
+<style>
+.avatar-sm {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 1rem;
+}
+</style>
+{% endblock %}

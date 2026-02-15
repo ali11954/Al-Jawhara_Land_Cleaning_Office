@@ -1,10 +1,237 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<!-- templates/reports/absence_rates.html -->
+{% extends "base.html" %}
+
+{% block title %}نسب الغياب والتأخير{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- شريط العنوان -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-gradient-danger mb-1">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                نسب الغياب والتأخير
+            </h2>
+            <p class="text-muted mb-0">تحليل متقدم لمعدلات الغياب والتأخير مع التوصيات</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">PDF</button>
+            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">Excel</button>
+        </div>
+    </div>
+
+    <!-- بطاقات الإنذار -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6>متوسط نسبة الغياب</h6>
+                            <h2>{{ avg_absence_rate }}%</h2>
+                        </div>
+                        <i class="fas fa-user-slash fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6>متوسط نسبة التأخير</h6>
+                            <h2>{{ avg_late_rate }}%</h2>
+                        </div>
+                        <i class="fas fa-clock fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6>الأكثر غياباً</h6>
+                            <h5>{{ top_absent_employee }}</h5>
+                            <small>{{ top_absent_days }} يوم</small>
+                        </div>
+                        <i class="fas fa-skull fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- رسوم بيانية -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-line me-2"></i>اتجاهات الغياب (شهري)
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="absenceTrendChart" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-pie me-2"></i>توزيع الغياب حسب الأسباب
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="absenceReasonsChart" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول الموظفين الأكثر غياباً -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-danger text-white">
+            <h6 class="m-0"><i class="fas fa-exclamation-circle me-2"></i>الموظفون الأكثر غياباً (أعلى 10)</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>الموظف</th>
+                            <th>القسم</th>
+                            <th>أيام الغياب</th>
+                            <th>نسبة الغياب</th>
+                            <th>أيام التأخير</th>
+                            <th>آخر غياب</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for emp in top_absent_employees %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm me-2" style="background-color: {{ emp.color }}">
+                                        {{ emp.name[:1] }}
+                                    </div>
+                                    {{ emp.name }}
+                                </div>
+                            </td>
+                            <td>{{ emp.department }}</td>
+                            <td>
+                                <span class="fw-bold text-danger">{{ emp.absent_days }}</span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="me-2">{{ emp.absence_rate }}%</span>
+                                    <div class="progress flex-grow-1" style="height: 8px;">
+                                        <div class="progress-bar bg-danger" style="width: {{ emp.absence_rate }}%;"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ emp.late_days }}</td>
+                            <td>{{ emp.last_absence|date }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-warning" onclick="sendWarning({{ emp.id }})">
+                                    <i class="fas fa-exclamation"></i> إنذار
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- توصيات ذكية -->
+    <div class="card shadow bg-light">
+        <div class="card-header bg-dark text-white">
+            <i class="fas fa-robot me-2"></i>توصيات ذكية لتحسين الحضور
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% if avg_absence_rate > 10 %}
+                <div class="col-md-4 mb-3">
+                    <div class="alert alert-danger h-100">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>نسبة الغياب مرتفعة</strong>
+                        <p class="small mt-2">نسبة الغياب الحالية ({{ avg_absence_rate }}%) أعلى من المعدل الطبيعي. يوصى بتطبيق نظام حوافز للحضور المنتظم.</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if avg_late_rate > 15 %}
+                <div class="col-md-4 mb-3">
+                    <div class="alert alert-warning h-100">
+                        <i class="fas fa-clock me-2"></i>
+                        <strong>تأخر متكرر</strong>
+                        <p class="small mt-2">نسبة التأخير مرتفعة. يوصى بمراجعة مواعيد بدء العمل ووسائل النقل المتاحة.</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="col-md-4 mb-3">
+                    <div class="alert alert-info h-100">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        <strong>برنامج تحفيزي</strong>
+                        <p class="small mt-2">اقتراح: تطبيق برنامج "موظف الشهر" للموظفين الأكثر التزاماً لتحفيز البقية.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+new ApexCharts(document.querySelector("#absenceTrendChart"), {
+    series: [{
+        name: 'نسبة الغياب',
+        data: {{ absence_trend_data|tojson }}
+    }],
+    chart: {
+        type: 'line',
+        height: 300,
+        toolbar: { show: false },
+        fontFamily: 'Cairo, sans-serif'
+    },
+    colors: ['#e74a3b'],
+    stroke: { curve: 'smooth', width: 3 },
+    xaxis: {
+        categories: {{ months_labels|tojson }},
+        labels: { style: { fontFamily: 'Cairo, sans-serif' } }
+    },
+    yaxis: {
+        labels: {
+            formatter: (val) => val + '%',
+            style: { fontFamily: 'Cairo, sans-serif' }
+        }
+    }
+}).render();
+
+new ApexCharts(document.querySelector("#absenceReasonsChart"), {
+    series: {{ absence_reasons_data|tojson }},
+    chart: {
+        type: 'pie',
+        height: 300,
+        fontFamily: 'Cairo, sans-serif'
+    },
+    labels: ['مرضي', 'شخصي', 'غير مبرر', 'إجازة', 'أخرى'],
+    colors: ['#4e73df', '#1cc88a', '#e74a3b', '#f6c23e', '#858796'],
+    legend: { position: 'bottom' }
+}).render();
+
+function sendWarning(employeeId) {
+    if(confirm('هل تريد إرسال إنذار للموظف؟')) {
+        alert('تم إرسال الإنذار بنجاح');
+    }
+}
+</script>
+{% endblock %}

@@ -1,170 +1,294 @@
 {% extends "base.html" %}
 
 {% block title %}إضافة موظف جديد{% endblock %}
+
 {% block header %}إضافة موظف جديد{% endblock %}
 
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <div class="card shadow">
+        <div class="card shadow mb-4">
             <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">بيانات الموظف</h6>
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-user-plus me-2"></i>إضافة موظف جديد
+                </h6>
             </div>
             <div class="card-body">
-                <form method="POST" id="employeeForm">
+                <form method="POST" id="employeeForm" class="needs-validation" novalidate>
+                    <!-- فقط حقل المسمى الوظيفي في البداية -->
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="full_name" class="form-label">الاسم الكامل *</label>
-                            <input type="text" class="form-control" id="full_name" name="full_name" required>
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label for="position" class="form-label">المسمى الوظيفي *</label>
+                            <label for="position" class="form-label">
+                                <i class="fas fa-briefcase me-1"></i>المسمى الوظيفي <span class="text-danger">*</span>
+                            </label>
                             <select class="form-select" id="position" name="position" required>
-                                <option value="">اختر المسمى الوظيفي</option>
+                                <option value="">-- اختر المسمى الوظيفي --</option>
                                 <option value="supervisor">مشرف</option>
                                 <option value="monitor">مراقب نظافة</option>
                                 <option value="worker">عامل نظافة</option>
                             </select>
+                            <div class="invalid-feedback">يرجى اختيار المسمى الوظيفي</div>
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="phone" class="form-label">رقم الهاتف</label>
-                            <input type="tel" class="form-control" id="phone" name="phone" placeholder="+966500000000">
-                        </div>
+                    <!-- جميع الحقول الأخرى - مخفية في البداية -->
+                    <div id="allFields" style="display: none;">
+                        <!-- الاسم الكامل والهاتف -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="full_name" class="form-label">
+                                    <i class="fas fa-user me-1"></i>الاسم الكامل <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="full_name" name="full_name" required
+                                       placeholder="أدخل الاسم الكامل">
+                                <div class="invalid-feedback">يرجى إدخال الاسم الكامل</div>
+                            </div>
 
-                        <div class="col-md-6 mb-3">
-                            <label for="hire_date" class="form-label">تاريخ التعيين *</label>
-                            <input type="date" class="form-control" id="hire_date" name="hire_date" value="{{ today.isoformat() }}" required>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-12 mb-3">
-                            <label for="address" class="form-label">العنوان</label>
-                            <textarea class="form-control" id="address" name="address" rows="3" placeholder="أدخل العنوان الكامل..."></textarea>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="salary" class="form-label">الراتب (ريال يمني)</label>
-                            <input type="number" class="form-control" id="salary" name="salary" step="0.01" placeholder="أدخل الراتب الشهري">
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label for="is_active" class="form-label">الحالة</label>
-                            <div class="form-check form-switch mt-2">
-                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
-                                <label class="form-check-label" for="is_active">موظف نشط</label>
+                            <div class="col-md-6 mb-3">
+                                <label for="phone" class="form-label">
+                                    <i class="fas fa-phone me-1"></i>رقم الهاتف
+                                </label>
+                                <input type="tel" class="form-control" id="phone" name="phone"
+                                       placeholder="+967 700 000 000" dir="ltr">
                             </div>
                         </div>
-                    </div>
 
-                    <hr class="my-4">
-                    <h6 class="mb-3">بيانات حساب المستخدم</h6>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="username" class="form-label">اسم المستخدم *</label>
-                            <input type="text" class="form-control" id="username" name="username" required placeholder="أدخل اسم المستخدم">
-                            <div class="form-text">يستخدم لتسجيل الدخول إلى النظام</div>
+                        <!-- الشركة -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="company_id" class="form-label">
+                                    <i class="fas fa-building me-1"></i>الشركة <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="company_id" name="company_id" required>
+                                    <option value="">-- اختر الشركة --</option>
+                                    {% for company in companies %}
+                                    <option value="{{ company.id }}">{{ company.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">يرجى اختيار الشركة</div>
+                            </div>
                         </div>
 
-                        <div class="col-md-6 mb-3">
-                            <label for="email" class="form-label">البريد الإلكتروني *</label>
-                            <input type="email" class="form-control" id="email" name="email" required placeholder="employee@company.com">
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="password" class="form-label">كلمة المرور *</label>
-                            <input type="password" class="form-control" id="password" name="password" required placeholder="أدخل كلمة المرور">
-                            <div class="form-text">يجب أن تكون كلمة المرور قوية تحتوي على أحرف وأرقام</div>
+                        <!-- العنوان -->
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <label for="address" class="form-label">
+                                    <i class="fas fa-map-marker-alt me-1"></i>العنوان
+                                </label>
+                                <textarea class="form-control" id="address" name="address" rows="2"
+                                          placeholder="أدخل العنوان الكامل..."></textarea>
+                            </div>
                         </div>
 
-                        <div class="col-md-6 mb-3">
-                            <label for="confirm_password" class="form-label">تأكيد كلمة المرور *</label>
-                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required placeholder="أعد إدخال كلمة المرور">
+                        <!-- الراتب وتاريخ التعيين والحالة -->
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="salary" class="form-label">
+                                    <i class="fas fa-money-bill me-1"></i>الراتب (ريال يمني)
+                                </label>
+                                <input type="number" class="form-control" id="salary" name="salary" step="0.01"
+                                       placeholder="أدخل الراتب الشهري" min="0">
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label for="hire_date" class="form-label">
+                                    <i class="fas fa-calendar-alt me-1"></i>تاريخ التعيين <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" class="form-control" id="hire_date" name="hire_date"
+                                       value="{{ today.isoformat() }}" required>
+                                <div class="invalid-feedback">يرجى اختيار تاريخ التعيين</div>
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label d-block">
+                                    <i class="fas fa-toggle-on me-1"></i>الحالة
+                                </label>
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                                    <label class="form-check-label" for="is_active">موظف نشط</label>
+                                </div>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="alert alert-info mt-4">
-                        <h6><i class="fas fa-info-circle me-2"></i>معلومات مهمة</h6>
-                        <ul class="mb-0">
-                            <li>جميع الحقول التي تحمل علامة (*) إلزامية</li>
-                            <li>سيتم إنشاء حساب مستخدم للموظف يمكنه من تسجيل الدخول إلى النظام</li>
-                            <li>يتم تحديد صلاحيات الموظف بناءً على المسمى الوظيفي</li>
-                        </ul>
-                    </div>
+                        <!-- المشرف المباشر - يظهر للمراقبين والعمال فقط -->
+                        <div class="row" id="supervisorRow" style="display: none;">
+                            <div class="col-md-6 mb-3">
+                                <label for="supervisor_id" class="form-label">
+                                    <i class="fas fa-user-tie me-1"></i>المشرف المباشر
+                                </label>
+                                <select class="form-select" id="supervisor_id" name="supervisor_id">
+                                    <option value="">-- بدون مشرف مباشر --</option>
+                                    {% for supervisor in supervisors %}
+                                    <option value="{{ supervisor.id }}">{{ supervisor.full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">اختر المشرف المسؤول عن هذا الموظف</div>
+                            </div>
+                        </div>
 
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                        <a href="{{ url_for('employees_list') }}" class="btn btn-secondary me-md-2">إلغاء والعودة</a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-1"></i>حفظ الموظف
-                        </button>
+                        <!-- حقول المستخدم - تظهر للمشرفين فقط -->
+                        <div id="userFields" style="display: none;">
+                            <hr class="my-4">
+                            <div class="alert alert-primary mb-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>معلومات تسجيل الدخول:</strong> سيتم إنشاء حساب للمشرف
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="username" class="form-label">
+                                        <i class="fas fa-user-circle me-1"></i>اسم المستخدم <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="username" name="username"
+                                               placeholder="أدخل اسم المستخدم" autocomplete="off">
+                                        <button class="btn btn-outline-secondary" type="button" id="checkUsernameBtn">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                    <div class="invalid-feedback username-feedback"></div>
+                                    <div class="form-text">3 أحرف على الأقل</div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="password" class="form-label">
+                                        <i class="fas fa-key me-1"></i>كلمة المرور <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="password" name="password"
+                                               placeholder="أدخل كلمة المرور" autocomplete="off">
+                                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">6 أحرف على الأقل</div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="confirm_password" class="form-label">
+                                        <i class="fas fa-check-circle me-1"></i>تأكيد كلمة المرور <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="password" class="form-control" id="confirm_password" name="confirm_password"
+                                           placeholder="أعد إدخال كلمة المرور" autocomplete="off">
+                                    <div class="invalid-feedback" id="passwordMatchFeedback"></div>
+                                </div>
+
+                                <div class="col-md-6 mb-3 d-flex align-items-end">
+                                    <button class="btn btn-sm btn-info" type="button" id="generatePasswordBtn">
+                                        <i class="fas fa-random me-1"></i>توليد كلمة مرور عشوائية
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- الملاحظات وأزرار الإجراءات -->
+                        <div class="alert alert-info mt-4">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-info-circle me-2"></i>معلومات مهمة
+                            </h6>
+                            <ul class="mb-0 small">
+                                <li>جميع الحقول التي تحمل علامة <span class="text-danger">*</span> إلزامية</li>
+                                <li>يتم تحديد صلاحيات الموظف بناءً على المسمى الوظيفي</li>
+                                <li class="text-primary">حساب المستخدم يُنشأ فقط للمشرفين</li>
+                            </ul>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="{{ url_for('employees_list') }}" class="btn btn-secondary me-md-2">
+                                <i class="fas fa-times me-1"></i>إلغاء والعودة
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <i class="fas fa-save me-1"></i>حفظ الموظف
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
 <script>
-    $(document).ready(function() {
-        // Password confirmation validation
-        $('#confirm_password').on('keyup', function() {
-            const password = $('#password').val();
-            const confirmPassword = $(this).val();
+document.addEventListener('DOMContentLoaded', function() {
+    const positionSelect = document.getElementById('position');
+    const allFields = document.getElementById('allFields');
+    const supervisorRow = document.getElementById('supervisorRow');
+    const userFields = document.getElementById('userFields');
 
-            if (password !== confirmPassword && confirmPassword !== '') {
-                $(this).removeClass('is-valid').addClass('is-invalid');
-                $('#password').removeClass('is-valid').addClass('is-invalid');
-            } else {
-                $(this).removeClass('is-invalid').addClass('is-valid');
-                $('#password').removeClass('is-invalid').addClass('is-valid');
+    console.log('✅ تم تحميل الصفحة - في انتظار اختيار المسمى الوظيفي');
+
+    positionSelect.addEventListener('change', function() {
+        const position = this.value;
+        console.log('📝 تم اختيار:', position);
+
+        if (position) {
+            // إظهار جميع الحقول الأساسية
+            allFields.style.display = 'block';
+
+            // إخفاء الحقول الخاصة أولاً
+            supervisorRow.style.display = 'none';
+            userFields.style.display = 'none';
+
+            // إعادة تعيين الحقول
+            if (document.getElementById('username')) {
+                document.getElementById('username').required = false;
+                document.getElementById('password').required = false;
+                document.getElementById('confirm_password').required = false;
             }
-        });
 
-        // Form submission validation
-        $('#employeeForm').on('submit', function(e) {
-            const password = $('#password').val();
-            const confirmPassword = $('#confirm_password').val();
-
-            if (password !== confirmPassword) {
-                e.preventDefault();
-                alert('كلمة المرور وتأكيد كلمة المرور غير متطابقين');
-                return false;
+            // إظهار الحقول المناسبة حسب المسمى
+            if (position === 'supervisor') {
+                userFields.style.display = 'block';
+                document.getElementById('username').required = true;
+                document.getElementById('password').required = true;
+                document.getElementById('confirm_password').required = true;
+                console.log('✅ تم إظهار حقول المستخدم للمشرف');
             }
-
-            if (password.length < 6) {
-                e.preventDefault();
-                alert('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
-                return false;
+            else if (position === 'monitor' || position === 'worker') {
+                supervisorRow.style.display = 'block';
+                console.log('✅ تم إظهار المشرف المباشر للمراقب/العامل');
             }
-        });
-
-        // Check username availability
-        $('#username').on('blur', function() {
-            const username = $(this).val();
-            if (username.length > 3) {
-                $.get(`/api/check-username/${username}`, function(data) {
-                    if (!data.available) {
-                        $('#username').removeClass('is-valid').addClass('is-invalid');
-                        $('.username-feedback').remove();
-                        $('#username').after('<div class="invalid-feedback username-feedback">اسم المستخدم موجود مسبقاً</div>');
-                    } else {
-                        $('#username').removeClass('is-invalid').addClass('is-valid');
-                        $('.username-feedback').remove();
-                    }
-                });
-            }
-        });
+        } else {
+            // إخفاء جميع الحقول الأخرى
+            allFields.style.display = 'none';
+            console.log('🔻 تم إخفاء جميع الحقول');
+        }
     });
+});
 </script>
+
+<style>
+    .card {
+        border: none;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+    }
+    .card-header {
+        background-color: #f8f9fc;
+        border-bottom: 1px solid #e3e6f0;
+    }
+    .form-label {
+        font-weight: 500;
+        color: #2c3e50;
+        margin-bottom: 0.3rem;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    }
+    .alert-primary {
+        background-color: #cce5ff;
+        border-color: #b8daff;
+        color: #004085;
+    }
+    .alert-info {
+        background-color: #e1f5fe;
+        border-color: #b3e5fc;
+        color: #01579b;
+    }
+    #allFields {
+        transition: all 0.3s ease;
+    }
+</style>
 {% endblock %}

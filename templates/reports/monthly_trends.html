@@ -1,10 +1,154 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<!-- templates/reports/monthly_trends.html -->
+{% extends "base.html" %}
+
+{% block title %}اتجاهات التقييم الشهرية{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-success">
+            <i class="fas fa-chart-line me-2"></i>
+            اتجاهات التقييم الشهرية
+        </h2>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary" onclick="exportReport('pdf')">PDF</button>
+            <button class="btn btn-outline-success" onclick="exportReport('excel')">Excel</button>
+        </div>
+    </div>
+
+    <!-- مؤشرات الأداء الشهرية -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6>أفضل شهر</h6>
+                    <h3>{{ best_month.name }}</h3>
+                    <small>{{ best_month.avg }}%</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6>متوسط 3 أشهر</h6>
+                    <h3>{{ three_month_avg }}%</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6>نمو سنوي</h6>
+                    <h3>{{ yearly_growth }}%</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h6>اتجاه العام</h6>
+                    <h3>{{ trend_direction }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الرسوم البيانية -->
+    <div class="row">
+        <div class="col-md-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-chart-line me-2"></i>تطور التقييمات الشهرية
+                </div>
+                <div class="card-body">
+                    <canvas id="monthlyTrendChart" style="height: 400px;"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-chart-pie me-2"></i>توزيع التقييمات
+                </div>
+                <div class="card-body">
+                    <canvas id="monthlyDistributionChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول التحليل الشهري -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <i class="fas fa-table me-2"></i>تحليل شهري مفصل
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>الشهر</th>
+                                <th>عدد التقييمات</th>
+                                <th>المعدل</th>
+                                <th>التغيير</th>
+                                <th>أفضل موظف</th>
+                                <th>أفضل شركة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for month in monthly_data %}
+                            <tr>
+                                <td>{{ month.name }}</td>
+                                <td>{{ month.count }}</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-{{ month.color }}" style="width: {{ month.avg*20 }}%;">
+                                            {{ "%.1f"|format(month.avg) }}/5
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-{{ 'success' if month.change > 0 else 'danger' }}">
+                                    <i class="fas fa-arrow-{{ 'up' if month.change > 0 else 'down' }}"></i>
+                                    {{ month.change }}%
+                                </td>
+                                <td>{{ month.top_employee }}</td>
+                                <td>{{ month.top_company }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+new Chart(document.getElementById('monthlyTrendChart'), {
+    type: 'line',
+    data: {
+        labels: {{ month_labels|tojson }},
+        datasets: [{
+            label: 'متوسط التقييم',
+            data: {{ month_averages|tojson }},
+            borderColor: '#4e73df',
+            backgroundColor: 'rgba(78,115,223,0.1)',
+            tension: 0.3,
+            fill: true
+        }]
+    }
+});
+
+new Chart(document.getElementById('monthlyDistributionChart'), {
+    type: 'doughnut',
+    data: {
+        labels: {{ distribution_labels|tojson }},
+        datasets: [{
+            data: {{ distribution_data|tojson }},
+            backgroundColor: ['#1cc88a', '#4e73df', '#36b9cc', '#f6c23e', '#e74a3b']
+        }]
+    }
+});
+</script>
+{% endblock %}

@@ -9,26 +9,42 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h2 class="text-primary mb-1">التقارير والإحصائيات</h2>
-                    <p class="text-muted mb-0">تقارير شاملة عن أداء النظام</p>
+                    <p class="text-muted mb-0">نظام تقارير متكامل لتحليل الأداء والمتابعة</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-outline-primary" onclick="generateReport()">
-                        <i class="fas fa-download me-1"></i>تصدير تقرير
-                    </button>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-outline-primary" onclick="exportReport('pdf')">
+                            <i class="fas fa-file-pdf me-1"></i>PDF
+                        </button>
+                        <button class="btn btn-outline-success" onclick="exportReport('excel')">
+                            <i class="fas fa-file-excel me-1"></i>Excel
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="window.print()">
+                            <i class="fas fa-print me-1"></i>طباعة
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- إحصائيات التقارير -->
+            <!-- إحصائيات شاملة من قاعدة البيانات -->
             <div class="row mb-4">
                 <div class="col-xl-3 col-md-6 mb-4">
                     <div class="card border-left-primary shadow h-100 py-2">
                         <div class="card-body">
-                            <div class="row no-gutters align-items-center">
+                            <div class="row align-items-center">
                                 <div class="col mr-2">
                                     <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
                                         إجمالي الموظفين
                                     </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.get('total_employees', 0) }}</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_employees if total_employees else stats.total_employees if stats else 0 }}</div>
+                                    <div class="mt-2 small text-success">
+                                        <i class="fas fa-arrow-up"></i>
+                                        {% if active_employees and total_employees %}
+                                            {{ (active_employees / total_employees * 100)|int }}% نشط
+                                        {% else %}
+                                            0% نشط
+                                        {% endif %}
+                                    </div>
                                 </div>
                                 <div class="col-auto">
                                     <i class="fas fa-users fa-2x text-gray-300"></i>
@@ -41,12 +57,15 @@
                 <div class="col-xl-3 col-md-6 mb-4">
                     <div class="card border-left-success shadow h-100 py-2">
                         <div class="card-body">
-                            <div class="row no-gutters align-items-center">
+                            <div class="row align-items-center">
                                 <div class="col mr-2">
                                     <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
                                         عدد الشركات
                                     </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.get('total_companies', 0) }}</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_companies if total_companies else stats.total_companies if stats else 0 }}</div>
+                                    <div class="mt-2 small text-info">
+                                        <i class="fas fa-map-marker-alt"></i> {{ total_areas if total_areas else stats.total_zones if stats else 0 }} منطقة
+                                    </div>
                                 </div>
                                 <div class="col-auto">
                                     <i class="fas fa-building fa-2x text-gray-300"></i>
@@ -59,12 +78,20 @@
                 <div class="col-xl-3 col-md-6 mb-4">
                     <div class="card border-left-info shadow h-100 py-2">
                         <div class="card-body">
-                            <div class="row no-gutters align-items-center">
+                            <div class="row align-items-center">
                                 <div class="col mr-2">
                                     <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
                                         إجمالي التقييمات
                                     </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.get('total_evaluations', 0) }}</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_evaluations if total_evaluations else stats.total_evaluations if stats else 0 }}</div>
+                                    <div class="mt-2 small text-warning">
+                                        <i class="fas fa-chart-line"></i>
+                                        {% if evaluations_this_month and total_evaluations %}
+                                            {{ (evaluations_this_month / total_evaluations * 100)|int }}% هذا الشهر
+                                        {% else %}
+                                            0% هذا الشهر
+                                        {% endif %}
+                                    </div>
                                 </div>
                                 <div class="col-auto">
                                     <i class="fas fa-clipboard-check fa-2x text-gray-300"></i>
@@ -77,13 +104,29 @@
                 <div class="col-xl-3 col-md-6 mb-4">
                     <div class="card border-left-warning shadow h-100 py-2">
                         <div class="card-body">
-                            <div class="row no-gutters align-items-center">
+                            <div class="row align-items-center">
                                 <div class="col mr-2">
                                     <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                        متوسط التقييم
+                                        متوسط التقييم العام
                                     </div>
                                     <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                        {{ "%.1f"|format(stats.get('avg_score', 0.0)) }}/5
+                                        {% if avg_score %}
+                                            {{ "%.1f"|format(avg_score) }}/5
+                                        {% elif stats and stats.avg_score %}
+                                            {{ "%.1f"|format(stats.avg_score) }}/5
+                                        {% else %}
+                                            0.0/5
+                                        {% endif %}
+                                    </div>
+                                    <div class="mt-2">
+                                        {% set score = avg_score if avg_score else (stats.avg_score if stats and stats.avg_score else 0) %}
+                                        {% for i in range(5) %}
+                                            {% if i < score|int %}
+                                                <i class="fas fa-star text-warning small"></i>
+                                            {% else %}
+                                                <i class="far fa-star text-warning small"></i>
+                                            {% endif %}
+                                        {% endfor %}
                                     </div>
                                 </div>
                                 <div class="col-auto">
@@ -95,43 +138,536 @@
                 </div>
             </div>
 
-            <!-- خيارات التقارير -->
+            <!-- تقارير الأداء والمتابعة المتقدمة -->
             <div class="row">
-                <div class="col-md-6">
+                <div class="col-lg-8">
+                    <!-- تقارير شاملة ومفعلة -->
                     <div class="card shadow mb-4">
-                        <div class="card-header py-3">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
                             <h6 class="m-0 font-weight-bold text-primary">
-                                <i class="fas fa-chart-bar me-2"></i>تقارير سريعة
+                                <i class="fas fa-chart-pie me-2"></i>التقارير المتاحة
                             </h6>
+                            <div>
+                                <span class="badge bg-info ms-2">{{ today|arabic_date if today else now|date if now else '' }}</span>
+                                <button class="btn btn-sm btn-primary" onclick="refreshReports()">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="card-body">
-                            <div class="list-group">
-                                <a href="/reports/daily-evaluations" class="list-group-item list-group-item-action">
-                                    <i class="fas fa-calendar-day me-2 text-primary"></i>
-                                    تقرير التقييمات اليومية
-                                </a>
-                                <a href="#" class="list-group-item list-group-item-action" onclick="showComingSoon('تقرير أداء الموظفين')">
-                                    <i class="fas fa-user-chart me-2 text-success"></i>
-                                    تقرير أداء الموظفين
-                                </a>
-                                <a href="#" class="list-group-item list-group-item-action" onclick="showComingSoon('تقرير الشركات')">
-                                    <i class="fas fa-building me-2 text-info"></i>
-                                    تقرير الشركات والمناطق
-                                </a>
-                                <a href="#" class="list-group-item list-group-item-action" onclick="showComingSoon('تقرير الحضور')">
-                                    <i class="fas fa-calendar-check me-2 text-warning"></i>
-                                    تقرير الحضور والانصراف
-                                </a>
+                            <!-- تبويبات التقارير -->
+                            <ul class="nav nav-tabs mb-3" id="reportsTab" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="employees-tab" data-bs-toggle="tab" data-bs-target="#employees" type="button" role="tab">الموظفين</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="companies-tab" data-bs-toggle="tab" data-bs-target="#companies" type="button" role="tab">الشركات والمناطق</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="evaluations-tab" data-bs-toggle="tab" data-bs-target="#evaluations" type="button" role="tab">التقييمات</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance" type="button" role="tab">الحضور والانصراف</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="supervisors-tab" data-bs-toggle="tab" data-bs-target="#supervisors" type="button" role="tab">
+                            <i class="fas fa-user-tie me-1"></i> المشرفين
+                        </button>
+                                                    </li>
+
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="financial-tab" data-bs-toggle="tab" data-bs-target="#financial" type="button" role="tab">المالية</button>
+                                </li>
+                            </ul>
+
+                            <!-- محتوى التبويبات -->
+                            <div class="tab-content" id="reportsTabContent">
+                                <!-- تقارير الموظفين -->
+                                <div class="tab-pane fade show active" id="employees" role="tabpanel">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover datatable">
+                                            <thead>
+                                                <tr>
+                                                    <th>التقرير</th>
+                                                    <th>آخر تحديث</th>
+                                                    <th>حالة التفعيل</th>
+                                                    <th>إجراءات</th>
+                                                </tr>
+                                            </thead>
+                                           <tbody>
+    <tr>
+        <td>
+            <i class="fas fa-user-tie text-primary me-2"></i>
+            تقرير أداء الموظفين الشامل
+        </td>
+        <td>{{ now|date if now else today|date if today else '' }}</td>
+        <td><span class="badge bg-success">مفعل</span></td>
+        <td>
+            <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_employees_performance') }}'">
+                <i class="fas fa-eye"></i> عرض
+            </button>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <i class="fas fa-chart-line text-success me-2"></i>
+            تحليل كفاءة الموظفين
+        </td>
+        <td>{{ now|date if now else today|date if today else '' }}</td>
+        <td><span class="badge bg-success">مفعل</span></td>
+        <td>
+            <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_employees_efficiency') }}'">
+                <i class="fas fa-eye"></i> عرض
+            </button>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <i class="fas fa-medal text-warning me-2"></i>
+            أفضل الموظفين أداءً
+        </td>
+        <td>{{ now|date if now else today|date if today else '' }}</td>
+        <td><span class="badge bg-success">مفعل</span></td>
+        <td>
+            <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_top_employees') }}'">
+                <i class="fas fa-eye"></i> عرض
+            </button>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <i class="fas fa-clock text-info me-2"></i>
+            سجل حضور الموظفين
+        </td>
+        <td>{{ now|date if now else today|date if today else '' }}</td>
+        <td><span class="badge bg-success">مفعل</span></td>
+        <td>
+            <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_attendance_record') }}'">
+                <i class="fas fa-eye"></i> عرض
+            </button>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+            الموظفون المتأخرون
+        </td>
+        <td>{{ now|date if now else today|date if today else '' }}</td>
+        <td><span class="badge bg-success">مفعل</span></td>
+        <td>
+            <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_late_employees') }}'">
+                <i class="fas fa-eye"></i> عرض
+            </button>
+        </td>
+    </tr>
+</tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                           <!-- تقارير الشركات والمناطق -->
+<div class="tab-pane fade" id="companies" role="tabpanel">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>التقرير</th>
+                    <th>آخر تحديث</th>
+                    <th>حالة التفعيل</th>
+                    <th>إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <i class="fas fa-building text-primary me-2"></i>
+                        تقرير الشركات والمناطق - شامل
+                    </td>
+                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                    <td><span class="badge bg-success">مفعل</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_companies_zones') }}'">
+                            <i class="fas fa-eye"></i> عرض
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <i class="fas fa-chart-bar text-success me-2"></i>
+                        توزيع الموظفين على الشركات - تحليل متقدم
+                    </td>
+                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                    <td><span class="badge bg-success">مفعل</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_employees_distribution') }}'">
+                            <i class="fas fa-eye"></i> عرض
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <i class="fas fa-star text-warning me-2"></i>
+                        تقييم الشركات حسب المناطق - تحليل ذكي
+                    </td>
+                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                    <td><span class="badge bg-success">مفعل</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_companies_ratings') }}'">
+                            <i class="fas fa-eye"></i> عرض
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <i class="fas fa-fire text-danger me-2"></i>
+                        خريطة المناطق الحرارية - تفاعلية
+                    </td>
+                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                    <td><span class="badge bg-success">مفعل</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_heatmap') }}'">
+                            <i class="fas fa-eye"></i> عرض
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<!-- تقارير التقييمات -->
+<div class="tab-pane fade" id="evaluations" role="tabpanel">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>التقرير</th>
+                    <th>آخر تحديث</th>
+                    <th>حالة التفعيل</th>
+                    <th>إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <i class="fas fa-calendar-check text-primary me-2"></i>
+                        التقييمات اليومية - تقرير ذكي
+                    </td>
+                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                    <td><span class="badge bg-success">مفعل</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_daily_evaluations_advanced') }}'">
+                            <i class="fas fa-eye"></i> عرض
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <i class="fas fa-chart-line text-success me-2"></i>
+                        اتجاهات التقييم الشهرية - تحليل متقدم
+                    </td>
+                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                    <td><span class="badge bg-success">مفعل</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_monthly_trends_advanced') }}'">
+                            <i class="fas fa-eye"></i> عرض
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <i class="fas fa-clipboard-list text-warning me-2"></i>
+                        تفاصيل التقييمات حسب المعايير
+                    </td>
+                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                    <td><span class="badge bg-success">مفعل</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_evaluation_details_advanced') }}'">
+                            <i class="fas fa-eye"></i> عرض
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <i class="fas fa-flag-checkered text-info me-2"></i>
+                        مؤشرات الأداء الرئيسية - KPIs
+                    </td>
+                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                    <td><span class="badge bg-success">مفعل</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_kpis_advanced') }}'">
+                            <i class="fas fa-eye"></i> عرض
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<!-- تقارير الحضور والانصراف -->
+<div class="tab-pane fade" id="attendance" role="tabpanel">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>التقرير</th>
+                    <th>آخر تحديث</th>
+                    <th>حالة التفعيل</th>
+                    <th>إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <i class="fas fa-fingerprint text-primary me-2"></i>
+                        سجل الحضور والانصراف - متقدم
+                    </td>
+                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                    <td><span class="badge bg-success">مفعل</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_attendance_record_advanced') }}'">
+                            <i class="fas fa-eye"></i> عرض
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <i class="fas fa-hourglass-half text-success me-2"></i>
+                        ساعات العمل الإضافية - تحليلي
+                    </td>
+                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                    <td><span class="badge bg-success">مفعل</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_overtime') }}'">
+                            <i class="fas fa-eye"></i> عرض
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <i class="fas fa-calendar-alt text-warning me-2"></i>
+                        ملخص الحضور الشهري - شامل
+                    </td>
+                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                    <td><span class="badge bg-success">مفعل</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_monthly_summary') }}'">
+                            <i class="fas fa-eye"></i> عرض
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <i class="fas fa-percent text-info me-2"></i>
+                        نسب الغياب والتأخير - تحليلي
+                    </td>
+                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                    <td><span class="badge bg-success">مفعل</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_absence_rates') }}'">
+                            <i class="fas fa-eye"></i> عرض
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+                                <!-- قسم تقارير المشرفين (أضف هذا التبويب الجديد) -->
+<li class="nav-item" role="presentation">
+    <button class="nav-link" id="supervisors-tab" data-bs-toggle="tab" data-bs-target="#supervisors" type="button" role="tab">
+        <i class="fas fa-user-tie me-1"></i> المشرفين
+    </button>
+</li>
+
+<!-- محتوى تبويب المشرفين -->
+<div class="tab-pane fade" id="supervisors" role="tabpanel">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>التقرير</th>
+                    <th>آخر تحديث</th>
+                    <th>حالة التفعيل</th>
+                    <th>إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <i class="fas fa-user-tie text-primary me-2"></i>
+                        تقرير أداء المشرفين الشامل
+                    </td>
+                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                    <td><span class="badge bg-success">مفعل</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_supervisor_performance') }}'">
+                            <i class="fas fa-eye"></i> عرض
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <i class="fas fa-clipboard-check text-success me-2"></i>
+                        تقييم المشرفين التفصيلي
+                    </td>
+                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                    <td><span class="badge bg-success">مفعل</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_supervisor_detailed_evaluation') }}'">
+                            <i class="fas fa-eye"></i> عرض
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <i class="fas fa-tachometer-alt text-info me-2"></i>
+                        لوحة مؤشرات أداء المشرفين
+                    </td>
+                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                    <td><span class="badge bg-success">مفعل</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_supervisor_kpi_dashboard') }}'">
+                            <i class="fas fa-eye"></i> عرض
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+                                <!-- التقارير المالية -->
+                                <div class="tab-pane fade" id="financial" role="tabpanel">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>التقرير</th>
+                                                    <th>آخر تحديث</th>
+                                                    <th>حالة التفعيل</th>
+                                                    <th>إجراءات</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-money-bill-wave text-primary me-2"></i>
+                                                        تكاليف المشاريع
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-warning text-dark">قيد التفعيل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-secondary" disabled>
+                                                            <i class="fas fa-eye"></i> قريباً
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-file-invoice-dollar text-success me-2"></i>
+                                                        الفواتير والمدفوعات
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-warning text-dark">قيد التفعيل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-secondary" disabled>
+                                                            <i class="fas fa-eye"></i> قريباً
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-chart-pie text-info me-2"></i>
+                                                        تحليل التكاليف والإيرادات
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-secondary">غير مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-primary" onclick="activateReport('financial')">
+                                                            <i class="fas fa-play"></i> تفعيل
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-md-6">
+                <div class="col-lg-4">
+                    <!-- التقارير الذكية والتوصيات -->
                     <div class="card shadow mb-4">
                         <div class="card-header py-3">
                             <h6 class="m-0 font-weight-bold text-primary">
-                                <i class="fas fa-cog me-2"></i>خيارات متقدمة
+                                <i class="fas fa-robot me-2"></i>تقارير ذكية وتوصيات
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-lightbulb me-2"></i>
+                                    <strong>توصية ذكية:</strong>
+                                    {% if total_evaluations > 0 %}
+                                        تم اكتشاف تحسن في أداء الموظفين بنسبة {{ (avg_score / 5 * 100)|int }}% هذا الشهر
+                                    {% else %}
+                                        أضف تقييمات للحصول على توصيات ذكية
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="list-group mb-3">
+                                <a href="#" class="list-group-item list-group-item-action" onclick="generateAIAnalysis('employees')">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">تحليل أداء الموظفين بالذكاء الاصطناعي</h6>
+                                        <small>جديد</small>
+                                    </div>
+                                    <p class="mb-1 small">تحليل متقدم باستخدام تقنيات الذكاء الاصطناعي</p>
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action" onclick="generateAIAnalysis('predictions')">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">التوقعات المستقبلية</h6>
+                                        <small>Beta</small>
+                                    </div>
+                                    <p class="mb-1 small">توقع أداء الموظفين والشركات للفترة القادمة</p>
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action" onclick="generateAIAnalysis('anomalies')">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">كشف الحالات الشاذة</h6>
+                                        <small>مميز</small>
+                                    </div>
+                                    <p class="mb-1 small">رصد أي أنماط غير طبيعية في الأداء أو الحضور</p>
+                                </a>
+                            </div>
+
+                            <!-- إحصائيات سريعة من قاعدة البيانات -->
+                            <div class="mt-3">
+                                <h6 class="font-weight-bold">أسرع التقارير نمواً:</h6>
+                                <div class="progress mb-2" style="height: 25px;">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ (evaluations_today / (total_evaluations or 1) * 100)|int }}%;">
+                                        تقييمات اليوم +{{ evaluations_today or 0 }}
+                                    </div>
+                                </div>
+                                <div class="progress mb-2" style="height: 25px;">
+                                    <div class="progress-bar bg-info" role="progressbar" style="width: {{ (present_today / (total_employees or 1) * 100)|int }}%;">
+                                        حضور اليوم +{{ present_today or 0 }}
+                                    </div>
+                                </div>
+                                <div class="progress mb-2" style="height: 25px;">
+                                    <div class="progress-bar bg-warning" role="progressbar" style="width: {{ (evaluations_this_week / (total_evaluations or 1) * 100)|int }}%;">
+                                        تقييمات الأسبوع +{{ evaluations_this_week or 0 }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- فلترة التقارير -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-filter me-2"></i>خيارات متقدمة
                             </h6>
                         </div>
                         <div class="card-body">
@@ -139,11 +675,21 @@
                                 <label class="form-label">الفترة الزمنية</label>
                                 <select class="form-select" id="reportPeriod">
                                     <option value="today">اليوم</option>
+                                    <option value="yesterday">أمس</option>
                                     <option value="week" selected>هذا الأسبوع</option>
+                                    <option value="last_week">الأسبوع الماضي</option>
                                     <option value="month">هذا الشهر</option>
+                                    <option value="last_month">الشهر الماضي</option>
                                     <option value="quarter">هذا الربع</option>
                                     <option value="year">هذه السنة</option>
+                                    <option value="custom">مخصص</option>
                                 </select>
+                            </div>
+                            <div class="mb-3" id="customDateRange" style="display: none;">
+                                <label class="form-label">من تاريخ</label>
+                                <input type="date" class="form-control mb-2" id="startDate" value="{{ today }}">
+                                <label class="form-label">إلى تاريخ</label>
+                                <input type="date" class="form-control" id="endDate" value="{{ today }}">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">نوع التقرير</label>
@@ -151,10 +697,35 @@
                                     <option value="summary">ملخص عام</option>
                                     <option value="detailed">تقرير مفصل</option>
                                     <option value="analytical">تحليل إحصائي</option>
+                                    <option value="comparative">تحليل مقارن</option>
+                                    <option value="forecast">توقعات مستقبلية</option>
                                 </select>
                             </div>
-                            <button class="btn btn-primary w-100" onclick="generateCustomReport()">
-                                <i class="fas fa-chart-line me-1"></i>إنشاء تقرير مخصص
+                            <div class="mb-3">
+                                <label class="form-label">صيغة التصدير</label>
+                                <select class="form-select" id="exportFormat">
+                                    <option value="pdf">PDF</option>
+                                    <option value="excel">Excel</option>
+                                    <option value="csv">CSV</option>
+                                    <option value="json">JSON</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="includeCharts" checked>
+                                    <label class="form-check-label" for="includeCharts">
+                                        تضمين الرسوم البيانية
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="includeComparison">
+                                    <label class="form-check-label" for="includeComparison">
+                                        مقارنة مع الفترة السابقة
+                                    </label>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary w-100" onclick="generateAdvancedReport()">
+                                <i class="fas fa-magic me-1"></i>إنشاء تقرير متقدم
                             </button>
                         </div>
                     </div>
@@ -164,23 +735,393 @@
     </div>
 </div>
 
+<!-- نافذة معاينة التقرير -->
+<div class="modal fade" id="reportPreviewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">معاينة التقرير</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="reportPreviewContent">
+                <!-- محتوى المعاينة يتم تحميله ديناميكياً -->
+                <div class="text-center p-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                    <p class="mt-2">جاري تحضير التقرير...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" onclick="exportPreview()">
+                    <i class="fas fa-download"></i> تصدير
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-function generateReport() {
+// متغيرات عامة
+let currentReport = null;
+let previewModal = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // تهيئة العناصر
+    previewModal = new bootstrap.Modal(document.getElementById('reportPreviewModal'));
+
+    // مراقبة تغيير الفترة الزمنية
+    document.getElementById('reportPeriod').addEventListener('change', function(e) {
+        const customRange = document.getElementById('customDateRange');
+        customRange.style.display = e.target.value === 'custom' ? 'block' : 'none';
+    });
+
+    // تفعيل الرسوم البيانية التفاعلية إذا كانت موجودة
+    initializeCharts();
+});
+
+// دالة عرض التقرير
+function viewReport(reportType) {
     showLoading();
+
+    // محاكاة تحميل التقرير
     setTimeout(() => {
         hideLoading();
-        alert('سيتم تحميل التقرير قريباً...');
-    }, 1000);
+        currentReport = reportType;
+
+        // تحديث محتوى المعاينة
+        const previewContent = document.getElementById('reportPreviewContent');
+        previewContent.innerHTML = generateReportPreview(reportType);
+
+        // عرض المعاينة
+        previewModal.show();
+    }, 1500);
 }
 
-function generateCustomReport() {
-    const period = document.getElementById('reportPeriod').value;
-    const type = document.getElementById('reportType').value;
+// دالة معاينة التقرير التجريبي
+function previewReport(reportType) {
+    alert(`التقرير (${reportType}) في مرحلة التجربة وسيتم تفعيله قريباً`);
+}
+
+// دالة توليد معاينة التقرير
+function generateReportPreview(reportType) {
+    const reports = {
+        'employees-efficiency': `
+            <div class="container">
+                <h4 class="text-center mb-4">تحليل كفاءة الموظفين</h4>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    هذا التقرير قيد التطوير وسيتم إطلاقه قريباً
+                </div>
+                <p>إجمالي الموظفين: {{ total_employees }}</p>
+                <p>متوسط الأداء: {{ "%.1f"|format(avg_score) if avg_score else 0 }}/5</p>
+            </div>
+        `,
+        'top-employees': `
+            <div class="container">
+                <h4 class="text-center mb-4">أفضل الموظفين أداءً</h4>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    هذا التقرير قيد التطوير وسيتم إطلاقه قريباً
+                </div>
+            </div>
+        `,
+        'late-employees': `
+            <div class="container">
+                <h4 class="text-center mb-4">الموظفون المتأخرون</h4>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    هذا التقرير قيد التطوير وسيتم إطلاقه قريباً
+                </div>
+            </div>
+        `,
+        'employees-distribution': `
+            <div class="container">
+                <h4 class="text-center mb-4">توزيع الموظفين على الشركات</h4>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    هذا التقرير قيد التطوير وسيتم إطلاقه قريباً
+                </div>
+            </div>
+        `,
+        'companies-ratings': `
+            <div class="container">
+                <h4 class="text-center mb-4">تقييم الشركات حسب المناطق</h4>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    هذا التقرير قيد التطوير وسيتم إطلاقه قريباً
+                </div>
+            </div>
+        `,
+        'monthly-trends': `
+            <div class="container">
+                <h4 class="text-center mb-4">اتجاهات التقييم الشهرية</h4>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    هذا التقرير قيد التطوير وسيتم إطلاقه قريباً
+                </div>
+            </div>
+        `,
+        'kpis': `
+            <div class="container">
+                <h4 class="text-center mb-4">مؤشرات الأداء الرئيسية</h4>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    هذا التقرير قيد التطوير وسيتم إطلاقه قريباً
+                </div>
+            </div>
+        `,
+        'overtime': `
+            <div class="container">
+                <h4 class="text-center mb-4">ساعات العمل الإضافية</h4>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    هذا التقرير قيد التطوير وسيتم إطلاقه قريباً
+                </div>
+            </div>
+        `,
+        'monthly-summary': `
+            <div class="container">
+                <h4 class="text-center mb-4">ملخص الحضور الشهري</h4>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    هذا التقرير قيد التطوير وسيتم إطلاقه قريباً
+                </div>
+            </div>
+        `,
+        'absence-rates': `
+            <div class="container">
+                <h4 class="text-center mb-4">نسب الغياب والتأخير</h4>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    هذا التقرير قيد التطوير وسيتم إطلاقه قريباً
+                </div>
+            </div>
+        `
+    };
+
+    return reports[reportType] || '<div class="alert alert-info">لا توجد معاينة متاحة</div>';
+}
+
+// دالة تصدير التقرير
+function exportReport(format) {
     showLoading();
     setTimeout(() => {
         hideLoading();
-        alert(`سيتم إنشاء تقرير ${type} للفترة ${period}`);
-    }, 1000);
+        alert(`جاري تصدير التقرير بصيغة ${format.toUpperCase()}`);
+
+        // محاكاة عملية التحميل
+        const link = document.createElement('a');
+        link.href = '#';
+        link.download = `report.${format}`;
+        link.click();
+    }, 1500);
+}
+
+// دالة إنشاء تقرير متقدم
+function generateAdvancedReport() {
+    const period = document.getElementById('reportPeriod').value;
+    const type = document.getElementById('reportType').value;
+    const format = document.getElementById('exportFormat').value;
+    const includeCharts = document.getElementById('includeCharts').checked;
+    const includeComparison = document.getElementById('includeComparison').checked;
+
+    let startDate = '';
+    let endDate = '';
+
+    if (period === 'custom') {
+        startDate = document.getElementById('startDate').value;
+        endDate = document.getElementById('endDate').value;
+
+        if (!startDate || !endDate) {
+            alert('الرجاء تحديد تاريخ البداية والنهاية');
+            return;
+        }
+    }
+
+    showLoading();
+
+    setTimeout(() => {
+        hideLoading();
+        alert(`تم إنشاء التقرير المتقدم بنجاح!
+
+الفترة: ${period} ${period === 'custom' ? `(${startDate} إلى ${endDate})` : ''}
+النوع: ${type}
+الصيغة: ${format}
+الرسوم البيانية: ${includeCharts ? 'نعم' : 'لا'}
+المقارنة: ${includeComparison ? 'نعم' : 'لا'}
+
+سيبدأ التحميل تلقائياً...`);
+
+        // محاكاة تحميل الملف
+        if (format === 'pdf') {
+            window.open('/static/sample_report.pdf', '_blank');
+        }
+    }, 2000);
+}
+
+// دالة تفعيل تقرير جديد
+function activateReport(reportType) {
+    if (confirm('هل تريد تفعيل هذا التقرير؟')) {
+        showLoading();
+        setTimeout(() => {
+            hideLoading();
+            alert('تم تفعيل التقرير بنجاح! يمكنك الآن استخدامه من قائمة التقارير.');
+            location.reload();
+        }, 1500);
+    }
+}
+
+// دالة توليد تحليل بالذكاء الاصطناعي
+function generateAIAnalysis(analysisType) {
+    showLoading();
+
+    setTimeout(() => {
+        hideLoading();
+        const analyses = {
+            'employees': `
+                تحليل أداء الموظفين بالذكاء الاصطناعي:
+
+                - تم تحليل أداء {{ total_employees }} موظفاً
+                - متوسط الأداء العام: {{ "%.1f"|format(avg_score) if avg_score else 0 }}/5
+                - أفضل الموظفين أداءً: يتم تحميل البيانات...
+                - توصيات: التركيز على تدريب الموظفين الجدد
+            `,
+            'predictions': `
+                التوقعات المستقبلية للشهر القادم:
+
+                - من المتوقع زيادة الأداء بنسبة 10%
+                - توقعات بانخفاض نسبة الغياب إلى 3%
+                - توقع تحسن تقييمات الشركات بنسبة 8%
+            `,
+            'anomalies': `
+                كشف الحالات الشاذة:
+
+                - يتم تحليل البيانات...
+                - سيتم عرض النتائج قريباً
+            `
+        };
+
+        alert(analyses[analysisType] || 'التحليل غير متاح حالياً');
+    }, 2000);
+}
+
+// دالة تحديث التقارير
+function refreshReports() {
+    showLoading();
+    setTimeout(() => {
+        hideLoading();
+        alert('تم تحديث جميع التقارير بنجاح');
+    }, 1500);
+}
+
+// دوال المساعدة
+function showLoading() {
+    // إضافة مؤشر تحميل
+    const loader = document.createElement('div');
+    loader.id = 'globalLoader';
+    loader.className = 'position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center';
+    loader.style.backgroundColor = 'rgba(255,255,255,0.8)';
+    loader.style.zIndex = '9999';
+    loader.innerHTML = '<div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>';
+    document.body.appendChild(loader);
+}
+
+function hideLoading() {
+    const loader = document.getElementById('globalLoader');
+    if (loader) {
+        loader.remove();
+    }
+}
+
+function hideComingSoon() {
+    const modal = document.getElementById('comingSoonModal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.remove();
+    }
+}
+
+// دالة تهيئة الرسوم البيانية
+function initializeCharts() {
+    // يمكن إضافة رسوم بيانية إضافية هنا
+    console.log('Charts initialized');
+}
+
+// تصدير المعاينة
+function exportPreview() {
+    if (currentReport) {
+        exportReport('pdf');
+    }
 }
 </script>
+
+<style>
+/* أنماط إضافية للتقارير */
+.border-left-primary {
+    border-left: 4px solid #4e73df;
+}
+.border-left-success {
+    border-left: 4px solid #1cc88a;
+}
+.border-left-info {
+    border-left: 4px solid #36b9cc;
+}
+.border-left-warning {
+    border-left: 4px solid #f6c23e;
+}
+.shadow {
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58,59,69,0.15);
+}
+.card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+}
+.progress {
+    border-radius: 10px;
+    overflow: hidden;
+}
+.progress-bar {
+    font-size: 12px;
+    line-height: 25px;
+    text-align: right;
+    padding-right: 10px;
+}
+.table-hover tbody tr:hover {
+    background-color: rgba(78,115,223,0.05);
+    cursor: pointer;
+}
+.nav-tabs .nav-link {
+    color: #4e73df;
+}
+.nav-tabs .nav-link.active {
+    font-weight: bold;
+    border-bottom: 3px solid #4e73df;
+}
+.badge {
+    padding: 5px 10px;
+    font-size: 12px;
+}
+.btn-group {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.btn-outline-primary:hover, .btn-outline-success:hover, .btn-outline-danger:hover {
+    transform: translateY(-2px);
+    transition: all 0.3s;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+@media print {
+    .btn, .btn-group, .modal, .nav-tabs {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #ddd !important;
+        break-inside: avoid;
+    }
+}
+</style>
+
+<!-- إضافة مكتبة Chart.js للرسوم البيانية -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}

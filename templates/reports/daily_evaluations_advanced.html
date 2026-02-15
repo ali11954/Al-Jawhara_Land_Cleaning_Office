@@ -1,10 +1,411 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<!-- templates/reports/daily_evaluations_advanced.html -->
+{% extends "base.html" %}
+
+{% block title %}التقييمات اليومية - تحليل ذكي{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- شريط العنوان مع مؤشرات حية -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-primary mb-1">
+                <i class="fas fa-calendar-day me-2"></i>
+                التقييمات اليومية - تحليل ذكي
+            </h2>
+            <p class="text-muted mb-0">تحليل لحظي للتقييمات مع مؤشرات الأداء والتوصيات</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary" onclick="exportReport('pdf')">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </button>
+            <button class="btn btn-outline-success" onclick="exportReport('excel')">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-outline-info" onclick="refreshData()">
+                <i class="fas fa-sync-alt me-1"></i>تحديث
+            </button>
+        </div>
+    </div>
+
+    <!-- بطاقات المؤشرات الحية -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                إجمالي التقييمات اليوم
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ daily_stats.total }}</div>
+                            <div class="mt-2 small text-{{ 'success' if daily_stats.trend > 0 else 'danger' }}">
+                                <i class="fas fa-arrow-{{ 'up' if daily_stats.trend > 0 else 'down' }}"></i>
+                                {{ daily_stats.trend }}% عن الأمس
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                متوسط التقييم
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ "%.1f"|format(daily_stats.avg_score) }}/5</div>
+                            <div class="mt-2 small text-info">
+                                <i class="fas fa-star"></i> أعلى تقييم: {{ daily_stats.max_score }}/5
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-star fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                المتميزون (4.5+)
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ daily_stats.excellent_count }}</div>
+                            <div class="mt-2 small text-warning">
+                                <i class="fas fa-medal"></i> {{ daily_stats.excellent_percent }}% من التقييمات
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-trophy fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                يحتاج تحسين (3-)
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ daily_stats.poor_count }}</div>
+                            <div class="mt-2 small text-danger">
+                                <i class="fas fa-exclamation-triangle"></i> {{ daily_stats.poor_percent }}% من التقييمات
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الرسوم البيانية المتقدمة -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between">
+                    <span><i class="fas fa-chart-line me-2"></i>تحليل التقييمات خلال اليوم</span>
+                    <span class="badge bg-light text-primary">{{ selected_date }}</span>
+                </div>
+                <div class="card-body">
+                    <canvas id="hourlyChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-chart-pie me-2"></i>توزيع التقييمات
+                </div>
+                <div class="card-body">
+                    <canvas id="distributionChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تحليل المعايير -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <i class="fas fa-chart-bar me-2"></i>تحليل المعايير (رادار الأداء)
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <canvas id="criteriaRadarChart" style="height: 350px;"></canvas>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>المعيار</th>
+                                            <th>المتوسط</th>
+                                            <th>التقييم</th>
+                                            <th>الحالة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for criterion in criteria_stats %}
+                                        <tr>
+                                            <td>{{ criterion.name }}</td>
+                                            <td>{{ "%.1f"|format(criterion.avg) }}/5</td>
+                                            <td>
+                                                <div class="progress" style="height: 10px;">
+                                                    <div class="progress-bar bg-{{ criterion.color }}" style="width: {{ criterion.avg*20 }}%;"></div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ criterion.badge_color }}">{{ criterion.status }}</span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- قائمة التقييمات مع تحليل ذكي -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark d-flex justify-content-between">
+                    <span><i class="fas fa-list me-2"></i>تفاصيل التقييمات</span>
+                    <div class="d-flex">
+                        <input type="text" id="searchEvaluation" class="form-control form-control-sm me-2" placeholder="بحث..." style="width: 200px;">
+                        <select id="filterScore" class="form-select form-select-sm" style="width: 150px;">
+                            <option value="all">جميع التقييمات</option>
+                            <option value="high">ممتاز (4.5+)</option>
+                            <option value="good">جيد (3.5-4.4)</option>
+                            <option value="low">ضعيف (أقل من 3.5)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="evaluationsTable">
+                            <thead>
+                                <tr>
+                                    <th>الوقت</th>
+                                    <th>الموظف</th>
+                                    <th>الموقع</th>
+                                    <th>النظافة</th>
+                                    <th>التنظيم</th>
+                                    <th>المعدات</th>
+                                    <th>السلامة</th>
+                                    <th>المعدل</th>
+                                    <th>المستوى</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for eval in evaluations %}
+                                <tr class="evaluation-row" data-score="{{ eval.overall_score }}">
+                                    <td>{{ eval.created_at|time }}</td>
+                                    <td>
+                                        <img src="{{ eval.employee.avatar or 'https://ui-avatars.com/api/?name=' + eval.employee.full_name }}"
+                                             class="rounded-circle me-2" width="30" height="30">
+                                        {{ eval.employee.full_name }}
+                                    </td>
+                                    <td>{{ eval.location }}</td>
+                                    <td>
+                                        <span class="rating-stars">
+                                            {% for i in range(5) %}
+                                                <i class="fas fa-star {{ 'text-warning' if i < eval.cleanliness else 'text-muted' }}"></i>
+                                            {% endfor %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="rating-stars">
+                                            {% for i in range(5) %}
+                                                <i class="fas fa-star {{ 'text-warning' if i < eval.organization else 'text-muted' }}"></i>
+                                            {% endfor %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="rating-stars">
+                                            {% for i in range(5) %}
+                                                <i class="fas fa-star {{ 'text-warning' if i < eval.equipment else 'text-muted' }}"></i>
+                                            {% endfor %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="rating-stars">
+                                            {% for i in range(5) %}
+                                                <i class="fas fa-star {{ 'text-warning' if i < eval.safety else 'text-muted' }}"></i>
+                                            {% endfor %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if eval.overall_score >= 4.5 else 'info' if eval.overall_score >= 3.5 else 'danger' }}">
+                                            {{ "%.1f"|format(eval.overall_score) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if eval.overall_score >= 4.5 %}
+                                            <span class="badge bg-success">ممتاز</span>
+                                        {% elif eval.overall_score >= 3.5 %}
+                                            <span class="badge bg-info">جيد</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">ضعيف</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewEvaluation({{ eval.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- توصيات ذكية -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow bg-light">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-robot me-2"></i>توصيات ذكية مبنية على التحليل
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for recommendation in recommendations %}
+                        <div class="col-md-4 mb-3">
+                            <div class="alert alert-{{ recommendation.type }} h-100">
+                                <i class="fas fa-{{ recommendation.icon }} me-2"></i>
+                                <strong>{{ recommendation.title }}</strong>
+                                <p class="small mb-0 mt-2">{{ recommendation.message }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // رسم بياني للساعات
+    new Chart(document.getElementById('hourlyChart'), {
+        type: 'line',
+        data: {
+            labels: {{ hourly_labels|tojson }},
+            datasets: [{
+                label: 'عدد التقييمات',
+                data: {{ hourly_data|tojson }},
+                borderColor: '#4e73df',
+                backgroundColor: 'rgba(78,115,223,0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        }
+    });
+
+    // رسم بياني للتوزيع
+    new Chart(document.getElementById('distributionChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['ممتاز (4.5-5)', 'جيد (3.5-4.4)', 'مقبول (2.5-3.4)', 'ضعيف (<2.5)'],
+            datasets: [{
+                data: {{ distribution_data|tojson }},
+                backgroundColor: ['#1cc88a', '#4e73df', '#f6c23e', '#e74a3b']
+            }]
+        }
+    });
+
+    // رسم بياني رادار للمعايير
+    new Chart(document.getElementById('criteriaRadarChart'), {
+        type: 'radar',
+        data: {
+            labels: {{ criteria_labels|tojson }},
+            datasets: [{
+                label: 'متوسط التقييم',
+                data: {{ criteria_averages|tojson }},
+                backgroundColor: 'rgba(78,115,223,0.2)',
+                borderColor: '#4e73df',
+                pointBackgroundColor: '#4e73df'
+            }]
+        },
+        options: {
+            scales: {
+                r: {
+                    min: 0,
+                    max: 5,
+                    ticks: { stepSize: 1 }
+                }
+            }
+        }
+    });
+
+    // فلترة التقييمات
+    document.getElementById('filterScore').addEventListener('change', filterEvaluations);
+    document.getElementById('searchEvaluation').addEventListener('keyup', filterEvaluations);
+});
+
+function filterEvaluations() {
+    let searchTerm = document.getElementById('searchEvaluation').value.toLowerCase();
+    let filterValue = document.getElementById('filterScore').value;
+    let rows = document.querySelectorAll('.evaluation-row');
+
+    rows.forEach(row => {
+        let score = parseFloat(row.dataset.score);
+        let text = row.textContent.toLowerCase();
+        let showBySearch = text.includes(searchTerm);
+        let showByFilter = true;
+
+        if (filterValue === 'high') showByFilter = score >= 4.5;
+        else if (filterValue === 'good') showByFilter = score >= 3.5 && score < 4.5;
+        else if (filterValue === 'low') showByFilter = score < 3.5;
+
+        row.style.display = showBySearch && showByFilter ? '' : 'none';
+    });
+}
+
+function viewEvaluation(id) {
+    window.location.href = `/evaluations/${id}`;
+}
+
+function refreshData() {
+    location.reload();
+}
+</script>
+
+<style>
+.rating-stars i {
+    font-size: 12px;
+    margin: 0 1px;
+}
+</style>
+{% endblock %}

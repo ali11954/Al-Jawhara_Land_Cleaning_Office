@@ -1,10 +1,142 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<!-- templates/reports/attendance_record.html -->
+{% extends "base.html" %}
+
+{% block title %}سجل حضور الموظفين{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary">
+            <i class="fas fa-clock me-2"></i>
+            سجل حضور الموظفين
+        </h2>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary" onclick="exportReport('pdf')">PDF</button>
+            <button class="btn btn-outline-success" onclick="exportReport('excel')">Excel</button>
+        </div>
+    </div>
+
+    <!-- فلترة التقارير -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-info text-white">
+            <i class="fas fa-filter me-2"></i>خيارات الفلترة
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row">
+                <div class="col-md-3">
+                    <label>التاريخ</label>
+                    <input type="date" name="date" class="form-control" value="{{ selected_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label>الشركة</label>
+                    <select name="company" class="form-select">
+                        <option value="">الكل</option>
+                        {% for company in companies %}
+                        <option value="{{ company.id }}" {% if company.id == selected_company %}selected{% endif %}>
+                            {{ company.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label>الموظف</label>
+                    <select name="employee" class="form-select">
+                        <option value="">الكل</option>
+                        {% for emp in employees %}
+                        <option value="{{ emp.id }}" {% if emp.id == selected_employee %}selected{% endif %}>
+                            {{ emp.full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">تطبيق</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- إحصائيات الحضور -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6>الحضور</h6>
+                    <h3>{{ present_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h6>الغياب</h6>
+                    <h3>{{ absent_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h6>التأخير</h6>
+                    <h3>{{ late_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6>نسبة الحضور</h6>
+                    <h3>{{ attendance_rate }}%</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول الحضور -->
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="attendanceTable">
+                    <thead>
+                        <tr>
+                            <th>الموظف</th>
+                            <th>الوظيفة</th>
+                            <th>الشركة</th>
+                            <th>الحضور</th>
+                            <th>الانصراف</th>
+                            <th>الحالة</th>
+                            <th>ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in attendance_records %}
+                        <tr>
+                            <td>{{ record.employee.full_name }}</td>
+                            <td>{{ record.employee.position_ar }}</td>
+                            <td>{{ record.employee.company.name if record.employee.company else 'غير محدد' }}</td>
+                            <td>{{ record.check_in|time }}</td>
+                            <td>{{ record.check_out|time }}</td>
+                            <td>
+                                {% if record.status == 'present' %}
+                                <span class="badge bg-success">حاضر</span>
+                                {% elif record.status == 'late' %}
+                                <span class="badge bg-warning">متأخر</span>
+                                {% else %}
+                                <span class="badge bg-danger">غائب</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ record.notes or '-' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">لا توجد سجلات حضور</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

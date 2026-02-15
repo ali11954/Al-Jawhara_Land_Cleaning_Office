@@ -1,10 +1,199 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<!-- templates/reports/monthly_summary.html -->
+{% extends "base.html" %}
+
+{% block title %}ملخص الحضور الشهري{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- شريط العنوان -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-gradient-success mb-1">
+                <i class="fas fa-calendar-alt me-2"></i>
+                ملخص الحضور الشهري
+            </h2>
+            <p class="text-muted mb-0">تحليل شامل للحضور والانصراف على أساس شهري</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">PDF</button>
+            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">Excel</button>
+        </div>
+    </div>
+
+    <!-- اختيار الشهر -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="GET" class="row align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">السنة</label>
+                    <select name="year" class="form-select">
+                        {% for y in years %}
+                        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الشهر</label>
+                    <select name="month" class="form-select">
+                        {% for m in months %}
+                        <option value="{{ m.number }}" {% if m.number == selected_month %}selected{% endif %}>{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i> عرض
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- بطاقات ملخص الشهر -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6>أيام العمل</h6>
+                    <h3>{{ working_days }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6>إجمالي الحضور</h6>
+                    <h3>{{ total_present }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h6>إجمالي الغياب</h6>
+                    <h3>{{ total_absent }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h6>نسبة الحضور</h6>
+                    <h3>{{ monthly_attendance_rate }}%</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- رسم بياني للحضور اليومي -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-line me-2"></i>الحضور اليومي خلال الشهر
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="dailyAttendanceChart" style="height: 350px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول ملخص الموظفين -->
+    <div class="card shadow">
+        <div class="card-header bg-white py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-table me-2"></i>ملخص حضور الموظفين
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>الموظف</th>
+                            <th>القسم</th>
+                            <th>أيام الحضور</th>
+                            <th>أيام الغياب</th>
+                            <th>أيام التأخير</th>
+                            <th>نسبة الحضور</th>
+                            <th>حالة الموظف</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for emp in monthly_summary %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm me-2" style="background-color: {{ emp.color }}">
+                                        {{ emp.name[:1] }}
+                                    </div>
+                                    {{ emp.name }}
+                                </div>
+                            </td>
+                            <td>{{ emp.department }}</td>
+                            <td class="fw-bold text-success">{{ emp.present_days }}</td>
+                            <td class="text-danger">{{ emp.absent_days }}</td>
+                            <td class="text-warning">{{ emp.late_days }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="me-2">{{ emp.attendance_rate }}%</span>
+                                    <div class="progress flex-grow-1" style="height: 8px;">
+                                        <div class="progress-bar bg-{{ 'success' if emp.attendance_rate >= 90 else 'warning' if emp.attendance_rate >= 75 else 'danger' }}"
+                                             style="width: {{ emp.attendance_rate }}%;"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if emp.attendance_rate >= 90 %}
+                                <span class="badge bg-success">منتظم</span>
+                                {% elif emp.attendance_rate >= 75 %}
+                                <span class="badge bg-warning">مقبول</span>
+                                {% else %}
+                                <span class="badge bg-danger">غير منتظم</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+new ApexCharts(document.querySelector("#dailyAttendanceChart"), {
+    series: [{
+        name: 'عدد الحاضرين',
+        data: {{ daily_present_data|tojson }}
+    }],
+    chart: {
+        type: 'area',
+        height: 350,
+        toolbar: { show: false },
+        fontFamily: 'Cairo, sans-serif'
+    },
+    colors: ['#1cc88a'],
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 3 },
+    fill: {
+        type: 'gradient',
+        gradient: {
+            shadeIntensity: 1,
+            opacityFrom: 0.7,
+            opacityTo: 0.3
+        }
+    },
+    xaxis: {
+        categories: {{ days_labels|tojson }},
+        labels: { style: { fontFamily: 'Cairo, sans-serif' } }
+    },
+    yaxis: {
+        labels: { style: { fontFamily: 'Cairo, sans-serif' } }
+    }
+}).render();
+</script>
+{% endblock %}
