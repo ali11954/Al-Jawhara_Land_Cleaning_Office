@@ -5997,6 +5997,7 @@ def report_evaluation_details_advanced():
                 {'name': 'النظافة', 'avg': 0, 'color': 'secondary', 'max': 0, 'min': 0},
                 {'name': 'التنظيم', 'avg': 0, 'color': 'secondary', 'max': 0, 'min': 0},
                 {'name': 'المعدات', 'avg': 0, 'color': 'secondary', 'max': 0, 'min': 0},
+                {'name': 'الوقت', 'avg': 0, 'color': 'secondary', 'max': 0, 'min': 0},
                 {'name': 'السلامة', 'avg': 0, 'color': 'secondary', 'max': 0, 'min': 0},
             ]
             criteria_details = []
@@ -6045,6 +6046,9 @@ def report_evaluation_details_advanced():
                 {'name': 'المعدات', 'avg': round(equipment_avg, 1),
                  'color': 'success' if equipment_avg >= 4 else 'warning' if equipment_avg >= 3 else 'danger',
                  'max': equipment_max, 'min': equipment_min},
+                {'name': 'الوقت', 'avg': round(time_avg, 1),
+                 'color': 'success' if equipment_avg >= 4 else 'warning' if time_avg >= 3 else 'danger',
+                 'max': time_max, 'min': time_min},
                 {'name': 'السلامة', 'avg': round(safety_avg, 1),
                  'color': 'success' if safety_avg >= 4 else 'warning' if safety_avg >= 3 else 'danger',
                  'max': safety_max, 'min': safety_min},
@@ -6058,30 +6062,35 @@ def report_evaluation_details_advanced():
                                  (c['name'] == 'النظافة' and e.cleanliness == 5) or
                                  (c['name'] == 'التنظيم' and e.organization == 5) or
                                  (c['name'] == 'المعدات' and e.equipment_condition == 5) or
+                                 (c['name'] == 'الوقت' and e.time == 5) or
                                  (c['name'] == 'السلامة' and e.safety_measures == 5)])
 
                 good = len([e for e in all_evaluations if
                             (c['name'] == 'النظافة' and e.cleanliness == 4) or
                             (c['name'] == 'التنظيم' and e.organization == 4) or
                             (c['name'] == 'المعدات' and e.equipment_condition == 4) or
+                            (c['name'] == 'لوقت' and e.time == 4) or
                             (c['name'] == 'السلامة' and e.safety_measures == 4)])
 
                 average = len([e for e in all_evaluations if
                                (c['name'] == 'النظافة' and e.cleanliness == 3) or
                                (c['name'] == 'التنظيم' and e.organization == 3) or
                                (c['name'] == 'المعدات' and e.equipment_condition == 3) or
+                               (c['name'] == 'الوقت' and e.time == 3) or
                                (c['name'] == 'السلامة' and e.safety_measures == 3)])
 
                 poor = len([e for e in all_evaluations if
                             (c['name'] == 'النظافة' and e.cleanliness == 2) or
                             (c['name'] == 'التنظيم' and e.organization == 2) or
                             (c['name'] == 'المعدات' and e.equipment_condition == 2) or
+                            (c['name'] == 'الوقت' and e.time == 2) or
                             (c['name'] == 'السلامة' and e.safety_measures == 2)])
 
                 very_poor = len([e for e in all_evaluations if
                                  (c['name'] == 'النظافة' and e.cleanliness == 1) or
                                  (c['name'] == 'التنظيم' and e.organization == 1) or
                                  (c['name'] == 'المعدات' and e.equipment_condition == 1) or
+                                 (c['name'] == 'الوقت' and e.time == 1) or
                                  (c['name'] == 'السلامة' and e.safety_measures == 1)])
 
                 criteria_details.append({
@@ -6781,7 +6790,7 @@ def report_absence_rates():
                 top_absent_employees.append({
                     'id': emp.id,
                     'name': emp.full_name or 'غير معروف',
-                    'color': f'#{hash(emp.full_name or '') % 0xFFFFFF:06x}',
+                    'color': f'#{hash(emp.full_name or "") % 0xFFFFFF:06x}',
                     'department': emp.position or 'غير محدد',
                     'absent_days': absent_days,
                     'absence_rate': round((absent_days / 30 * 100)) if absent_days > 0 else 0,
