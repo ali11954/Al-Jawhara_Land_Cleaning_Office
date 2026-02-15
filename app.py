@@ -6616,7 +6616,9 @@ def report_overtime():
             if hours > 0:
                 overtime_data.append({
                     'employee_name': emp.full_name or 'غير معروف',
-                    'employee_color': f'#{hash(emp.full_name or '') % 0xFFFFFF:06x}',
+                    # صحيح - استخدام علامات اقتباس مختلفة
+                    'employee_color': f'#{hash(emp.full_name or "") % 0xFFFFFF:06x}',
+                    'color': f'#{hash(emp.full_name or "") % 0xFFFFFF:06x}',
                     'department': emp.position or 'غير محدد',
                     'month': 'فبراير 2026',
                     'hours': round(hours, 1),
