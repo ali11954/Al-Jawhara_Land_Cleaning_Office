@@ -1,91 +1,479 @@
+<!-- templates/companies/add.html -->
 {% extends "base.html" %}
 
-{% block title %}إضافة شركة جديدة{% endblock %}
+{% block title %}إضافة شركة جديدة - نظام إدارة الشركات{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+        --success-gradient: linear-gradient(135deg, #1cc88a 0%, #169b6b 100%);
+        --info-gradient: linear-gradient(135deg, #36b9cc 0%, #1f8f9f 100%);
+        --warning-gradient: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);
+        --danger-gradient: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
+    }
+
+    .page-header {
+        background: var(--primary-gradient);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+        border-radius: 0 0 2rem 2rem;
+        box-shadow: 0 10px 30px rgba(78, 115, 223, 0.3);
+    }
+
+    .form-card {
+        border: none;
+        border-radius: 1rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .form-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .form-card .card-header {
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        padding: 1.5rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .form-card .card-header i {
+        margin-left: 0.5rem;
+        font-size: 1.3rem;
+    }
+
+    .form-card .card-body {
+        padding: 2rem;
+        background: #f8f9fc;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #4e73df;
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+
+    .form-label i {
+        margin-left: 0.3rem;
+        font-size: 1rem;
+    }
+
+    .form-control, .form-select {
+        border: 2px solid #e3e6f0;
+        border-radius: 0.75rem;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+        background: white;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+        transform: translateY(-2px);
+    }
+
+    .form-control.is-invalid {
+        border-color: #e74a3b;
+        background-image: none;
+    }
+
+    .form-control.is-valid {
+        border-color: #1cc88a;
+        background-image: none;
+    }
+
+    .btn-action {
+        padding: 0.75rem 2rem;
+        border-radius: 2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        margin: 0 0.25rem;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-primary {
+        background: var(--primary-gradient);
+        border: none;
+    }
+
+    .btn-success {
+        background: var(--success-gradient);
+        border: none;
+    }
+
+    .info-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 1rem;
+        overflow: hidden;
+    }
+
+    .info-card .card-header {
+        background: rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        font-weight: 600;
+    }
+
+    .info-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .info-list li {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+    }
+
+    .info-list li:last-child {
+        border-bottom: none;
+    }
+
+    .info-list i {
+        margin-left: 1rem;
+        font-size: 1.2rem;
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .required-field::after {
+        content: '*';
+        color: #e74a3b;
+        margin-right: 0.25rem;
+        font-weight: bold;
+    }
+
+    .field-hint {
+        font-size: 0.8rem;
+        color: #858796;
+        margin-top: 0.25rem;
+    }
+
+    .floating-alert {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        min-width: 300px;
+        border-radius: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+        from {
+            top: -100px;
+            opacity: 0;
+        }
+        to {
+            top: 20px;
+            opacity: 1;
+        }
+    }
+
+    .floating-alert.hide {
+        animation: slideUp 0.3s ease forwards;
+    }
+
+    @keyframes slideUp {
+        to {
+            top: -100px;
+            opacity: 0;
+        }
+    }
+
+    .checkbox-wrapper {
+        background: white;
+        padding: 1rem;
+        border-radius: 0.75rem;
+        border: 2px solid #e3e6f0;
+        transition: all 0.3s ease;
+    }
+
+    .checkbox-wrapper:hover {
+        border-color: #4e73df;
+    }
+
+    .form-check-input {
+        width: 1.2rem;
+        height: 1.2rem;
+        margin-left: 0.5rem;
+        cursor: pointer;
+    }
+
+    .form-check-input:checked {
+        background-color: #1cc88a;
+        border-color: #1cc88a;
+    }
+
+    .form-check-label {
+        font-weight: 600;
+        color: #5a5c69;
+        cursor: pointer;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s ease-in-out infinite;
+        margin-right: 0.5rem;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+        .page-header {
+            padding: 1.5rem 0;
+        }
+
+        .form-card .card-body {
+            padding: 1.5rem;
+        }
+
+        .btn-action {
+            width: 100%;
+            margin: 0.25rem 0;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">
-            <i class="fas fa-plus-circle text-primary"></i>
-            إضافة شركة جديدة
-        </h1>
-        <a href="{{ url_for('companies_list') }}" class="btn btn-secondary btn-sm">
-            <i class="fas fa-arrow-right"></i> رجوع للقائمة
-        </a>
+<!-- ✅ رأس الصفحة المحسن -->
+<div class="page-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 mb-2">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    إضافة شركة جديدة
+                </h1>
+                <p class="mb-0 opacity-75">أدخل بيانات الشركة الجديدة لإضافتها إلى النظام</p>
+            </div>
+            <a href="{{ url_for('companies_list') }}" class="btn btn-light">
+                <i class="fas fa-arrow-right me-2"></i>
+                العودة للقائمة
+            </a>
+        </div>
     </div>
+</div>
 
+<!-- ✅ تنبيهات عائمة -->
+<div id="floatingAlert" class="floating-alert" style="display: none;"></div>
+
+<div class="container">
     <div class="row">
-        <div class="col-lg-8">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">بيانات الشركة</h6>
+        <!-- ✅ نموذج إضافة الشركة -->
+        <div class="col-lg-8 mb-4">
+            <div class="form-card">
+                <div class="card-header">
+                    <i class="fas fa-building"></i>
+                    بيانات الشركة الأساسية
                 </div>
                 <div class="card-body">
-                    <form method="POST" id="addCompanyForm">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="name" class="form-label">اسم الشركة *</label>
-                                <input type="text" class="form-control" id="name" name="name" required
-                                       placeholder="أدخل اسم الشركة">
+                    <form method="POST" id="addCompanyForm" novalidate>
+                        <!-- اسم الشركة -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <label for="name" class="form-label">
+                                    <i class="fas fa-tag"></i>
+                                    <span class="required-field">اسم الشركة</span>
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="name"
+                                       name="name"
+                                       required
+                                       maxlength="100"
+                                       placeholder="أدخل اسم الشركة (مثال: شركة النظافة المتكاملة)"
+                                       autocomplete="off"
+                                       data-pristine-required-message="يرجى إدخال اسم الشركة"
+                                       data-pristine-minlength="3"
+                                       data-pristine-minlength-message="اسم الشركة يجب أن يكون 3 أحرف على الأقل">
+                                <div class="field-hint">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    اسم الشركة يجب أن يكون فريداً في النظام
+                                </div>
+                                <div id="nameFeedback" class="invalid-feedback"></div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="contact_person" class="form-label">الشخص المسؤول</label>
-                                <input type="text" class="form-control" id="contact_person" name="contact_person"
+                        </div>
+
+                        <!-- الشخص المسؤول والهاتف -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="contact_person" class="form-label">
+                                    <i class="fas fa-user-tie"></i>
+                                    الشخص المسؤول
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="contact_person"
+                                       name="contact_person"
+                                       maxlength="100"
                                        placeholder="أدخل اسم الشخص المسؤول">
+                                <div class="field-hint">اختياري</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="phone" class="form-label">
+                                    <i class="fas fa-phone"></i>
+                                    رقم الهاتف
+                                </label>
+                                <input type="tel"
+                                       class="form-control"
+                                       id="phone"
+                                       name="phone"
+                                       placeholder="أدخل رقم الهاتف"
+                                       pattern="[0-9+\-\s]+"
+                                       data-pristine-pattern-message="رقم الهاتف غير صحيح">
+                                <div class="field-hint">مثال: 0123456789+</div>
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="phone" class="form-label">رقم الهاتف</label>
-                                <input type="tel" class="form-control" id="phone" name="phone"
-                                       placeholder="أدخل رقم الهاتف">
+                        <!-- البريد الإلكتروني والعنوان -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">
+                                    <i class="fas fa-envelope"></i>
+                                    البريد الإلكتروني
+                                </label>
+                                <input type="email"
+                                       class="form-control"
+                                       id="email"
+                                       name="email"
+                                       placeholder="info@example.com"
+                                       data-pristine-email-message="البريد الإلكتروني غير صحيح">
+                                <div class="field-hint">صيغة صالحة: name@domain.com</div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="email" class="form-label">البريد الإلكتروني</label>
-                                <input type="email" class="form-control" id="email" name="email"
-                                       placeholder="أدخل البريد الإلكتروني">
+                            <div class="col-md-6">
+                                <label for="address" class="form-label">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    العنوان
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="address"
+                                       name="address"
+                                       placeholder="أدخل عنوان الشركة"
+                                       maxlength="200">
+                                <div class="field-hint">اختياري</div>
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="address" class="form-label">العنوان</label>
-                            <textarea class="form-control" id="address" name="address" rows="3"
-                                      placeholder="أدخل عنوان الشركة"></textarea>
+                        <!-- حالة النشاط -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="checkbox-wrapper">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               id="is_active"
+                                               name="is_active"
+                                               checked>
+                                        <label class="form-check-label" for="is_active">
+                                            <i class="fas fa-check-circle text-success me-2"></i>
+                                            شركة نشطة
+                                        </label>
+                                    </div>
+                                    <small class="text-muted d-block mt-2">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        الشركات النشطة فقط تظهر في القوائم والتقارير
+                                    </small>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="mb-3 form-check">
-                            <input type="checkbox" class="form-check-input" id="is_active" name="is_active" checked>
-                            <label class="form-check-label" for="is_active">شركة نشطة</label>
-                        </div>
-
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> حفظ الشركة
+                        <!-- أزرار التحكم -->
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary btn-action" onclick="resetForm()">
+                                <i class="fas fa-undo me-2"></i>
+                                إعادة تعيين
                             </button>
-                            <a href="{{ url_for('companies_list') }}" class="btn btn-secondary">
-                                <i class="fas fa-times"></i> إلغاء
-                            </a>
+                            <button type="submit" class="btn btn-primary btn-action" id="submitBtn">
+                                <span class="spinner-border spinner-border-sm me-2" style="display: none;" id="submitSpinner"></span>
+                                <i class="fas fa-save me-2"></i>
+                                حفظ الشركة
+                            </button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-4">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">تعليمات</h6>
+        <!-- ✅ معلومات وإرشادات محسنة -->
+        <div class="col-lg-4 mb-4">
+            <div class="card info-card">
+                <div class="card-header">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    تعليمات وإرشادات
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-info">
-                        <h6><i class="fas fa-info-circle"></i> معلومات مهمة:</h6>
-                        <ul class="mb-0">
-                            <li>الحقول marked ب * إلزامية</li>
-                            <li>اسم الشركة يجب أن يكون فريداً</li>
-                            <li>يمكنك تعطيل الشركة لاحقاً إذا لزم الأمر</li>
-                            <li>سيتم إضافة الشركة كشركة نشطة افتراضياً</li>
-                        </ul>
+                    <ul class="info-list">
+                        <li>
+                            <i class="fas fa-asterisk text-danger"></i>
+                            <span><strong>الحقول الإلزامية</strong> - اسم الشركة</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle text-success"></i>
+                            <span><strong>اسم فريد</strong> - لا يمكن تكرار اسم الشركة</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-toggle-on text-info"></i>
+                            <span><strong>حالة النشاط</strong> - يمكن تغييرها لاحقاً</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-phone text-warning"></i>
+                            <span><strong>رقم الهاتف</strong> - يدعم الأرقام الدولية</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-envelope text-primary"></i>
+                            <span><strong>البريد الإلكتروني</strong> - يجب أن يكون صالحاً</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- ✅ إحصائيات سريعة -->
+            <div class="card shadow mt-4">
+                <div class="card-header bg-light">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        إحصائيات الشركات
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>إجمالي الشركات</span>
+                        <span class="badge bg-primary rounded-pill">{{ companies_count|default(0) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>الشركات النشطة</span>
+                        <span class="badge bg-success rounded-pill">{{ active_companies_count|default(0) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>الشركات الغير نشطة</span>
+                        <span class="badge bg-secondary rounded-pill">{{ inactive_companies_count|default(0) }}</span>
                     </div>
                 </div>
             </div>
@@ -95,19 +483,160 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- ✅ تحميل مكتبة التحقق من صحة النماذج -->
+<script src="https://cdn.jsdelivr.net/npm/pristinejs@0.1.9/dist/pristine.min.js"></script>
+
 <script>
 $(document).ready(function() {
-    // التحقق من النموذج قبل الإرسال
-    $('#addCompanyForm').on('submit', function(e) {
+    // تهيئة التحقق من صحة النموذج
+    const form = document.getElementById('addCompanyForm');
+    const pristine = new Pristine(form, {
+        classTo: 'form-group',
+        errorClass: 'is-invalid',
+        successClass: 'is-valid',
+        errorTextParent: 'form-group',
+        errorTextTag: 'div',
+        errorTextClass: 'invalid-feedback'
+    });
+
+    // التحقق من اسم الشركة عند الكتابة (AJAX)
+    $('#name').on('input', debounce(function() {
+        const name = $(this).val().trim();
+        if (name.length >= 3) {
+            checkCompanyName(name);
+        }
+    }, 500));
+
+    // معالجة تقديم النموذج
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // التحقق من صحة البيانات
+        if (!pristine.validate()) {
+            showAlert('يرجى تصحيح الأخطاء في النموذج', 'error');
+            return false;
+        }
+
+        // التحقق من اسم الشركة مرة أخرى
         const name = $('#name').val().trim();
         if (!name) {
-            e.preventDefault();
-            alert('يرجى إدخال اسم الشركة');
+            showAlert('يرجى إدخال اسم الشركة', 'error');
             $('#name').focus();
             return false;
         }
-        return true;
+
+        // إظهار مؤشر التحميل
+        showLoading(true);
+
+        // إرسال النموذج
+        $.ajax({
+            url: '{{ url_for("add_company") }}',
+            type: 'POST',
+            data: $(this).serialize(),
+            success: function(response) {
+                showLoading(false);
+                if (response.success) {
+                    showAlert('✅ تم إضافة الشركة بنجاح', 'success');
+                    setTimeout(() => {
+                        window.location.href = '{{ url_for("companies_list") }}';
+                    }, 1500);
+                } else {
+                    showAlert(response.message || 'حدث خطأ أثناء إضافة الشركة', 'error');
+                }
+            },
+            error: function(xhr) {
+                showLoading(false);
+                const response = xhr.responseJSON;
+                showAlert(response?.message || 'حدث خطأ في الاتصال بالخادم', 'error');
+            }
+        });
     });
+
+    // التحقق من اسم الشركة
+    function checkCompanyName(name) {
+        const nameInput = $('#name');
+        const feedback = $('#nameFeedback');
+
+        $.get(`/api/check-company-name?name=${encodeURIComponent(name)}`, function(data) {
+            if (data.exists) {
+                nameInput.addClass('is-invalid').removeClass('is-valid');
+                feedback.text('اسم الشركة موجود مسبقاً').show();
+            } else {
+                nameInput.addClass('is-valid').removeClass('is-invalid');
+                feedback.hide();
+            }
+        }).fail(function() {
+            console.error('فشل التحقق من اسم الشركة');
+        });
+    }
+
+    // إظهار التنبيهات العائمة
+    function showAlert(message, type) {
+        const alert = $('#floatingAlert');
+        const bgColor = type === 'success' ? '#1cc88a' : '#e74a3b';
+
+        alert.css({
+            'background': type === 'success' ? 'linear-gradient(135deg, #1cc88a 0%, #169b6b 100%)' : 'linear-gradient(135deg, #e74a3b 0%, #be2617 100%)',
+            'color': 'white',
+            'padding': '1rem 2rem',
+            'border-radius': '2rem'
+        });
+
+        alert.html(`<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>${message}`);
+        alert.fadeIn(300);
+
+        setTimeout(() => {
+            alert.fadeOut(300);
+        }, 3000);
+    }
+
+    // إظهار/إخفاء مؤشر التحميل
+    function showLoading(show) {
+        const submitBtn = $('#submitBtn');
+        const spinner = $('#submitSpinner');
+
+        if (show) {
+            submitBtn.prop('disabled', true);
+            spinner.show();
+        } else {
+            submitBtn.prop('disabled', false);
+            spinner.hide();
+        }
+    }
+
+    // دالة debounce لتقليل استدعاءات AJAX
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
 });
+
+// إعادة تعيين النموذج
+function resetForm() {
+    if (confirm('هل أنت متأكد من إعادة تعيين النموذج؟')) {
+        document.getElementById('addCompanyForm').reset();
+        $('#name').removeClass('is-valid is-invalid');
+        $('#nameFeedback').hide();
+    }
+}
+
+// التحقق من البريد الإلكتروني
+function validateEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+}
+
+// تنسيق رقم الهاتف
+function formatPhoneNumber(phone) {
+    // إزالة كل الرموز غير الرقمية
+    return phone.replace(/[^\d+]/g, '');
+}
 </script>
 {% endblock %}

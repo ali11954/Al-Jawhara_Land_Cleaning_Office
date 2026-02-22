@@ -35,6 +35,7 @@
                     </nav>
                     <h2 class="text-primary mb-1">
                         <i class="fas fa-id-card me-2"></i>{{ employee.full_name }}
+                        <small class="text-muted fs-6 me-2">#{{ employee.code or '—' }}</small>
                     </h2>
                     <p class="text-muted mb-0">
                         <i class="fas fa-calendar-alt me-1"></i>
@@ -160,16 +161,20 @@
                                 <div class="mt-2">
                                     <span class="badge
                                         {% if employee.position == 'supervisor' %}bg-warning
+                                        {% elif employee.position == 'admin' %}bg-purple
                                         {% elif employee.position == 'monitor' %}bg-info
                                         {% elif employee.position == 'worker' %}bg-secondary
-                                        {% else %}bg-danger{% endif %} p-2 fs-6">
+                                        {% else %}bg-primary{% endif %} p-2 fs-6">
                                         <i class="fas
                                             {% if employee.position == 'supervisor' %}fa-user-tie
+                                            {% elif employee.position == 'admin' %}fa-user-cog
                                             {% elif employee.position == 'monitor' %}fa-eye
                                             {% elif employee.position == 'worker' %}fa-broom
                                             {% else %}fa-crown{% endif %} me-1"></i>
                                         {% if employee.position == 'supervisor' %}
                                             مشرف
+                                        {% elif employee.position == 'admin' %}
+                                            إداري
                                         {% elif employee.position == 'monitor' %}
                                             مراقب
                                         {% elif employee.position == 'worker' %}
@@ -182,6 +187,13 @@
                             </div>
 
                             <div class="list-group list-group-flush">
+                                <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                                    <span class="fw-bold">
+                                        <i class="fas fa-hashtag text-primary me-2"></i>الرقم التسلسلي:
+                                    </span>
+                                    <span class="badge bg-primary px-3 py-2">{{ employee.code or '—' }}</span>
+                                </div>
+
                                 <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
                                     <span class="fw-bold">
                                         <i class="fas fa-toggle-on text-primary me-2"></i>الحالة:
@@ -241,6 +253,24 @@
                                         <i class="fas fa-money-bill-wave text-success me-2"></i>الراتب:
                                     </span>
                                     <span class="text-success fw-bold">{{ "{:,.0f}".format(employee.salary) }} ر.س</span>
+                                </div>
+                                {% endif %}
+
+                                {% if employee.qualification %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                                    <span class="fw-bold">
+                                        <i class="fas fa-graduation-cap text-info me-2"></i>المؤهل العلمي:
+                                    </span>
+                                    <span class="badge bg-info">{{ employee.qualification }}</span>
+                                </div>
+                                {% endif %}
+
+                                {% if employee.specialization %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                                    <span class="fw-bold">
+                                        <i class="fas fa-certificate text-purple me-2"></i>التخصص:
+                                    </span>
+                                    <span class="badge bg-purple-light text-dark">{{ employee.specialization }}</span>
                                 </div>
                                 {% endif %}
 
@@ -338,7 +368,19 @@
                                         </div>
                                         <div class="flex-grow-1">
                                             <div>{{ colleague.full_name }}</div>
-                                            <small class="text-muted">{{ colleague.position_ar }}</small>
+                                            <small class="text-muted">
+                                                {% if colleague.position == 'supervisor' %}
+                                                    مشرف
+                                                {% elif colleague.position == 'admin' %}
+                                                    إداري
+                                                {% elif colleague.position == 'monitor' %}
+                                                    مراقب
+                                                {% elif colleague.position == 'worker' %}
+                                                    عامل
+                                                {% else %}
+                                                    {{ colleague.position }}
+                                                {% endif %}
+                                            </small>
                                         </div>
                                         <span class="badge bg-{{ 'success' if colleague.is_active else 'danger' }}">{{ 'نشط' if colleague.is_active else 'غير نشط' }}</span>
                                     </a>
@@ -537,6 +579,10 @@
                                             <span class="badge bg-warning rounded-pill">{{ company_stats.supervisors|default(0) }}</span>
                                         </div>
                                         <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            الإداريين
+                                            <span class="badge bg-purple rounded-pill">{{ company_stats.admins|default(0) }}</span>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
                                             المراقبين
                                             <span class="badge bg-info rounded-pill">{{ company_stats.monitors|default(0) }}</span>
                                         </div>
@@ -658,6 +704,22 @@
     font-size: 0.85rem;
 }
 
+/* تنسيقات جديدة للإداري والتخصص */
+.bg-purple {
+    background-color: #6f42c1 !important;
+    color: white;
+}
+
+.bg-purple-light {
+    background-color: #f3e8ff !important;
+    color: #6f42c1;
+    border: 1px solid #d0b3ff;
+}
+
+.text-purple {
+    color: #6f42c1 !important;
+}
+
 .list-group-item {
     background: none;
 }
@@ -689,14 +751,15 @@ document.addEventListener('DOMContentLoaded', function() {
         new Chart(companyCtx.getContext('2d'), {
             type: 'doughnut',
             data: {
-                labels: ['المشرفين', 'المراقبين', 'عمال النظافة'],
+                labels: ['المشرفين', 'الإداريين', 'المراقبين', 'عمال النظافة'],
                 datasets: [{
                     data: [
                         {{ company_stats.supervisors|default(0) }},
+                        {{ company_stats.admins|default(0) }},
                         {{ company_stats.monitors|default(0) }},
                         {{ company_stats.workers|default(0) }}
                     ],
-                    backgroundColor: ['#ffc107', '#0dcaf0', '#6c757d'],
+                    backgroundColor: ['#ffc107', '#6f42c1', '#0dcaf0', '#6c757d'],
                     borderWidth: 2,
                     borderColor: '#fff'
                 }]

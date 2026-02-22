@@ -24,6 +24,7 @@
                             <select class="form-select" id="position" name="position" required
                                     {% if current_user.role != 'owner' %}disabled{% endif %}>
                                 <option value="supervisor" {% if employee.position == 'supervisor' %}selected{% endif %}>مشرف</option>
+                                <option value="admin" {% if employee.position == 'admin' %}selected{% endif %}>إداري</option>
                                 <option value="monitor" {% if employee.position == 'monitor' %}selected{% endif %}>مراقب نظافة</option>
                                 <option value="worker" {% if employee.position == 'worker' %}selected{% endif %}>عامل نظافة</option>
                             </select>
@@ -31,6 +32,19 @@
                             {% if current_user.role != 'owner' %}
                             <div class="form-text text-muted">لا يمكن تغيير المسمى الوظيفي</div>
                             {% endif %}
+                        </div>
+
+                        <!-- الرقم التسلسلي (للقراءة فقط) -->
+                        <div class="col-md-6 mb-3">
+                            <label for="code" class="form-label">
+                                <i class="fas fa-hashtag me-1"></i>الرقم التسلسلي
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">#</span>
+                                <input type="text" class="form-control bg-light" id="code" name="code"
+                                       value="{{ employee.code or '—' }}" readonly disabled
+                                       style="background-color: #f8f9fa; color: #4e73df; font-weight: 500;">
+                            </div>
                         </div>
                     </div>
 
@@ -134,8 +148,61 @@
                             </div>
                         </div>
 
-                        <!-- المشرف المباشر - للمراقبين والعمال -->
-                        <div class="row" id="supervisorRow" style="display: {% if employee.position in ['monitor', 'worker'] %}block{% else %}none{% endif %};">
+                        <!-- المؤهل العلمي - للمشرفين والإداريين -->
+                        <div class="row" id="qualificationRow" style="display: {% if employee.position in ['supervisor', 'admin'] %}block{% else %}none{% endif %};">
+                            <div class="col-md-6 mb-3">
+                                <label for="qualification" class="form-label">
+                                    <i class="fas fa-graduation-cap me-1"></i>المؤهل العلمي <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="qualification" name="qualification">
+                                    <option value="">-- اختر المؤهل العلمي --</option>
+                                    <option value="ثانوية عامة" {% if employee.qualification == 'ثانوية عامة' %}selected{% endif %}>ثانوية عامة</option>
+                                    <option value="دبلوم" {% if employee.qualification == 'دبلوم' %}selected{% endif %}>دبلوم</option>
+                                    <option value="بكالوريوس" {% if employee.qualification == 'بكالوريوس' %}selected{% endif %}>بكالوريوس</option>
+                                    <option value="ماجستير" {% if employee.qualification == 'ماجستير' %}selected{% endif %}>ماجستير</option>
+                                    <option value="دكتوراه" {% if employee.qualification == 'دكتوراه' %}selected{% endif %}>دكتوراه</option>
+                                    <option value="أخرى" {% if employee.qualification not in ['ثانوية عامة', 'دبلوم', 'بكالوريوس', 'ماجستير', 'دكتوراه'] and employee.qualification %}selected{% endif %}>أخرى</option>
+                                </select>
+                                <div class="invalid-feedback">يرجى اختيار المؤهل العلمي</div>
+                            </div>
+                            <div class="col-md-6 mb-3" id="qualificationOtherRow" style="display: {% if employee.qualification and employee.qualification not in ['ثانوية عامة', 'دبلوم', 'بكالوريوس', 'ماجستير', 'دكتوراه'] %}block{% else %}none{% endif %};">
+                                <label for="qualification_other" class="form-label">
+                                    <i class="fas fa-pen me-1"></i>تحديد المؤهل
+                                </label>
+                                <input type="text" class="form-control" id="qualification_other" name="qualification_other"
+                                       value="{{ employee.qualification if employee.qualification and employee.qualification not in ['ثانوية عامة', 'دبلوم', 'بكالوريوس', 'ماجستير', 'دكتوراه'] else '' }}"
+                                       placeholder="أدخل المؤهل العلمي"
+                                       {% if employee.qualification and employee.qualification not in ['ثانوية عامة', 'دبلوم', 'بكالوريوس', 'ماجستير', 'دكتوراه'] %}disabled={% else %}disabled{% endif %}>
+                                <div class="form-text">أدخل المؤهل العلمي إذا اخترت "أخرى"</div>
+                            </div>
+                        </div>
+
+                        <!-- حقل التخصص - للمشرفين والإداريين -->
+                        <div class="row" id="specializationRow" style="display: {% if employee.position in ['supervisor', 'admin'] %}block{% else %}none{% endif %};">
+                            <div class="col-md-6 mb-3">
+                                <label for="specialization" class="form-label">
+                                    <i class="fas fa-certificate me-1"></i>التخصص <span class="text-danger" id="specializationRequired">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="specialization" name="specialization"
+                                       value="{{ employee.specialization or '' }}"
+                                       placeholder="أدخل التخصص (مثال: مالية، موارد بشرية، إدارة عامة)">
+                                <div class="form-text text-muted">أدخل التخصص الوظيفي للموظف</div>
+                                <div class="invalid-feedback">يرجى إدخال التخصص</div>
+                            </div>
+
+                            <!-- عرض التخصص الحالي -->
+                            {% if employee.specialization %}
+                            <div class="col-md-6 mb-3">
+                                <div class="alert alert-success py-2">
+                                    <i class="fas fa-certificate me-1"></i>
+                                    <strong>التخصص الحالي:</strong> {{ employee.specialization }}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- المشرف المباشر - للمراقبين والعمال والإداريين -->
+                        <div class="row" id="supervisorRow" style="display: {% if employee.position in ['monitor', 'worker', 'admin'] %}block{% else %}none{% endif %};">
                             <div class="col-md-6 mb-3">
                                 <label for="supervisor_id" class="form-label">
                                     <i class="fas fa-user-tie me-1"></i>المشرف المباشر
@@ -258,14 +325,26 @@
                                     الشركة الحالية: {{ employee.company.name }}
                                 </li>
                                 {% endif %}
+                                {% if employee.specialization %}
+                                <li class="text-purple">
+                                    <i class="fas fa-certificate me-1"></i>
+                                    التخصص: {{ employee.specialization }}
+                                </li>
+                                {% endif %}
+                                {% if employee.qualification %}
+                                <li class="text-info">
+                                    <i class="fas fa-graduation-cap me-1"></i>
+                                    المؤهل: {{ employee.qualification }}
+                                </li>
+                                {% endif %}
                                 {% if employee.supervisor %}
                                 <li class="text-warning">
                                     <i class="fas fa-user-tie me-1"></i>
                                     المشرف الحالي: {{ employee.supervisor.full_name }}
                                 </li>
                                 {% endif %}
-                                <li class="text-info">تاريخ الإنشاء: {{ employee.created_at.strftime('%Y-%m-%d %H:%M') if employee.created_at else 'غير محدد' }}</li>
-                                <li class="text-info">آخر تحديث: {{ employee.updated_at.strftime('%Y-%m-%d %H:%M') if employee.updated_at else 'غير محدد' }}</li>
+                                <li class="text-secondary">تاريخ الإنشاء: {{ employee.created_at.strftime('%Y-%m-%d %H:%M') if employee.created_at else 'غير محدد' }}</li>
+                                <li class="text-secondary">آخر تحديث: {{ employee.updated_at.strftime('%Y-%m-%d %H:%M') if employee.updated_at else 'غير محدد' }}</li>
                             </ul>
                         </div>
 
@@ -290,8 +369,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const positionSelect = document.getElementById('position');
     const supervisorRow = document.getElementById('supervisorRow');
     const userFields = document.getElementById('userFields');
+    const qualificationRow = document.getElementById('qualificationRow');
+    const specializationRow = document.getElementById('specializationRow');
     const companySelect = document.getElementById('company_id');
     const supervisorSelect = document.getElementById('supervisor_id');
+    const qualificationSelect = document.getElementById('qualification');
+    const qualificationOtherRow = document.getElementById('qualificationOtherRow');
+    const qualificationOther = document.getElementById('qualification_other');
 
     console.log('✅ تم تحميل صفحة تعديل الموظف');
 
@@ -303,6 +387,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // إخفاء الحقول الخاصة أولاً
         supervisorRow.style.display = 'none';
         userFields.style.display = 'none';
+        qualificationRow.style.display = 'none';
+        specializationRow.style.display = 'none';
 
         // إعادة تعيين حقول المستخدم
         if (document.getElementById('username')) {
@@ -311,16 +397,36 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('confirm_password').required = false;
         }
 
+        // إعادة تعيين حقول المؤهل والتخصص
+        if (qualificationSelect) {
+            qualificationSelect.required = false;
+        }
+        if (document.getElementById('specialization')) {
+            document.getElementById('specialization').required = false;
+        }
+
         // إظهار الحقول المناسبة حسب المسمى
         if (position === 'supervisor') {
             userFields.style.display = 'block';
+            qualificationRow.style.display = 'block';
+            specializationRow.style.display = 'block';
             document.getElementById('username').required = true;
-            console.log('✅ تم إظهار حقول المستخدم للمشرف');
+            qualificationSelect.required = true;
+            document.getElementById('specialization').required = true;
+            console.log('✅ تم إظهار حقول المشرف');
 
             // إخفاء المشرف المباشر إذا كان المشرف
             if (supervisorSelect) {
                 supervisorSelect.value = '';
             }
+        }
+        else if (position === 'admin') {
+            qualificationRow.style.display = 'block';
+            specializationRow.style.display = 'block';
+            supervisorRow.style.display = 'block';
+            qualificationSelect.required = true;
+            document.getElementById('specialization').required = true;
+            console.log('✅ تم إظهار حقول الإداري');
         }
         else if (position === 'monitor' || position === 'worker') {
             supervisorRow.style.display = 'block';
@@ -332,6 +438,24 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    // معالجة تغيير المؤهل العلمي
+    if (qualificationSelect) {
+        qualificationSelect.addEventListener('change', function() {
+            if (this.value === 'أخرى') {
+                qualificationOtherRow.style.display = 'block';
+                qualificationOther.disabled = false;
+                qualificationOther.required = true;
+            } else {
+                qualificationOtherRow.style.display = 'none';
+                qualificationOther.disabled = true;
+                qualificationOther.required = false;
+                if (this.value) {
+                    qualificationOther.value = '';
+                }
+            }
+        });
+    }
 
     // دالة تحديث المشرفين حسب الشركة
     window.updateSupervisorsByCompany = function() {
@@ -351,7 +475,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 option.style.display = '';
                 option.disabled = false;
                 hasVisibleOptions = true;
-            } else if (optionCompany === companyId) {
+            } else if (optionCompany == companyId) {
                 // مشرفين نفس الشركة المختارة
                 option.style.display = '';
                 option.disabled = false;
@@ -412,6 +536,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const password = document.getElementById('password');
         const confirmPassword = document.getElementById('confirm_password');
         const companyId = companySelect ? companySelect.value : null;
+        const qualification = document.getElementById('qualification');
+        const specialization = document.getElementById('specialization');
 
         // التحقق من اختيار الشركة للمالك
         {% if current_user.role == 'owner' %}
@@ -422,6 +548,23 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
         {% endif %}
+
+        // التحقق من المؤهل العلمي للمشرف والإداري
+        if (position === 'supervisor' || position === 'admin') {
+            if (!qualification.value) {
+                e.preventDefault();
+                alert('⚠️ المؤهل العلمي مطلوب');
+                qualification.focus();
+                return false;
+            }
+
+            if (!specialization.value.trim()) {
+                e.preventDefault();
+                alert('⚠️ التخصص مطلوب');
+                specialization.focus();
+                return false;
+            }
+        }
 
         // التحقق من اسم المستخدم للمشرفين
         if (position === 'supervisor') {
@@ -502,20 +645,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (hireDate) {
         hireDate.max = new Date().toISOString().split('T')[0];
     }
-
-    // التحقق من صحة البريد الإلكتروني إذا وجد
-    const emailInput = document.getElementById('email');
-    if (emailInput) {
-        emailInput.addEventListener('blur', function() {
-            const email = this.value;
-            if (email && !isValidEmail(email)) {
-                this.classList.add('is-invalid');
-                alert('⚠️ صيغة البريد الإلكتروني غير صحيحة');
-            } else {
-                this.classList.remove('is-invalid');
-            }
-        });
-    }
 });
 
 // دالة التحقق من صحة البريد الإلكتروني
@@ -558,6 +687,11 @@ function isValidEmail(email) {
         border-color: #ffeeba;
         color: #856404;
     }
+    .alert-success {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
+    }
     .badge {
         font-size: 0.9rem;
         padding: 0.5rem 0.75rem;
@@ -580,6 +714,9 @@ function isValidEmail(email) {
     #noSupervisorsMsg {
         font-style: italic;
         background-color: #f8f9fa;
+    }
+    .text-purple {
+        color: #6f42c1;
     }
 </style>
 {% endblock %}

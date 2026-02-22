@@ -1,0 +1,555 @@
+{% extends "base.html" %}
+
+{% block title %}الإعدادات{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- رأس الصفحة -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center justify-content-between flex-wrap">
+                <h2 class="page-title mb-3 mb-sm-0">
+                    <i class="fas fa-cog text-primary ms-2"></i>
+                    الإعدادات
+                </h2>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item">
+                            <a href="{{ url_for('dashboard') }}" class="text-decoration-none">
+                                <i class="fas fa-home fa-sm"></i> الرئيسية
+                            </a>
+                        </li>
+                        <li class="breadcrumb-item">
+                            <a href="{{ url_for('profile') }}" class="text-decoration-none">الملف الشخصي</a>
+                        </li>
+                        <li class="breadcrumb-item active" aria-current="page">الإعدادات</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3">
+            <!-- قائمة التبويبات الجانبية -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush settings-tabs">
+                        <a href="#profile" class="list-group-item list-group-item-action active" data-bs-toggle="list">
+                            <i class="fas fa-user-circle ms-2"></i>
+                            الملف الشخصي
+                        </a>
+                        <a href="#account" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                            <i class="fas fa-lock ms-2"></i>
+                            الحساب والأمان
+                        </a>
+                        <a href="#notifications" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                            <i class="fas fa-bell ms-2"></i>
+                            الإشعارات
+                        </a>
+                        <a href="#appearance" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                            <i class="fas fa-palette ms-2"></i>
+                            المظهر
+                        </a>
+                        {% if current_user.role == 'owner' %}
+                        <a href="#system" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                            <i class="fas fa-server ms-2"></i>
+                            إعدادات النظام
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- بطاقة الإحصائيات السريعة -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light py-3">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-chart-line ms-2"></i>
+                        إحصائيات سريعة
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted d-block">عضو منذ</small>
+                        <span class="fw-medium">{{ stats.member_since.strftime('%Y-%m-%d') if stats.member_since else 'غير محدد' }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted d-block">آخر دخول</small>
+                        <span class="fw-medium">{{ stats.last_login.strftime('%Y-%m-%d %H:%M') if stats.last_login else 'غير محدد' }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted d-block">عدد التقييمات</small>
+                        <span class="fw-medium">{{ stats.total_evaluations }}</span>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">عدد أيام الحضور</small>
+                        <span class="fw-medium">{{ stats.total_attendances }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <!-- محتوى التبويبات -->
+            <div class="tab-content">
+                <!-- تبويب الملف الشخصي -->
+                <div class="tab-pane fade show active" id="profile">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-gradient-primary text-white py-3">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-user-edit ms-2"></i>
+                                تعديل الملف الشخصي
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('settings') }}">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-medium">اسم المستخدم</label>
+                                        <input type="text" name="username" class="form-control"
+                                               value="{{ user.username }}" required>
+                                        <small class="text-muted">الاسم الذي ستسجل الدخول به</small>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-medium">البريد الإلكتروني</label>
+                                        <input type="email" name="email" class="form-control"
+                                               value="{{ user.email }}" required>
+                                    </div>
+                                </div>
+
+                                {% if employee %}
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-medium">الاسم الكامل</label>
+                                        <input type="text" name="full_name" class="form-control"
+                                               value="{{ employee.full_name or '' }}">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-medium">رقم الهاتف</label>
+                                        <input type="text" name="phone" class="form-control"
+                                               value="{{ employee.phone or '' }}">
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">العنوان</label>
+                                    <textarea name="address" class="form-control" rows="2">{{ employee.address or '' }}</textarea>
+                                </div>
+                                {% endif %}
+
+                                <div class="text-end">
+                                    <button type="submit" class="btn btn-primary px-5">
+                                        <i class="fas fa-save ms-2"></i>
+                                        حفظ التغييرات
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- تبويب الحساب والأمان -->
+                <div class="tab-pane fade" id="account">
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-gradient-info text-white py-3">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-key ms-2"></i>
+                                تغيير كلمة المرور
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('settings') }}">
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">كلمة المرور الحالية</label>
+                                    <input type="password" name="current_password" class="form-control" required>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-medium">كلمة المرور الجديدة</label>
+                                        <input type="password" name="new_password" class="form-control" required
+                                               minlength="6">
+                                        <small class="text-muted">يجب أن تكون 6 أحرف على الأقل</small>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-medium">تأكيد كلمة المرور الجديدة</label>
+                                        <input type="password" name="confirm_password" class="form-control" required>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <button type="submit" class="btn btn-info px-5">
+                                        <i class="fas fa-key ms-2"></i>
+                                        تغيير كلمة المرور
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- جلسات النشاط -->
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-light py-3">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-history ms-2"></i>
+                                جلسات النشاط
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>الجهاز</th>
+                                            <th>المتصفح</th>
+                                            <th>آخر نشاط</th>
+                                            <th>الحالة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Windows PC</td>
+                                            <td>Chrome</td>
+                                            <td>الآن</td>
+                                            <td><span class="badge bg-success">نشط</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Android Phone</td>
+                                            <td>Firefox</td>
+                                            <td>2026-02-22 15:30</td>
+                                            <td><span class="badge bg-secondary">غير نشط</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-end mt-2">
+                                <button class="btn btn-sm btn-outline-danger" onclick="return confirm('هل أنت متأكد من تسجيل الخروج من جميع الأجهزة؟')">
+                                    <i class="fas fa-sign-out-alt ms-1"></i>
+                                    تسجيل الخروج من جميع الأجهزة
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- تبويب الإشعارات -->
+                <div class="tab-pane fade" id="notifications">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-gradient-warning text-white py-3">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-bell ms-2"></i>
+                                إعدادات الإشعارات
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="list-group">
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-envelope text-primary ms-3"></i>
+                                        <span class="fw-medium">إشعارات البريد الإلكتروني</span>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="emailNotif" checked>
+                                    </div>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-star text-warning ms-3"></i>
+                                        <span class="fw-medium">التقييمات الجديدة</span>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="evalNotif" checked>
+                                    </div>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-calendar-check text-success ms-3"></i>
+                                        <span class="fw-medium">تسجيل الحضور</span>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="attendanceNotif" checked>
+                                    </div>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-bullhorn text-danger ms-3"></i>
+                                        <span class="fw-medium">إعلانات النظام</span>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="systemNotif">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-end mt-3">
+                                <button class="btn btn-warning" onclick="alert('تم حفظ إعدادات الإشعارات')">
+                                    <i class="fas fa-save ms-2"></i>
+                                    حفظ الإعدادات
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- تبويب المظهر -->
+                <div class="tab-pane fade" id="appearance">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-gradient-secondary text-white py-3">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-paint-brush ms-2"></i>
+                                تخصيص المظهر
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-4">
+                                    <label class="form-label fw-medium">الوضع</label>
+                                    <div class="d-flex gap-3">
+                                        <div class="theme-option active" onclick="selectTheme('light')">
+                                            <i class="fas fa-sun fa-2x mb-2"></i>
+                                            <span>فاتح</span>
+                                        </div>
+                                        <div class="theme-option" onclick="selectTheme('dark')">
+                                            <i class="fas fa-moon fa-2x mb-2"></i>
+                                            <span>داكن</span>
+                                        </div>
+                                        <div class="theme-option" onclick="selectTheme('auto')">
+                                            <i class="fas fa-laptop fa-2x mb-2"></i>
+                                            <span>تلقائي</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-4">
+                                    <label class="form-label fw-medium">اللون الأساسي</label>
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <div class="color-option" style="background: #0a1c3a;" onclick="selectColor('#0a1c3a')"></div>
+                                        <div class="color-option" style="background: #4e73df;" onclick="selectColor('#4e73df')"></div>
+                                        <div class="color-option" style="background: #1cc88a;" onclick="selectColor('#1cc88a')"></div>
+                                        <div class="color-option" style="background: #e67e22;" onclick="selectColor('#e67e22')"></div>
+                                        <div class="color-option" style="background: #e74a3b;" onclick="selectColor('#e74a3b')"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <button class="btn btn-secondary" onclick="alert('تم حفظ إعدادات المظهر')">
+                                    <i class="fas fa-save ms-2"></i>
+                                    حفظ التغييرات
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- تبويب إعدادات النظام (للمالك فقط) -->
+                {% if current_user.role == 'owner' %}
+                <div class="tab-pane fade" id="system">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-gradient-dark text-white py-3">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-cogs ms-2"></i>
+                                إعدادات النظام
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-4">
+                                <h6 class="fw-bold mb-3">إعدادات عامة</h6>
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">اسم المؤسسة</label>
+                                    <input type="text" class="form-control" value="أرض الجوهرة للنظافة">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">البريد الإلكتروني الرسمي</label>
+                                    <input type="email" class="form-control" value="aljwahrh-land@gamil.com">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">رقم الهاتف</label>
+                                    <input type="text" class="form-control" value="0096770322261">
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <h6 class="fw-bold mb-3">إعدادات التقييمات</h6>
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">الحد الأدنى للتقييم</label>
+                                    <input type="number" class="form-control" value="1" min="1" max="5">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">الحد الأقصى للتقييم</label>
+                                    <input type="number" class="form-control" value="5" min="1" max="5">
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <button class="btn btn-dark" onclick="alert('تم حفظ إعدادات النظام')">
+                                    <i class="fas fa-save ms-2"></i>
+                                    حفظ إعدادات النظام
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- أنماط مخصصة للإعدادات -->
+<style>
+/* تحسين قائمة التبويبات */
+.settings-tabs .list-group-item {
+    border: none;
+    padding: 1rem 1.5rem;
+    transition: all 0.2s ease;
+    border-right: 3px solid transparent;
+}
+
+.settings-tabs .list-group-item:hover {
+    background-color: rgba(10, 28, 58, 0.05);
+    border-right-color: #0a1c3a;
+}
+
+.settings-tabs .list-group-item.active {
+    background: linear-gradient(135deg, #0a1c3a 0%, #1a2f4f 100%);
+    color: white;
+    border-right-color: #ffd700;
+}
+
+.settings-tabs .list-group-item i {
+    width: 1.5rem;
+}
+
+/* تحسين خيارات المظهر */
+.theme-option {
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+}
+
+.theme-option:hover {
+    border-color: #0a1c3a;
+    background-color: rgba(10, 28, 58, 0.05);
+}
+
+.theme-option.active {
+    border-color: #0a1c3a;
+    background-color: rgba(10, 28, 58, 0.1);
+}
+
+/* تحسين خيارات الألوان */
+.color-option {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.color-option:hover,
+.color-option.active {
+    border-color: #ffd700;
+    transform: scale(1.1);
+}
+
+/* تحسين البطاقات */
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #0a1c3a 0%, #1a2f4f 100%);
+}
+
+.bg-gradient-info {
+    background: linear-gradient(135deg, #1a2f4f 0%, #2a3f5f 100%);
+}
+
+.bg-gradient-warning {
+    background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+}
+
+.bg-gradient-secondary {
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+}
+
+.bg-gradient-dark {
+    background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
+}
+
+/* تحسين الحقول */
+.form-control {
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    padding: 0.6rem 1rem;
+}
+
+.form-control:focus {
+    border-color: #0a1c3a;
+    box-shadow: 0 0 0 0.2rem rgba(10, 28, 58, 0.25);
+}
+
+/* تحسين التبويبات */
+.tab-pane {
+    transition: opacity 0.15s ease;
+}
+
+/* تحسين للشاشات الصغيرة */
+@media (max-width: 768px) {
+    .settings-tabs .list-group-item {
+        padding: 0.75rem 1rem;
+    }
+
+    .theme-option {
+        padding: 0.75rem;
+    }
+
+    .color-option {
+        width: 35px;
+        height: 35px;
+    }
+}
+</style>
+
+<!-- سكريبتات الإعدادات -->
+<script>
+// تفعيل التبويبات
+document.addEventListener('DOMContentLoaded', function() {
+    // تفعيل Bootstrap tabs
+    var triggerTabList = [].slice.call(document.querySelectorAll('.settings-tabs a'));
+    triggerTabList.forEach(function (triggerEl) {
+        var tabTrigger = new bootstrap.Tab(triggerEl);
+        triggerEl.addEventListener('click', function (event) {
+            event.preventDefault();
+            tabTrigger.show();
+        });
+    });
+
+    // تحديد خيارات المظهر
+    const themeOptions = document.querySelectorAll('.theme-option');
+    themeOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            themeOptions.forEach(opt => opt.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+
+    // تحديد خيارات الألوان
+    const colorOptions = document.querySelectorAll('.color-option');
+    colorOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            colorOptions.forEach(opt => opt.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+});
+
+// دالة اختيار الوضع
+function selectTheme(mode) {
+    console.log('Theme selected:', mode);
+    // هنا يمكن إضافة كود لتغيير الوضع فعلياً
+}
+
+// دالة اختيار اللون
+function selectColor(color) {
+    console.log('Color selected:', color);
+    // هنا يمكن إضافة كود لتغيير اللون فعلياً
+}
+</script>
+{% endblock %}

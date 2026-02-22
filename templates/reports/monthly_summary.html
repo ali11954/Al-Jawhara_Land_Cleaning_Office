@@ -1,30 +1,42 @@
 <!-- templates/reports/monthly_summary.html -->
 {% extends "base.html" %}
 
-{% block title %}ملخص الحضور الشهري{% endblock %}
+{% block title %}ملخص الحضور الشهري - تحليل متقدم{% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <!-- شريط العنوان -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- شريط العنوان مع خيارات التصدير -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
         <div>
             <h2 class="text-gradient-success mb-1">
                 <i class="fas fa-calendar-alt me-2"></i>
-                ملخص الحضور الشهري
+                ملخص الحضور الشهري - تحليل متقدم
             </h2>
-            <p class="text-muted mb-0">تحليل شامل للحضور والانصراف على أساس شهري</p>
+            <p class="text-muted mb-0">تحليل شامل للحضور والانصراف مع مؤشرات الأداء والتوصيات</p>
         </div>
         <div class="btn-group">
-            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">PDF</button>
-            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">Excel</button>
+            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </button>
+            <button class="btn btn-modern btn-success" onclick="exportToExcel()">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-modern btn-info" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
         </div>
     </div>
 
-    <!-- اختيار الشهر -->
+    <!-- اختيار الشهر والسنة -->
     <div class="card shadow mb-4">
+        <div class="card-header bg-white py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-calendar-alt me-2"></i>اختر الفترة الزمنية
+            </h6>
+        </div>
         <div class="card-body">
-            <form method="GET" class="row align-items-end">
-                <div class="col-md-3">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
                     <label class="form-label">السنة</label>
                     <select name="year" class="form-select">
                         {% for y in years %}
@@ -32,7 +44,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label class="form-label">الشهر</label>
                     <select name="month" class="form-select">
                         {% for m in months %}
@@ -40,113 +52,211 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-search me-1"></i> عرض
+                <div class="col-md-4 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
+                        <i class="fas fa-search me-1"></i> عرض التقرير
                     </button>
+                    <a href="{{ url_for('report_monthly_summary') }}" class="btn btn-secondary">
+                        <i class="fas fa-redo me-1"></i> إعادة تعيين
+                    </a>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- بطاقات ملخص الشهر -->
+    <!-- بطاقات ملخص الشهر المحسنة -->
     <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card bg-primary text-white">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card card-stats gradient-primary h-100">
                 <div class="card-body">
-                    <h6>أيام العمل</h6>
-                    <h3>{{ working_days }}</h3>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">أيام العمل</h6>
+                            <h2 class="text-white mb-0">{{ working_days|default(0) }}</h2>
+                            <p class="text-white-50 mt-2 mb-0">
+                                <i class="fas fa-calendar-day me-1"></i>يوم في الشهر
+                            </p>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-calendar fa-2x text-white"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-success text-white">
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card card-stats gradient-success h-100">
                 <div class="card-body">
-                    <h6>إجمالي الحضور</h6>
-                    <h3>{{ total_present }}</h3>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">إجمالي الحضور</h6>
+                            <h2 class="text-white mb-0">{{ total_present|default(0) }}</h2>
+                            <p class="text-white-50 mt-2 mb-0">
+                                <i class="fas fa-check-circle me-1"></i>سجل حضور
+                            </p>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-user-check fa-2x text-white"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-danger text-white">
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card card-stats gradient-danger h-100">
                 <div class="card-body">
-                    <h6>إجمالي الغياب</h6>
-                    <h3>{{ total_absent }}</h3>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">إجمالي الغياب</h6>
+                            <h2 class="text-white mb-0">{{ total_absent|default(0) }}</h2>
+                            <p class="text-white-50 mt-2 mb-0">
+                                <i class="fas fa-exclamation-circle me-1"></i>سجل غياب
+                            </p>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-user-times fa-2x text-white"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-warning text-white">
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card card-stats gradient-warning h-100">
                 <div class="card-body">
-                    <h6>نسبة الحضور</h6>
-                    <h3>{{ monthly_attendance_rate }}%</h3>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">نسبة الحضور</h6>
+                            <h2 class="text-white mb-0">{{ monthly_attendance_rate|default(0) }}%</h2>
+                            <p class="text-white-50 mt-2 mb-0">
+                                <i class="fas fa-percent me-1"></i>من إجمالي الأيام
+                            </p>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-chart-pie fa-2x text-white"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- رسم بياني للحضور اليومي -->
+    <!-- رسوم بيانية متقدمة -->
     <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow">
-                <div class="card-header bg-white py-3">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">
                         <i class="fas fa-chart-line me-2"></i>الحضور اليومي خلال الشهر
                     </h6>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary active" onclick="changeChartType('area')">مساحي</button>
+                        <button class="btn btn-outline-primary" onclick="changeChartType('line')">خطي</button>
+                        <button class="btn btn-outline-primary" onclick="changeChartType('bar')">أعمدة</button>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div id="dailyAttendanceChart" style="height: 350px;"></div>
+                <div class="card-body p-3">
+                    <!-- ✅ إصلاح مشكلة ارتفاع الرسم البياني -->
+                    <div style="position: relative; height: 350px; width: 100%;" id="chartContainer">
+                        <div id="dailyAttendanceChart"></div>
+                    </div>
+                    {% if not daily_present_data or daily_present_data|length == 0 %}
+                    <p class="text-center text-muted py-3">لا توجد بيانات كافية للرسم البياني</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-pie me-2"></i>توزيع الحضور
+                    </h6>
+                </div>
+                <div class="card-body p-3">
+                    <div style="position: relative; height: 250px; width: 100%;" id="pieChartContainer">
+                        <div id="attendancePieChart"></div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><span class="badge bg-success me-2">&nbsp;</span> حاضر</span>
+                            <span class="fw-bold">{{ total_present|default(0) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><span class="badge bg-danger me-2">&nbsp;</span> غائب</span>
+                            <span class="fw-bold">{{ total_absent|default(0) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><span class="badge bg-warning me-2">&nbsp;</span> متأخر</span>
+                            <span class="fw-bold">{{ total_late|default(0) }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- جدول ملخص الموظفين -->
+    <!-- جدول ملخص الموظفين المحسن -->
     <div class="card shadow">
         <div class="card-header bg-white py-3">
-            <h6 class="m-0 font-weight-bold text-primary">
-                <i class="fas fa-table me-2"></i>ملخص حضور الموظفين
-            </h6>
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-table me-2"></i>ملخص حضور الموظفين
+                </h6>
+                <div class="input-group" style="width: 250px;">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="fas fa-search text-muted"></i>
+                    </span>
+                    <input type="text" class="form-control border-start-0" id="searchEmployee" placeholder="بحث في الموظفين...">
+                </div>
+            </div>
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover" id="employeeTable">
                     <thead class="bg-light">
                         <tr>
                             <th>الموظف</th>
                             <th>القسم</th>
-                            <th>أيام الحضور</th>
-                            <th>أيام الغياب</th>
-                            <th>أيام التأخير</th>
-                            <th>نسبة الحضور</th>
-                            <th>حالة الموظف</th>
+                            <th class="text-center">أيام الحضور</th>
+                            <th class="text-center">أيام الغياب</th>
+                            <th class="text-center">أيام التأخير</th>
+                            <th class="text-center">نسبة الحضور</th>
+                            <th class="text-center">حالة الموظف</th>
+                            <th class="text-center">الأداء</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for emp in monthly_summary %}
-                        <tr>
+                        <tr class="employee-row">
                             <td>
                                 <div class="d-flex align-items-center">
                                     <div class="avatar-sm me-2" style="background-color: {{ emp.color }}">
                                         {{ emp.name[:1] }}
                                     </div>
-                                    {{ emp.name }}
+                                    <div>
+                                        <div class="fw-bold">{{ emp.name }}</div>
+                                        <small class="text-muted">{{ emp.department }}</small>
+                                    </div>
                                 </div>
                             </td>
                             <td>{{ emp.department }}</td>
-                            <td class="fw-bold text-success">{{ emp.present_days }}</td>
-                            <td class="text-danger">{{ emp.absent_days }}</td>
-                            <td class="text-warning">{{ emp.late_days }}</td>
-                            <td>
+                            <td class="text-center fw-bold text-success">{{ emp.present_days }}</td>
+                            <td class="text-center text-danger">{{ emp.absent_days }}</td>
+                            <td class="text-center text-warning">{{ emp.late_days }}</td>
+                            <td class="text-center" style="width: 150px;">
                                 <div class="d-flex align-items-center">
-                                    <span class="me-2">{{ emp.attendance_rate }}%</span>
+                                    <span class="me-2 fw-bold">{{ emp.attendance_rate }}%</span>
                                     <div class="progress flex-grow-1" style="height: 8px;">
                                         <div class="progress-bar bg-{{ 'success' if emp.attendance_rate >= 90 else 'warning' if emp.attendance_rate >= 75 else 'danger' }}"
                                              style="width: {{ emp.attendance_rate }}%;"></div>
                                     </div>
                                 </div>
                             </td>
-                            <td>
+                            <td class="text-center">
                                 {% if emp.attendance_rate >= 90 %}
                                 <span class="badge bg-success">منتظم</span>
                                 {% elif emp.attendance_rate >= 75 %}
@@ -155,6 +265,24 @@
                                 <span class="badge bg-danger">غير منتظم</span>
                                 {% endif %}
                             </td>
+                            <td class="text-center">
+                                <div class="stars">
+                                    {% for i in range(5) %}
+                                        {% if i < (emp.attendance_rate / 20)|int %}
+                                        <i class="fas fa-star text-warning"></i>
+                                        {% else %}
+                                        <i class="far fa-star text-warning"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="fas fa-info-circle fa-2x mb-2"></i><br>
+                                لا توجد بيانات حضور للشهر المحدد
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -162,38 +290,488 @@
             </div>
         </div>
     </div>
+
+    <!-- توصيات وتحليلات إضافية -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow bg-light">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-lightbulb me-2"></i>تحليل وتوصيات
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="alert alert-info h-100 mb-0">
+                                <i class="fas fa-chart-line fa-2x mb-2"></i>
+                                <h6>معدل الحضور العام</h6>
+                                <p class="small">نسبة الحضور هذا الشهر {{ monthly_attendance_rate }}% وهي
+                                    {% if monthly_attendance_rate >= 90 %}
+                                    <span class="text-success">ممتازة</span>
+                                    {% elif monthly_attendance_rate >= 75 %}
+                                    <span class="text-warning">جيدة</span>
+                                    {% else %}
+                                    <span class="text-danger">منخفضة</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="alert alert-warning h-100 mb-0">
+                                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                                <h6>أكثر يوم غياب</h6>
+                                <p class="small">
+                                    {% if daily_present_data and days_labels %}
+                                        {% set min_index = daily_present_data.index(daily_present_data|min) %}
+                                        اليوم {{ days_labels[min_index] }} ({{ daily_present_data|min }} حاضر)
+                                    {% else %}
+                                        لا توجد بيانات كافية
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="alert alert-success h-100 mb-0">
+                                <i class="fas fa-trophy fa-2x mb-2"></i>
+                                <h6>أفضل يوم حضور</h6>
+                                <p class="small">
+                                    {% if daily_present_data and days_labels %}
+                                        {% set max_index = daily_present_data.index(daily_present_data|max) %}
+                                        اليوم {{ days_labels[max_index] }} ({{ daily_present_data|max }} حاضر)
+                                    {% else %}
+                                        لا توجد بيانات كافية
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
+<!-- تضمين مكتبة ApexCharts -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
 <script>
-new ApexCharts(document.querySelector("#dailyAttendanceChart"), {
-    series: [{
-        name: 'عدد الحاضرين',
-        data: {{ daily_present_data|tojson }}
-    }],
-    chart: {
-        type: 'area',
-        height: 350,
-        toolbar: { show: false },
-        fontFamily: 'Cairo, sans-serif'
-    },
-    colors: ['#1cc88a'],
-    dataLabels: { enabled: false },
-    stroke: { curve: 'smooth', width: 3 },
-    fill: {
-        type: 'gradient',
-        gradient: {
-            shadeIntensity: 1,
-            opacityFrom: 0.7,
-            opacityTo: 0.3
+// ============================================
+// بيانات الرسوم البيانية
+// ============================================
+const dailyPresentData = {{ daily_present_data|tojson if daily_present_data else '[]' }};
+const daysLabels = {{ days_labels|tojson if days_labels else '[]' }};
+const totalPresent = {{ total_present|default(0) }};
+const totalAbsent = {{ total_absent|default(0) }};
+const totalLate = {{ total_late|default(0) }};
+
+let attendanceChart = null;
+let pieChart = null;
+
+// تهيئة الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+    setupSearch();
+});
+
+// ✅ تهيئة الرسوم البيانية - نسخة محسنة
+function initializeCharts() {
+    // الرسم البياني الرئيسي للحضور اليومي
+    const chartContainer = document.getElementById('dailyAttendanceChart');
+    if (chartContainer && dailyPresentData && dailyPresentData.length > 0) {
+        try {
+            // إزالة أي رسم بياني سابق
+            if (attendanceChart) {
+                attendanceChart.destroy();
+            }
+
+            const options = {
+                series: [{
+                    name: 'عدد الحاضرين',
+                    data: dailyPresentData
+                }],
+                chart: {
+                    type: 'area',
+                    height: 350,
+                    width: '100%',
+                    toolbar: {
+                        show: true,
+                        tools: {
+                            download: true,
+                            selection: true,
+                            zoom: true,
+                            zoomin: true,
+                            zoomout: true,
+                            pan: true,
+                            reset: true
+                        }
+                    },
+                    fontFamily: 'Cairo, sans-serif',
+                    animations: {
+                        enabled: true,
+                        easing: 'easeinout',
+                        speed: 800
+                    },
+                    background: '#ffffff'
+                },
+                colors: ['#1cc88a'],
+                dataLabels: {
+                    enabled: true,
+                    formatter: function(val) {
+                        return val;
+                    },
+                    style: {
+                        fontSize: '12px',
+                        fontFamily: 'Cairo, sans-serif'
+                    }
+                },
+                stroke: {
+                    curve: 'smooth',
+                    width: 3
+                },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 1,
+                        opacityFrom: 0.7,
+                        opacityTo: 0.3
+                    }
+                },
+                xaxis: {
+                    categories: daysLabels,
+                    labels: {
+                        style: {
+                            fontFamily: 'Cairo, sans-serif',
+                            fontSize: '12px'
+                        },
+                        rotate: -45,
+                        rotateAlways: false
+                    },
+                    title: {
+                        text: 'أيام الشهر',
+                        style: {
+                            fontFamily: 'Cairo, sans-serif'
+                        }
+                    }
+                },
+                yaxis: {
+                    labels: {
+                        style: {
+                            fontFamily: 'Cairo, sans-serif',
+                            fontSize: '12px'
+                        }
+                    },
+                    title: {
+                        text: 'عدد الموظفين',
+                        style: {
+                            fontFamily: 'Cairo, sans-serif'
+                        }
+                    }
+                },
+                tooltip: {
+                    y: {
+                        formatter: function(value) {
+                            return value + ' موظف';
+                        }
+                    },
+                    theme: 'light',
+                    style: {
+                        fontFamily: 'Cairo, sans-serif'
+                    }
+                },
+                grid: {
+                    borderColor: '#e0e0e0',
+                    row: {
+                        colors: ['#f8f9fc', 'transparent'],
+                        opacity: 0.5
+                    }
+                },
+                responsive: [{
+                    breakpoint: 768,
+                    options: {
+                        chart: {
+                            height: 300
+                        },
+                        dataLabels: {
+                            enabled: false
+                        }
+                    }
+                }]
+            };
+
+            attendanceChart = new ApexCharts(chartContainer, options);
+            attendanceChart.render();
+            console.log('✅ تم إنشاء الرسم البياني الرئيسي');
+
+        } catch (e) {
+            console.error('❌ خطأ في الرسم البياني الرئيسي:', e);
+            chartContainer.innerHTML = '<p class="text-center text-danger py-3">حدث خطأ في تحميل الرسم البياني</p>';
         }
-    },
-    xaxis: {
-        categories: {{ days_labels|tojson }},
-        labels: { style: { fontFamily: 'Cairo, sans-serif' } }
-    },
-    yaxis: {
-        labels: { style: { fontFamily: 'Cairo, sans-serif' } }
+    } else {
+        if (chartContainer) {
+            chartContainer.innerHTML = '<p class="text-center text-muted py-3">لا توجد بيانات كافية للرسم البياني</p>';
+        }
     }
-}).render();
+
+    // الرسم البياني الدائري للتوزيع
+    const pieContainer = document.getElementById('attendancePieChart');
+    if (pieContainer && (totalPresent > 0 || totalAbsent > 0 || totalLate > 0)) {
+        try {
+            const pieOptions = {
+                series: [totalPresent, totalAbsent, totalLate],
+                chart: {
+                    type: 'pie',
+                    height: 250,
+                    width: '100%',
+                    fontFamily: 'Cairo, sans-serif',
+                    animations: {
+                        enabled: true,
+                        easing: 'easeinout',
+                        speed: 800
+                    }
+                },
+                labels: ['حاضر', 'غائب', 'متأخر'],
+                colors: ['#1cc88a', '#e74a3b', '#f6c23e'],
+                legend: { show: false },
+                dataLabels: {
+                    enabled: true,
+                    formatter: function(val, opts) {
+                        return opts.w.config.series[opts.seriesIndex];
+                    },
+                    style: {
+                        fontSize: '14px',
+                        fontFamily: 'Cairo, sans-serif'
+                    }
+                },
+                tooltip: {
+                    y: {
+                        formatter: function(value) {
+                            return value + ' سجل';
+                        }
+                    }
+                },
+                responsive: [{
+                    breakpoint: 768,
+                    options: {
+                        chart: {
+                            height: 200
+                        }
+                    }
+                }]
+            };
+
+            pieChart = new ApexCharts(pieContainer, pieOptions);
+            pieChart.render();
+            console.log('✅ تم إنشاء الرسم البياني الدائري');
+
+        } catch (e) {
+            console.error('❌ خطأ في الرسم البياني الدائري:', e);
+            pieContainer.innerHTML = '<p class="text-center text-muted py-3">لا توجد بيانات كافية</p>';
+        }
+    } else {
+        if (pieContainer) {
+            pieContainer.innerHTML = '<p class="text-center text-muted py-3">لا توجد بيانات كافية للرسم البياني</p>';
+        }
+    }
+}
+
+// تغيير نوع الرسم البياني
+function changeChartType(type) {
+    if (attendanceChart) {
+        attendanceChart.updateOptions({
+            chart: {
+                type: type
+            }
+        });
+
+        // تحديث حالة الأزرار
+        document.querySelectorAll('.btn-group .btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+    }
+}
+
+// تفعيل البحث في الجدول
+function setupSearch() {
+    const searchInput = document.getElementById('searchEmployee');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('.employee-row');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+    }
+}
+
+// تصدير إلى Excel
+function exportToExcel() {
+    // تجميع بيانات الجدول
+    const rows = [];
+    const headerRow = ['الموظف', 'القسم', 'أيام الحضور', 'أيام الغياب', 'أيام التأخير', 'نسبة الحضور', 'حالة الموظف'];
+    rows.push(headerRow);
+
+    document.querySelectorAll('.employee-row').forEach(row => {
+        const rowData = [];
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 7) {
+            rowData.push(cells[0].textContent.trim()); // الموظف
+            rowData.push(cells[1].textContent.trim()); // القسم
+            rowData.push(cells[2].textContent.trim()); // أيام الحضور
+            rowData.push(cells[3].textContent.trim()); // أيام الغياب
+            rowData.push(cells[4].textContent.trim()); // أيام التأخير
+            rowData.push(cells[5].textContent.trim()); // نسبة الحضور
+            rowData.push(cells[6].textContent.trim()); // حالة الموظف
+            rows.push(rowData);
+        }
+    });
+
+    // إنشاء ملف CSV
+    let csvContent = rows.map(row => row.join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `ملخص_حضور_شهر_{{ selected_month }}_سنة_{{ selected_year }}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function exportReport(type) {
+    if (type === 'pdf') {
+        alert('سيتم تفعيل تصدير PDF قريباً');
+    } else if (type === 'excel') {
+        exportToExcel();
+    }
+}
+
+// مراقبة تغيير حجم النافذة
+window.addEventListener('resize', function() {
+    if (attendanceChart) {
+        attendanceChart.updateOptions({
+            chart: {
+                width: '100%',
+                height: 350
+            }
+        });
+    }
+    if (pieChart) {
+        pieChart.updateOptions({
+            chart: {
+                width: '100%',
+                height: 250
+            }
+        });
+    }
+});
 </script>
+
+<style>
+.text-gradient-success {
+    background: linear-gradient(135deg, #1cc88a 0%, #169b6b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.card-stats {
+    border: none;
+    border-radius: 15px;
+    transition: transform 0.3s;
+}
+.card-stats:hover {
+    transform: translateY(-5px);
+}
+
+.gradient-primary { background: linear-gradient(135deg, #4e73df, #224abe); }
+.gradient-success { background: linear-gradient(135deg, #1cc88a, #169b6b); }
+.gradient-danger { background: linear-gradient(135deg, #e74a3b, #be2617); }
+.gradient-warning { background: linear-gradient(135deg, #f6c23e, #dda20a); }
+
+.icon-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bg-white-20 {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.text-white-50 {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+
+.btn-modern {
+    border-radius: 25px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+.btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.progress {
+    border-radius: 10px;
+    background-color: #e9ecef;
+}
+.progress-bar {
+    border-radius: 10px;
+}
+
+.stars i {
+    font-size: 12px;
+    margin: 0 1px;
+}
+
+/* إصلاح مشكلة ارتفاع الرسوم البيانية */
+#dailyAttendanceChart, #attendancePieChart {
+    min-height: 100%;
+    width: 100%;
+}
+
+#chartContainer, #pieChartContainer {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    #chartContainer {
+        height: 300px;
+    }
+    #pieChartContainer {
+        height: 200px;
+    }
+}
+
+@media print {
+    .btn-group, .btn-modern, .input-group, form {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #ddd !important;
+        break-inside: avoid;
+    }
+}
+</style>
 {% endblock %}

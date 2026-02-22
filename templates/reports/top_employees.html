@@ -1,67 +1,529 @@
 <!-- templates/reports/top_employees.html -->
 {% extends "base.html" %}
 
-{% block title %}أفضل الموظفين أداءً{% endblock %}
+{% block title %}أفضل الموظفين أداءً - تحليل متقدم{% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
+    <!-- شريط العنوان -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-primary">
-            <i class="fas fa-trophy me-2"></i>
-            أفضل الموظفين أداءً
-        </h2>
+        <div>
+            <h2 class="text-gradient-warning mb-1">
+                <i class="fas fa-trophy me-2"></i>
+                أفضل الموظفين أداءً
+            </h2>
+            <p class="text-muted mb-0">تحليل متقدم للأداء حسب الفترة الزمنية والشركة</p>
+        </div>
         <div class="btn-group">
-            <button class="btn btn-outline-primary" onclick="exportReport('pdf')">PDF</button>
-            <button class="btn btn-outline-success" onclick="exportReport('excel')">Excel</button>
+            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </button>
+            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-modern btn-info" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
         </div>
     </div>
 
-    <!-- منصة التتويج -->
-    <div class="row mb-5">
-        <div class="col-md-4 offset-md-4">
-            <div class="text-center">
-                <div class="position-relative">
-                    <i class="fas fa-crown fa-3x text-warning position-absolute top-0 start-50 translate-middle"></i>
-                    <img src="{{ top_employees[0].avatar if top_employees else 'https://ui-avatars.com/api/?name=1' }}"
-                         class="rounded-circle border border-warning border-4" width="120" height="120">
-                    <h3 class="mt-3">{{ top_employees[0].full_name if top_employees else 'غير محدد' }}</h3>
-                    <p class="text-muted">{{ top_employees[0].position_ar if top_employees else '' }}</p>
-                    <div class="display-4 text-warning">🏆</div>
-                    <h2 class="text-primary">{{ "%.1f"|format(top_employees[0].performance|default(0)) }}%</h2>
+    <!-- ✅ فلترة متقدمة -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-white py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter me-2"></i>خيارات التحليل المتقدمة
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('report_top_employees') }}" class="row g-3">
+                <!-- فترة زمنية -->
+                <div class="col-md-3">
+                    <label class="form-label">من تاريخ</label>
+                    <input type="date" name="from_date" class="form-control" value="{{ from_date_str }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">إلى تاريخ</label>
+                    <input type="date" name="to_date" class="form-control" value="{{ to_date_str }}">
+                </div>
+
+                <!-- فلترة سريعة (شهر/سنة) -->
+                <div class="col-md-2">
+                    <label class="form-label">السنة</label>
+                    <select name="year" class="form-select">
+                        <option value="">الكل</option>
+                        {% for y in years %}
+                        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">الشهر</label>
+                    <select name="month" class="form-select">
+                        <option value="">الكل</option>
+                        {% for m, name in months.items() %}
+                        <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- فلترة الشركة -->
+                <div class="col-md-2">
+                    <label class="form-label">الشركة</label>
+                    <select name="company_id" class="form-select">
+                        <option value="">جميع الشركات</option>
+                        {% for company in companies %}
+                        <option value="{{ company.id }}" {% if company.id == selected_company %}selected{% endif %}>
+                            {{ company.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i> تحليل الأداء
+                    </button>
+                    <a href="{{ url_for('report_top_employees') }}" class="btn btn-secondary">
+                        <i class="fas fa-redo me-1"></i> إعادة تعيين
+                    </a>
+                </div>
+            </form>
+
+            <!-- معلومات الفترة -->
+            {% if from_date and to_date %}
+            <div class="mt-3 alert alert-info py-2">
+                <i class="fas fa-calendar-alt me-1"></i>
+                الفترة: {{ from_date.strftime('%Y-%m-%d') }} إلى {{ to_date.strftime('%Y-%m-%d') }}
+                ({{ days_in_period }} يوم)
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ✅ إحصائيات عامة -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-gradient-primary text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">إجمالي الموظفين</h6>
+                            <h2 class="text-white mb-0">{{ total_employees }}</h2>
+                        </div>
+                        <i class="fas fa-users fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-gradient-success text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">متوسط الأداء</h6>
+                            <h2 class="text-white mb-0">{{ "%.1f"|format(avg_performance) }}%</h2>
+                        </div>
+                        <i class="fas fa-chart-line fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-gradient-warning text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">أعلى تقييم</h6>
+                            <h2 class="text-white mb-0">{{ "%.1f"|format(max_performance) }}%</h2>
+                        </div>
+                        <i class="fas fa-star fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-gradient-danger text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">إجمالي التقييمات</h6>
+                            <h2 class="text-white mb-0">{{ total_evaluations }}</h2>
+                        </div>
+                        <i class="fas fa-clipboard-check fa-3x opacity-50"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- باقي المتميزين -->
+    <!-- ✅ التصنيف حسب الشركة (إذا لم يتم اختيار شركة محددة) -->
+    {% if not selected_company %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-building me-2"></i>
+                        أفضل موظف في كل شركة
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for company_top in top_per_company %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-{{ company_top.color }}">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="company-icon bg-light rounded p-2 me-3">
+                                            <i class="fas fa-building fa-2x text-{{ company_top.color }}"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="mb-0">{{ company_top.company_name }}</h5>
+                                            <small class="text-muted">أفضل موظف</small>
+                                        </div>
+                                    </div>
+
+                                    {% if company_top.employee %}
+                                    <div class="d-flex align-items-center">
+                                        <img src="{{ company_top.employee.avatar or 'https://ui-avatars.com/api/?name=' + company_top.employee.full_name + '&size=50&background=4e73df&color=fff' }}"
+                                             class="rounded-circle me-3" width="50" height="50">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">{{ company_top.employee.full_name }}</h6>
+                                            <p class="text-muted small mb-1">{{ company_top.employee.position_ar }}</p>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="small">الأداء</span>
+                                                <span class="fw-bold text-success">{{ "%.1f"|format(company_top.performance) }}%</span>
+                                            </div>
+                                            <div class="progress" style="height: 5px;">
+                                                <div class="progress-bar bg-success" style="width: {{ company_top.performance }}%;"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <p class="text-muted text-center py-3">لا توجد بيانات كافية</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ✅ منصة التتويج - أفضل 3 موظفين عام -->
+    {% if top_employees %}
+    <div class="row mb-5 align-items-end">
+        <!-- المركز الثاني -->
+        {% if top_employees|length > 1 %}
+        <div class="col-md-4">
+            <div class="text-center podium-2">
+                <div class="position-relative mb-3">
+                    <span class="position-absolute top-0 start-50 translate-middle badge bg-secondary rounded-pill">
+                        <i class="fas fa-medal me-1"></i>المركز الثاني
+                    </span>
+                    <img src="{{ top_employees[1].avatar or 'https://ui-avatars.com/api/?name=' + top_employees[1].full_name + '&size=120&background=6c757d&color=fff' }}"
+                         class="rounded-circle border border-secondary border-4 shadow" width="100" height="100">
+                </div>
+                <h4>{{ top_employees[1].full_name }}</h4>
+                <p class="text-muted mb-2">
+                    {{ top_employees[1].position_ar }}
+                    <span class="badge bg-info ms-2">{{ top_employees[1].company_name }}</span>
+                </p>
+                <div class="d-flex justify-content-center gap-3 mb-2">
+                    <span class="badge bg-info" title="التقييمات">
+                        <i class="fas fa-star me-1"></i>{{ "%.1f"|format(top_employees[1].performance) }}%
+                    </span>
+                    <span class="badge bg-success" title="عدد التقييمات">
+                        <i class="fas fa-clipboard-check me-1"></i>{{ top_employees[1].evaluations_count }}
+                    </span>
+                </div>
+                <div class="progress" style="height: 8px;">
+                    <div class="progress-bar bg-secondary" style="width: {{ top_employees[1].performance }}%;"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- المركز الأول -->
+        <div class="col-md-4">
+            <div class="text-center podium-1">
+                <div class="position-relative mb-3">
+                    <span class="position-absolute top-0 start-50 translate-middle">
+                        <i class="fas fa-crown fa-3x text-warning"></i>
+                    </span>
+                    <img src="{{ top_employees[0].avatar or 'https://ui-avatars.com/api/?name=' + top_employees[0].full_name + '&size=150&background=ffc107&color=000' }}"
+                         class="rounded-circle border border-warning border-4 shadow-lg" width="140" height="140">
+                </div>
+                <h2 class="text-warning mb-1">{{ top_employees[0].full_name }}</h2>
+                <p class="text-muted mb-2">
+                    {{ top_employees[0].position_ar }}
+                    <span class="badge bg-warning text-dark ms-2">{{ top_employees[0].company_name }}</span>
+                </p>
+                <div class="d-flex justify-content-center gap-3 mb-3">
+                    <span class="badge bg-warning text-dark px-3 py-2">{{ "%.1f"|format(top_employees[0].performance) }}%</span>
+                    <span class="badge bg-success px-3 py-2">{{ top_employees[0].evaluations_count }} تقييم</span>
+                </div>
+                <div class="progress" style="height: 10px;">
+                    <div class="progress-bar bg-warning" style="width: {{ top_employees[0].performance }}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- المركز الثالث -->
+        {% if top_employees|length > 2 %}
+        <div class="col-md-4">
+            <div class="text-center podium-3">
+                <div class="position-relative mb-3">
+                    <span class="position-absolute top-0 start-50 translate-middle badge bg-bronze rounded-pill">
+                        <i class="fas fa-medal me-1"></i>المركز الثالث
+                    </span>
+                    <img src="{{ top_employees[2].avatar or 'https://ui-avatars.com/api/?name=' + top_employees[2].full_name + '&size=120&background=cd7f32&color=fff' }}"
+                         class="rounded-circle border border-bronze border-4 shadow" width="100" height="100">
+                </div>
+                <h4>{{ top_employees[2].full_name }}</h4>
+                <p class="text-muted mb-2">
+                    {{ top_employees[2].position_ar }}
+                    <span class="badge bg-info ms-2">{{ top_employees[2].company_name }}</span>
+                </p>
+                <div class="d-flex justify-content-center gap-3 mb-2">
+                    <span class="badge bg-info">{{ "%.1f"|format(top_employees[2].performance) }}%</span>
+                    <span class="badge bg-success">{{ top_employees[2].evaluations_count }} تقييم</span>
+                </div>
+                <div class="progress" style="height: 8px;">
+                    <div class="progress-bar" style="background-color: #cd7f32; width: {{ top_employees[2].performance }}%;"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- ✅ جدول الترتيب العام -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-white py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list-ol me-2"></i>
+                ترتيب الموظفين حسب الأداء
+                {% if selected_company %}
+
+                <span class="badge bg-primary ms-2">
+    {% set selected_company_obj = companies|selectattr('id', 'equalto', selected_company)|first %}
+    {{ selected_company_obj.name if selected_company_obj else '' }}
+</span>
+                {% endif %}
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="rankingTable">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>الترتيب</th>
+                            <th>الموظف</th>
+                            <th>الشركة</th>
+                            <th>الوظيفة</th>
+                            <th>نسبة الأداء</th>
+                            <th>عدد التقييمات</th>
+                            <th>نسبة الحضور</th>
+                            <th>المستوى</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for emp in top_employees %}
+                        <tr>
+                            <td>
+                                {% if loop.index == 1 %}
+                                <span class="badge bg-warning text-dark p-2">🥇 الأول</span>
+                                {% elif loop.index == 2 %}
+                                <span class="badge bg-secondary p-2">🥈 الثاني</span>
+                                {% elif loop.index == 3 %}
+                                <span class="badge bg-bronze p-2">🥉 الثالث</span>
+                                {% else %}
+                                <span class="badge bg-light text-dark p-2">{{ loop.index }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ emp.avatar or 'https://ui-avatars.com/api/?name=' + emp.full_name + '&size=40&background=4e73df&color=fff' }}"
+                                         class="rounded-circle me-2" width="40" height="40">
+                                    {{ emp.full_name }}
+                                </div>
+                            </td>
+                            <td>{{ emp.company_name }}</td>
+                            <td>{{ emp.position_ar }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="me-2">{{ "%.1f"|format(emp.performance) }}%</span>
+                                    <div class="progress flex-grow-1" style="height: 5px;">
+                                        <div class="progress-bar bg-success" style="width: {{ emp.performance }}%;"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">{{ emp.evaluations_count }}</td>
+                            <td class="text-center">{{ emp.attendance_rate }}%</td>
+                            <td>
+                                {% if emp.performance >= 95 %}
+                                <span class="badge bg-warning text-dark">أسطورة</span>
+                                {% elif emp.performance >= 90 %}
+                                <span class="badge bg-info">ممتاز</span>
+                                {% elif emp.performance >= 80 %}
+                                <span class="badge bg-success">جيد جداً</span>
+                                {% elif emp.performance >= 70 %}
+                                <span class="badge bg-primary">جيد</span>
+                                {% else %}
+                                <span class="badge bg-secondary">مقبول</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ رسم بياني للأداء -->
     <div class="row">
-        {% for emp in top_employees[1:] %}
-        <div class="col-md-3 mb-4">
-            <div class="card shadow h-100">
-                <div class="card-body text-center">
-                    <img src="{{ emp.avatar or 'https://ui-avatars.com/api/?name=' + emp.full_name }}"
-                         class="rounded-circle mb-3" width="80" height="80">
-                    <h5>{{ emp.full_name }}</h5>
-                    <p class="text-muted">{{ emp.position_ar }}</p>
-                    <div class="progress mb-3" style="height: 25px;">
-                        <div class="progress-bar bg-success" style="width: {{ emp.performance }}%;">
-                            {{ "%.1f"|format(emp.performance) }}%
-                        </div>
-                    </div>
-                    <div class="row text-center">
-                        <div class="col-6">
-                            <small class="text-muted">التقييمات</small>
-                            <h6>{{ emp.evaluations_count }}</h6>
-                        </div>
-                        <div class="col-6">
-                            <small class="text-muted">الحضور</small>
-                            <h6>{{ emp.attendance_rate }}%</h6>
-                        </div>
-                    </div>
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        توزيع مستويات الأداء
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="performanceChart" style="height: 300px;"></div>
                 </div>
             </div>
         </div>
-        {% endfor %}
     </div>
+    {% else %}
+    <!-- رسالة عدم وجود بيانات -->
+    <div class="text-center py-5">
+        <i class="fas fa-trophy fa-4x text-muted mb-3"></i>
+        <h4 class="text-muted">لا توجد بيانات أداء للفترة المحددة</h4>
+        <p class="text-muted">قم بتغيير فترة البحث أو إضافة تقييمات للموظفين</p>
+    </div>
+    {% endif %}
 </div>
+
+<!-- ApexCharts -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+// بيانات الرسم البياني
+const chartData = {{ chart_data|tojson if chart_data else '[]' }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (chartData && chartData.length > 0) {
+        const options = {
+            series: [{
+                name: 'عدد الموظفين',
+                data: chartData.map(d => d.count)
+            }],
+            chart: {
+                type: 'bar',
+                height: 300,
+                toolbar: { show: false },
+                fontFamily: 'Cairo, sans-serif'
+            },
+            colors: ['#4e73df'],
+            plotOptions: {
+                bar: {
+                    borderRadius: 10,
+                    columnWidth: '50%',
+                    distributed: true
+                }
+            },
+            xaxis: {
+                categories: chartData.map(d => d.level),
+                labels: {
+                    style: { fontFamily: 'Cairo, sans-serif' }
+                }
+            },
+            yaxis: {
+                labels: {
+                    style: { fontFamily: 'Cairo, sans-serif' }
+                }
+            },
+            tooltip: {
+                y: {
+                    formatter: function(value) {
+                        return value + ' موظف';
+                    }
+                }
+            }
+        };
+
+        const chart = new ApexCharts(document.querySelector("#performanceChart"), options);
+        chart.render();
+    } else {
+        document.getElementById('performanceChart').innerHTML =
+            '<p class="text-center text-muted py-5">لا توجد بيانات كافية للرسم البياني</p>';
+    }
+});
+
+function exportReport(type) {
+    if (type === 'pdf') {
+        alert('سيتم تفعيل تصدير PDF قريباً');
+    } else if (type === 'excel') {
+        alert('سيتم تفعيل تصدير Excel قريباً');
+    }
+}
+</script>
+
+<style>
+.text-gradient-warning {
+    background: linear-gradient(135deg, #f6c23e 0%, #f4b619 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.bg-gradient-primary { background: linear-gradient(135deg, #4e73df, #224abe); }
+.bg-gradient-success { background: linear-gradient(135deg, #1cc88a, #169b6b); }
+.bg-gradient-warning { background: linear-gradient(135deg, #f6c23e, #dda20a); }
+.bg-gradient-danger { background: linear-gradient(135deg, #e74a3b, #be2617); }
+
+.bg-bronze { background-color: #cd7f32; }
+.border-bronze { border-color: #cd7f32 !important; }
+
+.podium-1 { transform: scale(1.1); transition: transform 0.3s; }
+.podium-1:hover { transform: scale(1.15); }
+.podium-2:hover, .podium-3:hover { transform: scale(1.05); }
+
+.btn-modern {
+    border-radius: 25px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+.btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.text-white-50 { color: rgba(255,255,255,0.7) !important; }
+.opacity-50 { opacity: 0.5; }
+
+.company-icon {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media print {
+    .btn-group, .btn-modern, form {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #ddd !important;
+        break-inside: avoid;
+    }
+}
+</style>
 {% endblock %}

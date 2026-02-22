@@ -4,79 +4,54 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- رأس الصفحة -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 text-gray-800">
-            <i class="fas fa-calendar-check text-primary"></i>
+    <!-- رأس الصفحة مع الإجراءات السريعة -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <h1 class="h3 text-primary mb-0">
+            <i class="fas fa-calendar-check me-2"></i>
             سجلات الحضور
         </h1>
-        <div class="d-flex align-items-center gap-2">
-            <!-- زر التحضير -->
-            <a href="{{ url_for('prepare_attendance') }}" class="btn btn-success">
-                <i class="fas fa-clipboard-check"></i> نظام التحضير
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('prepare_attendance_enhanced') }}" class="btn btn-success">
+                <i class="fas fa-clipboard-check me-1"></i>
+                نظام التحضير
             </a>
-            <!-- زر إضافة حضور -->
             <a href="{{ url_for('add_attendance') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> إضافة حضور
+                <i class="fas fa-plus-circle me-1"></i>
+                إضافة حضور
+            </a>
+            <a href="{{ url_for('transfer_attendance_page') }}" class="btn btn-warning">
+                <i class="fas fa-exchange-alt me-1"></i>
+                ترحيل فترات
             </a>
         </div>
     </div>
 
-    <!-- بطاقة التحكم في التاريخ -->
-    <div class="card shadow mb-4">
-        <div class="card-body">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <h5 class="card-title">
-                        <i class="fas fa-calendar-alt text-primary"></i>
-                        تاريخ العرض:
-                        <span class="text-info">{{ selected_date.strftime('%Y-%m-%d') }}</span>
-                    </h5>
-                    {% if selected_date != today %}
-                    <small class="text-muted">عرض بيانات تاريخ سابق</small>
-                    {% endif %}
-                </div>
-                <div class="col-md-6 text-end">
-                    <div class="btn-group" role="group">
-                        <a href="{{ url_for('attendance_index', date=prev_date) }}"
-                           class="btn btn-outline-primary">
-                            <i class="fas fa-chevron-right"></i> اليوم السابق
-                        </a>
-                        <a href="{{ url_for('attendance_index', date=today) }}"
-                           class="btn btn-primary">
-                            اليوم الحالي
-                        </a>
-                        <a href="{{ url_for('attendance_index', date=next_date) }}"
-                           class="btn btn-outline-primary">
-                            اليوم التالي <i class="fas fa-chevron-left"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- قسم الفلترة -->
-    <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">
-                <i class="fas fa-filter me-2"></i>فلترة سجلات الحضور
+    <!-- فلترة متقدمة بالفترة -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+            <h6 class="m-0 fw-bold text-primary">
+                <i class="fas fa-filter me-2"></i>بحث متقدم - الفترة
             </h6>
         </div>
         <div class="card-body">
             <form method="GET" class="row g-3">
-                <!-- فلترة التاريخ -->
+                <!-- فترة التاريخ -->
                 <div class="col-md-3">
-                    <label for="date" class="form-label">التاريخ</label>
-                    <input type="date" class="form-control" id="date" name="date"
-                           value="{{ selected_date.strftime('%Y-%m-%d') }}">
+                    <label class="form-label">من تاريخ</label>
+                    <input type="date" class="form-control" name="date_from"
+                           value="{{ date_from.strftime('%Y-%m-%d') if date_from else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">إلى تاريخ</label>
+                    <input type="date" class="form-control" name="date_to"
+                           value="{{ date_to.strftime('%Y-%m-%d') if date_to else '' }}">
                 </div>
 
-                <!-- فلترة الموظف -->
-                <div class="col-md-3">
-                    <label for="employee_id" class="form-label">الموظف</label>
-                    <select class="form-control" id="employee_id" name="employee_id">
-                        <option value="">جميع الموظفين</option>
+                <!-- الفلاتر الأخرى -->
+                <div class="col-md-2">
+                    <label class="form-label">الموظف</label>
+                    <select class="form-select" name="employee_id">
+                        <option value="">الكل</option>
                         {% for employee in employees %}
                         <option value="{{ employee.id }}"
                                 {% if selected_employee_id == employee.id %}selected{% endif %}>
@@ -85,12 +60,10 @@
                         {% endfor %}
                     </select>
                 </div>
-
-                <!-- فلترة الشركة -->
-                <div class="col-md-3">
-                    <label for="company_id" class="form-label">الشركة</label>
-                    <select class="form-control" id="company_id" name="company_id">
-                        <option value="">جميع الشركات</option>
+                <div class="col-md-2">
+                    <label class="form-label">الشركة</label>
+                    <select class="form-select" name="company_id">
+                        <option value="">الكل</option>
                         {% for company in companies %}
                         <option value="{{ company.id }}"
                                 {% if selected_company_id == company.id %}selected{% endif %}>
@@ -99,107 +72,123 @@
                         {% endfor %}
                     </select>
                 </div>
-
-                <!-- فلترة الوردية -->
-                <div class="col-md-3">
-                    <label for="shift_type" class="form-label">الوردية</label>
-                    <select class="form-control" id="shift_type" name="shift_type">
-                        <option value="all">جميع الورديات</option>
+                <div class="col-md-2">
+                    <label class="form-label">الوردية</label>
+                    <select class="form-select" name="shift_type">
+                        <option value="all">الكل</option>
                         <option value="morning" {% if selected_shift_type == 'morning' %}selected{% endif %}>صباحية</option>
                         <option value="evening" {% if selected_shift_type == 'evening' %}selected{% endif %}>مسائية</option>
                     </select>
                 </div>
 
-                <!-- أزرار -->
-                <div class="col-12">
+                <!-- أزرار البحث -->
+                <div class="col-12 d-flex gap-2">
                     <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-filter me-2"></i>تطبيق الفلترة
+                        <i class="fas fa-search me-2"></i>بحث
                     </button>
                     <a href="{{ url_for('attendance_index') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-times me-2"></i>مسح الفلترة
+                        <i class="fas fa-redo me-2"></i>إعادة تعيين
                     </a>
 
-                    {% if selected_employee or selected_company_id or selected_shift_type %}
-                    <div class="mt-2">
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle me-1"></i>
-                            تم تطبيق فلترة:
-                            {% if selected_employee %}موظف: {{ selected_employee.full_name }}{% endif %}
-                            {% if selected_company_id %} | شركة: {{ selected_company_id }}{% endif %}
-                            {% if selected_shift_type and selected_shift_type != 'all' %} | وردية: {{ selected_shift_type }}{% endif %}
-                        </small>
+                    <!-- اختصارات سريعة للفترات -->
+                    <div class="dropdown d-inline-block">
+                        <button class="btn btn-outline-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-clock me-1"></i>فترات سريعة
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="setDateRange('today')">اليوم</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="setDateRange('yesterday')">أمس</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="setDateRange('this_week')">هذا الأسبوع</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="setDateRange('last_week')">الأسبوع الماضي</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="setDateRange('this_month')">هذا الشهر</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="setDateRange('last_month')">الشهر الماضي</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="setDateRange('this_year')">هذه السنة</a></li>
+                        </ul>
                     </div>
-                    {% endif %}
                 </div>
+
+                <!-- عرض معايير البحث الحالية -->
+                {% if date_from or date_to or selected_employee_id or selected_company_id or (selected_shift_type and selected_shift_type != 'all') %}
+                <div class="col-12">
+                    <div class="alert alert-info py-2 mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        معايير البحث المطبقة:
+                        {% if date_from and date_to %}
+                        <span class="badge bg-primary me-2">من {{ date_from.strftime('%Y-%m-%d') }} إلى {{ date_to.strftime('%Y-%m-%d') }}</span>
+                        {% elif date_from %}
+                        <span class="badge bg-primary me-2">من {{ date_from.strftime('%Y-%m-%d') }}</span>
+                        {% elif date_to %}
+                        <span class="badge bg-primary me-2">إلى {{ date_to.strftime('%Y-%m-%d') }}</span>
+                        {% endif %}
+
+                        {% if selected_employee %}
+                        <span class="badge bg-success me-2">الموظف: {{ selected_employee.full_name }}</span>
+                        {% endif %}
+
+                        {% if selected_company_id %}
+                        <span class="badge bg-info me-2">الشركة: {{ selected_company_id }}</span>
+                        {% endif %}
+
+                        {% if selected_shift_type and selected_shift_type != 'all' %}
+                        <span class="badge bg-warning me-2">الوردية: {% if selected_shift_type == 'morning' %}صباحية{% else %}مسائية{% endif %}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
             </form>
         </div>
     </div>
 
-    <!-- إحصائيات سريعة -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-left-primary shadow h-100 py-2">
+    <!-- بطاقات الإحصائيات -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card bg-primary text-white h-100">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                إجمالي الموظفين</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_employees }}</div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small">إجمالي السجلات</div>
+                            <div class="fs-3 fw-bold">{{ total_records }}</div>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-users fa-2x text-gray-300"></i>
-                        </div>
+                        <i class="fas fa-calendar-check fa-2x opacity-50"></i>
                     </div>
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-left-success shadow h-100 py-2">
+        <div class="col-6 col-md-3">
+            <div class="card bg-success text-white h-100">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                الحضور</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ present_count }}</div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small">الحضور</div>
+                            <div class="fs-3 fw-bold">{{ present_count }}</div>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                        </div>
+                        <i class="fas fa-check-circle fa-2x opacity-50"></i>
                     </div>
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-left-warning shadow h-100 py-2">
+        <div class="col-6 col-md-3">
+            <div class="card bg-warning text-white h-100">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                المتأخرين</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ late_count }}</div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small">المتأخرين</div>
+                            <div class="fs-3 fw-bold">{{ late_count }}</div>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clock fa-2x text-gray-300"></i>
-                        </div>
+                        <i class="fas fa-clock fa-2x opacity-50"></i>
                     </div>
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-3 col-md-6">
-            <div class="card border-left-danger shadow h-100 py-2">
+        <div class="col-6 col-md-3">
+            <div class="card bg-danger text-white h-100">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                الغياب</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ absent_count }}</div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small">الغياب</div>
+                            <div class="fs-3 fw-bold">{{ absent_count }}</div>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-times-circle fa-2x text-gray-300"></i>
-                        </div>
+                        <i class="fas fa-times-circle fa-2x opacity-50"></i>
                     </div>
                 </div>
             </div>
@@ -207,33 +196,38 @@
     </div>
 
     <!-- جدول الحضور -->
-    <div class="card shadow">
-        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-            <h6 class="m-0 font-weight-bold text-primary">سجلات الحضور</h6>
+    <div class="card shadow-sm">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 fw-bold text-primary">
+                <i class="fas fa-list me-2"></i>سجلات الحضور
+                {% if date_from and date_to %}
+                <small class="text-muted fs-6">(من {{ date_from.strftime('%Y-%m-%d') }} إلى {{ date_to.strftime('%Y-%m-%d') }})</small>
+                {% endif %}
+            </h6>
             <div class="d-flex gap-2">
-                <button type="button" class="btn btn-outline-info btn-sm" onclick="exportToExcel()">
-                    <i class="fas fa-file-excel"></i> تصدير
+                <button class="btn btn-sm btn-outline-success" onclick="exportToExcel()">
+                    <i class="fas fa-file-excel me-1"></i>تصدير
                 </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="printTable()">
-                    <i class="fas fa-print"></i> طباعة
+                <button class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+                    <i class="fas fa-print me-1"></i>طباعة
                 </button>
             </div>
         </div>
         <div class="card-body">
             {% if attendance_records %}
             <div class="table-responsive">
-                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                    <thead class="bg-light">
+                <table class="table table-hover align-middle" id="attendanceTable">
+                    <thead class="table-light">
                         <tr>
                             <th>#</th>
-                            <th>اسم الموظف</th>
+                            <th>الموظف</th>
                             <th>الوظيفة</th>
                             <th>الشركة</th>
                             <th>التاريخ</th>
                             <th>الوردية</th>
                             <th>الحالة</th>
-                            <th>وقت الحضور</th>
-                            <th>وقت الانصراف</th>
+                            <th>الحضور</th>
+                            <th>الانصراف</th>
                             <th>ملاحظات</th>
                             <th>الإجراءات</th>
                         </tr>
@@ -243,15 +237,16 @@
                         <tr>
                             <td>{{ loop.index }}</td>
                             <td>
-                                <strong>{{ record.employee.full_name if record.employee else 'غير معروف' }}</strong>
+                                <div class="fw-bold">{{ record.employee.full_name if record.employee else 'غير معروف' }}</div>
                                 {% if record.employee and record.employee.employee_id %}
-                                <br>
                                 <small class="text-muted">{{ record.employee.employee_id }}</small>
                                 {% endif %}
                             </td>
                             <td>{{ record.employee.position if record.employee else '-' }}</td>
                             <td>{{ record.employee.company.name if record.employee and record.employee.company else '-' }}</td>
-                            <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <span class="badge bg-light text-dark">{{ record.date.strftime('%Y-%m-%d') }}</span>
+                            </td>
                             <td>
                                 {% if record.shift_type == 'morning' %}
                                 <span class="badge bg-info">صباحية</span>
@@ -286,23 +281,20 @@
                             </td>
                             <td>
                                 {% if record.notes %}
-                                <span class="text-truncate" style="max-width: 150px;"
-                                      title="{{ record.notes }}">
-                                    {{ record.notes }}
+                                <span class="badge bg-secondary" title="{{ record.notes }}">
+                                    <i class="fas fa-sticky-note me-1"></i>ملاحظة
                                 </span>
                                 {% else %}
-                                <span class="text-muted">لا يوجد</span>
+                                <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
                             <td>
-                                <div class="btn-group btn-group-sm" role="group">
+                                <div class="btn-group btn-group-sm">
                                     <a href="{{ url_for('edit_attendance', id=record.id) }}"
                                        class="btn btn-outline-primary" title="تعديل">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <button type="button"
-                                            class="btn btn-outline-danger"
-                                            title="حذف"
+                                    <button class="btn btn-outline-danger" title="حذف"
                                             onclick="confirmDelete({{ record.id }})">
                                         <i class="fas fa-trash"></i>
                                     </button>
@@ -313,65 +305,146 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- إجمالي السجلات -->
+            <div class="mt-3 text-muted">
+                <i class="fas fa-list me-1"></i>
+                إجمالي السجلات: {{ attendance_records|length }}
+            </div>
+
             {% else %}
-            <div class="text-center py-4">
-                <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+            <div class="text-center py-5">
+                <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
                 <h5 class="text-muted">لا توجد سجلات حضور</h5>
-                <p class="text-muted">لا توجد سجلات حضور للتاريخ المحدد</p>
-                <a href="{{ url_for('prepare_attendance') }}" class="btn btn-primary">
-                    <i class="fas fa-clipboard-check"></i> بدء التحضير
+                <p class="text-muted">لم يتم العثور على سجلات للمعايير المحددة</p>
+                <a href="{{ url_for('prepare_attendance_enhanced') }}" class="btn btn-primary">
+                    <i class="fas fa-clipboard-check me-2"></i>بدء التحضير
                 </a>
             </div>
             {% endif %}
         </div>
     </div>
 </div>
+
+<!-- رسالة حذف مؤقتة -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="deleteToast" class="toast" role="alert">
+        <div class="toast-header">
+            <strong class="me-auto">تأكيد الحذف</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            هل أنت متأكد من حذف هذا السجل؟
+            <div class="mt-3 text-end">
+                <button class="btn btn-sm btn-danger" onclick="executeDelete()">نعم</button>
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="toast">لا</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
+let currentDeleteId = null;
+
+function confirmDelete(id) {
+    currentDeleteId = id;
+    const toast = new bootstrap.Toast(document.getElementById('deleteToast'));
+    toast.show();
+}
+
+function executeDelete() {
+    if (!currentDeleteId) return;
+
+    fetch(`/attendance/delete/${currentDeleteId}`, {
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || 'حدث خطأ أثناء الحذف');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('حدث خطأ أثناء الحذف');
+    });
+}
+
 function exportToExcel() {
-    // يمكن إضافة دالة التصدير لاحقاً
-    alert('سيتم تنفيذ التصدير في الإصدارات القادمة');
+    // تحضير معايير البحث الحالية
+    const params = new URLSearchParams(window.location.search);
+    const dateFrom = params.get('date_from') || '';
+    const dateTo = params.get('date_to') || '';
+    const employeeId = params.get('employee_id') || '';
+    const companyId = params.get('company_id') || '';
+    const shiftType = params.get('shift_type') || 'all';
+
+    // توجيه إلى رابط التصدير مع نفس معايير البحث
+    window.location.href = `/attendance/export?date_from=${dateFrom}&date_to=${dateTo}&employee_id=${employeeId}&company_id=${companyId}&shift_type=${shiftType}`;
 }
 
-function printTable() {
-    window.print();
-}
+function setDateRange(range) {
+    const today = new Date();
+    let dateFrom = new Date();
+    let dateTo = new Date();
 
-function confirmDelete(attendanceId) {
-    if (confirm('هل أنت متأكد من حذف سجل الحضور هذا؟')) {
-        fetch(`/attendance/delete/${attendanceId}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message);
-                location.reload();
-            } else {
-                alert(data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('حدث خطأ أثناء الحذف');
-        });
+    switch(range) {
+        case 'today':
+            dateFrom = today;
+            dateTo = today;
+            break;
+        case 'yesterday':
+            dateFrom.setDate(today.getDate() - 1);
+            dateTo = new Date(dateFrom);
+            break;
+        case 'this_week':
+            dateFrom.setDate(today.getDate() - today.getDay() + 1); // الاثنين
+            dateTo = new Date(dateFrom);
+            dateTo.setDate(dateFrom.getDate() + 6); // الأحد
+            break;
+        case 'last_week':
+            dateFrom.setDate(today.getDate() - today.getDay() - 6);
+            dateTo.setDate(dateFrom.getDate() + 6);
+            break;
+        case 'this_month':
+            dateFrom = new Date(today.getFullYear(), today.getMonth(), 1);
+            dateTo = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            break;
+        case 'last_month':
+            dateFrom = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            dateTo = new Date(today.getFullYear(), today.getMonth(), 0);
+            break;
+        case 'this_year':
+            dateFrom = new Date(today.getFullYear(), 0, 1);
+            dateTo = new Date(today.getFullYear(), 11, 31);
+            break;
     }
+
+    // تنسيق التواريخ
+    const formatDate = (date) => {
+        return date.toISOString().split('T')[0];
+    };
+
+    // تعيين القيم في الحقول
+    document.querySelector('input[name="date_from"]').value = formatDate(dateFrom);
+    document.querySelector('input[name="date_to"]').value = formatDate(dateTo);
 }
 
-// تفعيل DataTables إذا موجود
+// تفعيل DataTables إذا كان موجوداً
 document.addEventListener('DOMContentLoaded', function() {
-    if ($.fn.DataTable) {
-        $('#dataTable').DataTable({
+    if (typeof $.fn !== 'undefined' && $.fn.DataTable) {
+        $('#attendanceTable').DataTable({
             language: {
                 url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json'
             },
-            responsive: true,
-            order: [[0, 'asc']]
+            order: [[4, 'desc']], // ترتيب حسب التاريخ تنازلياً
+            pageLength: 25
         });
     }
 });
@@ -379,14 +452,39 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <style>
 @media print {
-    .btn, .card-header .d-flex, .d-flex.justify-content-between {
+    .btn, .dropdown, .toast-container, .card-header .btn-group {
         display: none !important;
     }
 
     .card {
-        border: none !important;
+        border: 1px solid #ddd !important;
         box-shadow: none !important;
     }
+
+    .bg-primary, .bg-success, .bg-warning, .bg-danger {
+        background-color: #f8f9fa !important;
+        color: #000 !important;
+        border: 1px solid #dee2e6 !important;
+    }
+
+    .table {
+        font-size: 10pt;
+    }
+}
+
+.opacity-50 {
+    opacity: 0.5;
+}
+
+/* تحسين مظهر حقول التاريخ */
+input[type="date"] {
+    direction: ltr;
+    text-align: right;
+}
+
+/* تنسيق البادجات */
+.badge.bg-light {
+    border: 1px solid #dee2e6;
 }
 </style>
 {% endblock %}

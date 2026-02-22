@@ -1,142 +1,539 @@
 <!-- templates/reports/kpis.html -->
 {% extends "base.html" %}
 
-{% block title %}مؤشرات الأداء الرئيسية{% endblock %}
+{% block title %}مؤشرات الأداء الرئيسية - نظام تقييم الموظفين{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #4e73df;
+        --success-color: #1cc88a;
+        --info-color: #36b9cc;
+        --warning-color: #f6c23e;
+        --danger-color: #e74a3b;
+    }
+
+    .kpi-card {
+        transition: all 0.3s ease;
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+    }
+
+    .kpi-icon {
+        font-size: 3rem;
+        opacity: 0.3;
+        transition: all 0.3s ease;
+    }
+
+    .kpi-card:hover .kpi-icon {
+        opacity: 0.5;
+        transform: scale(1.1);
+    }
+
+    .progress-thin {
+        height: 5px;
+        border-radius: 10px;
+        background-color: rgba(255,255,255,0.3);
+    }
+
+    .progress-thin .progress-bar {
+        border-radius: 10px;
+    }
+
+    .stat-box {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .trend-up {
+        color: #27ae60;
+        font-size: 0.9rem;
+    }
+
+    .trend-down {
+        color: #e74a3b;
+        font-size: 0.9rem;
+    }
+
+    .performance-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+    }
+
+    .card-header {
+        font-weight: 600;
+        border-bottom: none;
+    }
+
+    .btn-export {
+        border-radius: 10px;
+        padding: 8px 20px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-export:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .filter-card {
+        background: linear-gradient(135deg, #f8f9fc, #ffffff);
+        border-radius: 15px;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .date-input {
+        border-radius: 10px;
+        border: 1px solid #e0e0e0;
+        padding: 8px 15px;
+        transition: all 0.3s;
+    }
+
+    .date-input:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    }
+
+    @media (max-width: 768px) {
+        .kpi-card {
+            margin-bottom: 15px;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-info">
-            <i class="fas fa-flag-checkered me-2"></i>
-            مؤشرات الأداء الرئيسية (KPIs)
-        </h2>
+    <!-- رأس الصفحة مع خيارات التصدير -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-primary fw-bold">
+                <i class="fas fa-flag-checkered me-2"></i>
+                مؤشرات الأداء الرئيسية (KPIs)
+            </h2>
+            <p class="text-muted">نظرة شاملة على أداء المؤسسة والموظفين</p>
+        </div>
         <div class="btn-group">
-            <button class="btn btn-outline-primary" onclick="exportReport('pdf')">PDF</button>
-            <button class="btn btn-outline-success" onclick="exportReport('excel')">Excel</button>
+            <button class="btn btn-primary btn-export" onclick="exportReport('pdf')">
+                <i class="fas fa-file-pdf me-2"></i>PDF
+            </button>
+            <button class="btn btn-success btn-export" onclick="exportReport('excel')">
+                <i class="fas fa-file-excel me-2"></i>Excel
+            </button>
+            <button class="btn btn-info btn-export" onclick="exportReport('print')">
+                <i class="fas fa-print me-2"></i>طباعة
+            </button>
+        </div>
+    </div>
+
+    <!-- ✅ فلاتر متقدمة (من تاريخ - إلى تاريخ - الشركة) -->
+    <div class="card filter-card shadow mb-4">
+        <div class="card-header bg-white py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter me-2"></i>فلاتر التقرير المتقدمة
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('report_kpis_advanced') }}" class="row g-3">
+                <!-- حقول التاريخ من وإلى -->
+                <div class="col-md-3">
+                    <label class="form-label">من تاريخ</label>
+                    <input type="date" name="from_date" class="form-control date-input"
+                           value="{{ from_date_str if from_date_str else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">إلى تاريخ</label>
+                    <input type="date" name="to_date" class="form-control date-input"
+                           value="{{ to_date_str if to_date_str else '' }}">
+                </div>
+
+                <!-- فلترة الشركة -->
+                <div class="col-md-3">
+                    <label class="form-label">الشركة</label>
+                    <select name="company_id" class="form-select">
+                        <option value="">جميع الشركات</option>
+                        {% for company in companies %}
+                        <option value="{{ company.id }}" {% if company.id == selected_company %}selected{% endif %}>
+                            {{ company.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- أزرار التحكم -->
+                <div class="col-md-3 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
+                        <i class="fas fa-search me-1"></i>تطبيق
+                    </button>
+                    <a href="{{ url_for('report_kpis_advanced') }}" class="btn btn-secondary">
+                        <i class="fas fa-redo me-1"></i>إعادة تعيين
+                    </a>
+                </div>
+            </form>
+
+            <!-- معلومات الفترة المحددة -->
+            {% if from_date and to_date %}
+            <div class="mt-3 alert alert-info py-2">
+                <i class="fas fa-calendar-alt me-2"></i>
+                الفترة: {{ from_date.strftime('%Y-%m-%d') }} إلى {{ to_date.strftime('%Y-%m-%d') }}
+                ({{ days_in_period }} يوم)
+                {% if selected_company %}
+                {% for company in companies %}
+                {% if company.id == selected_company %}
+                - <span class="fw-bold">{{ company.name }}</span>
+                {% endif %}
+                {% endfor %}
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- فلترة سريعة (اختصارات) -->
+            <div class="mt-3">
+                <label class="form-label small text-muted">اختصارات سريعة:</label>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('report_kpis_advanced', quick='today') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-calendar-day me-1"></i>اليوم
+                    </a>
+                    <a href="{{ url_for('report_kpis_advanced', quick='week') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-calendar-week me-1"></i>هذا الأسبوع
+                    </a>
+                    <a href="{{ url_for('report_kpis_advanced', quick='month') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-calendar-alt me-1"></i>هذا الشهر
+                    </a>
+                    <a href="{{ url_for('report_kpis_advanced', quick='quarter') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-calendar me-1"></i>هذا الربع
+                    </a>
+                    <a href="{{ url_for('report_kpis_advanced', quick='year') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-calendar me-1"></i>هذه السنة
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- مؤشرات الأداء الرئيسية -->
     <div class="row mb-4">
-        <div class="col-md-3 mb-3">
-            <div class="card bg-primary text-white">
+        <!-- إنتاجية الموظفين -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card kpi-card bg-primary text-white">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6>إنتاجية الموظفين</h6>
-                            <h2>{{ kpis.employee_productivity }}%</h2>
+                            <h6 class="fw-light">إنتاجية الموظفين</h6>
+                            <h2 class="fw-bold mb-0">{{ "%.1f"|format(kpis.employee_productivity|default(0)) }}%</h2>
+                            <small class="opacity-75">
+                                <i class="fas fa-arrow-{{ 'up' if kpis.productivity_change|default(0) > 0 else 'down' }} me-1"></i>
+                                {{ "%.1f"|format(kpis.productivity_change|default(0)|abs) }}% عن الفترة السابقة
+                            </small>
                         </div>
-                        <i class="fas fa-users fa-3x opacity-50"></i>
+                        <i class="fas fa-users kpi-icon"></i>
                     </div>
-                    <div class="progress bg-light mt-2" style="height: 5px;">
-                        <div class="progress-bar bg-white" style="width: {{ kpis.employee_productivity }}%;"></div>
+                    <div class="progress progress-thin mt-3">
+                        <div class="progress-bar bg-white"
+                             style="width: {{ kpis.employee_productivity|default(0) }}%;"
+                             role="progressbar">
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-3 mb-3">
-            <div class="card bg-success text-white">
+        <!-- نسبة الحضور -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card kpi-card bg-success text-white">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6>نسبة الحضور</h6>
-                            <h2>{{ kpis.attendance_rate }}%</h2>
+                            <h6 class="fw-light">نسبة الحضور</h6>
+                            <h2 class="fw-bold mb-0">{{ "%.1f"|format(kpis.attendance_rate|default(0)) }}%</h2>
+                            <small class="opacity-75">
+                                <i class="fas fa-calendar-check me-1"></i>
+                                {{ present_count|default(0) }} / {{ total_employees|default(0) }} موظف
+                            </small>
                         </div>
-                        <i class="fas fa-clock fa-3x opacity-50"></i>
+                        <i class="fas fa-clock kpi-icon"></i>
                     </div>
-                    <div class="progress bg-light mt-2" style="height: 5px;">
-                        <div class="progress-bar bg-white" style="width: {{ kpis.attendance_rate }}%;"></div>
+                    <div class="progress progress-thin mt-3">
+                        <div class="progress-bar bg-white"
+                             style="width: {{ kpis.attendance_rate|default(0) }}%;"
+                             role="progressbar">
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-3 mb-3">
-            <div class="card bg-info text-white">
+        <!-- تغطية التقييمات -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card kpi-card bg-info text-white">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6>تغطية التقييمات</h6>
-                            <h2>{{ kpis.evaluation_coverage }}%</h2>
+                            <h6 class="fw-light">تغطية التقييمات</h6>
+                            <h2 class="fw-bold mb-0">{{ "%.1f"|format(kpis.evaluation_coverage|default(0)) }}%</h2>
+                            <small class="opacity-75">
+                                <i class="fas fa-check-circle me-1"></i>
+                                {{ evaluated_employees|default(0) }} من {{ total_employees|default(0) }} موظف
+                            </small>
                         </div>
-                        <i class="fas fa-clipboard-check fa-3x opacity-50"></i>
+                        <i class="fas fa-clipboard-check kpi-icon"></i>
                     </div>
-                    <div class="progress bg-light mt-2" style="height: 5px;">
-                        <div class="progress-bar bg-white" style="width: {{ kpis.evaluation_coverage }}%;"></div>
+                    <div class="progress progress-thin mt-3">
+                        <div class="progress-bar bg-white"
+                             style="width: {{ kpis.evaluation_coverage|default(0) }}%;"
+                             role="progressbar">
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-3 mb-3">
-            <div class="card bg-warning text-white">
+        <!-- رضا العملاء -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card kpi-card bg-warning text-white">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6>رضا العملاء</h6>
-                            <h2>{{ kpis.customer_satisfaction }}%</h2>
+                            <h6 class="fw-light">رضا العملاء</h6>
+                            <h2 class="fw-bold mb-0">{{ "%.1f"|format(kpis.customer_satisfaction|default(0)) }}%</h2>
+                            <small class="opacity-75">
+                                <i class="fas fa-star me-1"></i>
+                                {{ excellent_evaluations|default(0) }} تقييم ممتاز
+                            </small>
                         </div>
-                        <i class="fas fa-smile fa-3x opacity-50"></i>
+                        <i class="fas fa-smile kpi-icon"></i>
                     </div>
-                    <div class="progress bg-light mt-2" style="height: 5px;">
-                        <div class="progress-bar bg-white" style="width: {{ kpis.customer_satisfaction }}%;"></div>
+                    <div class="progress progress-thin mt-3">
+                        <div class="progress-bar bg-white"
+                             style="width: {{ kpis.customer_satisfaction|default(0) }}%;"
+                             role="progressbar">
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- مؤشرات إضافية -->
+    <!-- مؤشرات إضافية وتحليل متقدم -->
     <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <i class="fas fa-chart-line me-2"></i>تطور المؤشرات
+        <!-- تطور المؤشرات -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-chart-line me-2"></i>
+                        تطور المؤشرات الرئيسية
+                        {% if selected_company %}
+                        <span class="badge bg-light text-primary ms-2">{{ selected_company_name }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-light" onclick="changeChartType('line')">خطي</button>
+                        <button class="btn btn-light" onclick="changeChartType('bar')">أعمدة</button>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <canvas id="kpiTrendChart" style="height: 300px;"></canvas>
+                <div class="card-body p-3">
+                    <div style="position: relative; height: 350px; width: 100%;">
+                        <canvas id="kpiTrendChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card shadow">
+
+        <!-- مقاييس الأداء السريعة -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
                 <div class="card-header bg-success text-white">
-                    <i class="fas fa-gauge-high me-2"></i>مقاييس الأداء
+                    <i class="fas fa-gauge-high me-2"></i>
+                    مقاييس الأداء السريعة
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>إنجاز المهام</span>
+                            <span class="fw-bold">{{ "%.1f"|format(kpis.task_completion|default(0)) }}%</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-info"
+                                 style="width: {{ kpis.task_completion|default(0) }}%;"
+                                 role="progressbar">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>جودة العمل</span>
+                            <span class="fw-bold">{{ "%.1f"|format(kpis.quality_score|default(0)) }}%</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-success"
+                                 style="width: {{ kpis.quality_score|default(0) }}%;"
+                                 role="progressbar">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>الالتزام بالوقت</span>
+                            <span class="fw-bold">{{ "%.1f"|format(kpis.time_utilization|default(0)) }}%</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-warning"
+                                 style="width: {{ kpis.time_utilization|default(0) }}%;"
+                                 role="progressbar">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>تطوير المهارات</span>
+                            <span class="fw-bold">{{ "%.1f"|format(kpis.skill_development|default(0)) }}%</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-danger"
+                                 style="width: {{ kpis.skill_development|default(0) }}%;"
+                                 role="progressbar">
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mt-3">
+                        <h6 class="mb-3">توزيع الأداء</h6>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>ممتاز (90%+)</span>
+                            <span class="badge bg-success">{{ excellent_count|default(0) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>جيد جداً (80%-89%)</span>
+                            <span class="badge bg-info">{{ very_good_count|default(0) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>جيد (70%-79%)</span>
+                            <span class="badge bg-primary">{{ good_count|default(0) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>مقبول (60%-69%)</span>
+                            <span class="badge bg-warning">{{ acceptable_count|default(0) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>ضعيف (>60%)</span>
+                            <span class="badge bg-danger">{{ poor_count|default(0) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- أفضل وأقل الموظفين أداءً -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-trophy me-2"></i>
+                    أفضل 5 موظفين أداءً
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table">
-                            <tr>
-                                <td>إنجاز المهام</td>
-                                <td>
-                                    <div class="progress">
-                                        <div class="progress-bar bg-info" style="width: {{ kpis.task_completion }}%;">
-                                            {{ kpis.task_completion }}%
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>الموظف</th>
+                                    <th>القسم</th>
+                                    <th>الشركة</th>
+                                    <th>التقييم</th>
+                                    <th>الأداء</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for employee in top_performers %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="performance-indicator bg-success"></div>
+                                            {{ employee.name }}
                                         </div>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>جودة العمل</td>
-                                <td>
-                                    <div class="progress">
-                                        <div class="progress-bar bg-success" style="width: {{ kpis.quality_score }}%;">
-                                            {{ kpis.quality_score }}%
+                                    </td>
+                                    <td>{{ employee.department }}</td>
+                                    <td>{{ employee.company }}</td>
+                                    <td>{{ "%.1f"|format(employee.score) }}/5</td>
+                                    <td>
+                                        <div class="progress" style="height: 5px; width: 80px;">
+                                            <div class="progress-bar bg-success"
+                                                 style="width: {{ employee.score_percentage }}%;">
+                                            </div>
                                         </div>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>الالتزام بالوقت</td>
-                                <td>
-                                    <div class="progress">
-                                        <div class="progress-bar bg-warning" style="width: {{ kpis.time_utilization }}%;">
-                                            {{ kpis.time_utilization }}%
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-warning text-white">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    يحتاجون إلى تحسين
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>الموظف</th>
+                                    <th>القسم</th>
+                                    <th>الشركة</th>
+                                    <th>التقييم</th>
+                                    <th>الفجوة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for employee in needs_improvement %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="performance-indicator bg-warning"></div>
+                                            {{ employee.name }}
                                         </div>
-                                    </div>
-                                </td>
-                            </tr>
+                                    </td>
+                                    <td>{{ employee.department }}</td>
+                                    <td>{{ employee.company }}</td>
+                                    <td>{{ "%.1f"|format(employee.score) }}/5</td>
+                                    <td>
+                                        <span class="badge bg-warning">
+                                            -{{ "%.1f"|format(5 - employee.score) }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -144,37 +541,34 @@
         </div>
     </div>
 
-    <!-- لوحة الأداء -->
+    <!-- لوحة الأداء المتكاملة -->
     <div class="row">
         <div class="col-12">
-            <div class="card shadow">
-                <div class="card-header bg-dark text-white">
-                    <i class="fas fa-chart-simple me-2"></i>لوحة الأداء المتكاملة
-                </div>
+            <div class="card shadow stat-box">
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3 text-center mb-3">
-                            <div class="p-3 border rounded">
-                                <h3>{{ total_employees }}</h3>
-                                <small>إجمالي الموظفين</small>
+                    <div class="row text-center">
+                        <div class="col-md-3 col-6 mb-3 mb-md-0">
+                            <div class="border-end border-white border-opacity-25">
+                                <h3 class="fw-bold mb-0">{{ total_employees|default(0) }}</h3>
+                                <small class="opacity-75">إجمالي الموظفين</small>
                             </div>
                         </div>
-                        <div class="col-md-3 text-center mb-3">
-                            <div class="p-3 border rounded">
-                                <h3>{{ total_evaluations }}</h3>
-                                <small>إجمالي التقييمات</small>
+                        <div class="col-md-3 col-6 mb-3 mb-md-0">
+                            <div class="border-end border-white border-opacity-25">
+                                <h3 class="fw-bold mb-0">{{ total_evaluations|default(0) }}</h3>
+                                <small class="opacity-75">إجمالي التقييمات</small>
                             </div>
                         </div>
-                        <div class="col-md-3 text-center mb-3">
-                            <div class="p-3 border rounded">
-                                <h3>{{ total_companies }}</h3>
-                                <small>عدد الشركات</small>
+                        <div class="col-md-3 col-6">
+                            <div class="border-end border-white border-opacity-25">
+                                <h3 class="fw-bold mb-0">{{ total_companies|default(0) }}</h3>
+                                <small class="opacity-75">عدد الشركات</small>
                             </div>
                         </div>
-                        <div class="col-md-3 text-center mb-3">
-                            <div class="p-3 border rounded">
-                                <h3>{{ avg_score }}/5</h3>
-                                <small>متوسط التقييم</small>
+                        <div class="col-md-3 col-6">
+                            <div>
+                                <h3 class="fw-bold mb-0">{{ "%.2f"|format(avg_score|default(0)) }}/5</h3>
+                                <small class="opacity-75">متوسط التقييم</small>
                             </div>
                         </div>
                     </div>
@@ -184,28 +578,194 @@
     </div>
 </div>
 
+<!-- تضمين مكتبة الرسوم البيانية -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
-new Chart(document.getElementById('kpiTrendChart'), {
-    type: 'line',
-    data: {
-        labels: {{ kpi_labels|tojson }},
-        datasets: [{
-            label: 'الإنتاجية',
-            data: {{ productivity_trend|tojson }},
-            borderColor: '#4e73df',
-            tension: 0.3
-        }, {
-            label: 'الجودة',
-            data: {{ quality_trend|tojson }},
-            borderColor: '#1cc88a',
-            tension: 0.3
-        }, {
-            label: 'الحضور',
-            data: {{ attendance_trend|tojson }},
-            borderColor: '#36b9cc',
-            tension: 0.3
-        }]
-    }
+// تهيئة الرسم البياني
+let kpiChart;
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeChart();
 });
+
+function initializeChart() {
+    const ctx = document.getElementById('kpiTrendChart');
+    if (!ctx) return;
+
+    const productivityData = {{ productivity_trend|tojson if productivity_trend else '[0,0,0,0,0,0]' }};
+    const qualityData = {{ quality_trend|tojson if quality_trend else '[0,0,0,0,0,0]' }};
+    const attendanceData = {{ attendance_trend|tojson if attendance_trend else '[0,0,0,0,0,0]' }};
+    const labels = {{ kpi_labels|tojson if kpi_labels else '[]' }};
+
+    kpiChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'الإنتاجية',
+                    data: productivityData,
+                    borderColor: '#4e73df',
+                    backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                    tension: 0.3,
+                    fill: true,
+                    pointBackgroundColor: '#4e73df',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                },
+                {
+                    label: 'الجودة',
+                    data: qualityData,
+                    borderColor: '#1cc88a',
+                    backgroundColor: 'rgba(28, 200, 138, 0.1)',
+                    tension: 0.3,
+                    fill: true,
+                    pointBackgroundColor: '#1cc88a',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                },
+                {
+                    label: 'الحضور',
+                    data: attendanceData,
+                    borderColor: '#36b9cc',
+                    backgroundColor: 'rgba(54, 185, 204, 0.1)',
+                    tension: 0.3,
+                    fill: true,
+                    pointBackgroundColor: '#36b9cc',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: {
+                            family: 'Cairo, sans-serif'
+                        }
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + context.raw.toFixed(1) + '%';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    grid: {
+                        drawBorder: false
+                    },
+                    ticks: {
+                        stepSize: 20,
+                        callback: function(value) {
+                            return value + '%';
+                        },
+                        font: {
+                            family: 'Cairo, sans-serif'
+                        }
+                    }
+                },
+                x: {
+                    ticks: {
+                        font: {
+                            family: 'Cairo, sans-serif'
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// تغيير نوع الرسم البياني
+function changeChartType(type) {
+    if (kpiChart) {
+        kpiChart.config.type = type;
+        kpiChart.update();
+
+        // تحديث حالة الأزرار
+        document.querySelectorAll('.btn-group .btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+    }
+}
+
+// تصدير التقرير
+function exportReport(format) {
+    if (format === 'print') {
+        window.print();
+    } else {
+        alert(`سيتم تفعيل تصدير ${format.toUpperCase()} قريباً`);
+    }
+}
+
+// دعم الطباعة
+window.onbeforeprint = function() {
+    document.body.classList.add('printing');
+    const chartContainer = document.querySelector('#kpiTrendChart').parentElement;
+    if (chartContainer) {
+        chartContainer.style.height = '400px';
+    }
+};
+
+window.onafterprint = function() {
+    document.body.classList.remove('printing');
+    const chartContainer = document.querySelector('#kpiTrendChart').parentElement;
+    if (chartContainer) {
+        chartContainer.style.height = '350px';
+    }
+    if (kpiChart) {
+        kpiChart.update();
+    }
+};
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// إضافة تأثيرات حركية للبطاقات
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.kpi-card').forEach((card, index) => {
+        card.style.animation = `fadeInUp 0.5s ease forwards ${index * 0.1}s`;
+        card.style.opacity = '0';
+    });
+});
+
+// تعريف animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+`;
+document.head.appendChild(style);
 </script>
 {% endblock %}

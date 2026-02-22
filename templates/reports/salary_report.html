@@ -1,0 +1,551 @@
+{% extends "base.html" %}
+
+{% block title %}تقرير الرواتب الشامل - {{ month_name }} {{ selected_year }}{% endblock %}
+
+{# ✅ التحقق من وجود المتغيرات الضرورية #}
+{% if not grand_totals %}
+    {% set grand_totals = {
+        'employees_count': 0,
+        'net_salary': 0,
+        'base_pay': 0,
+        'overtime_pay': 0,
+        'allowances': 0,
+        'deductions': 0,
+        'insurance': 0,
+        'tax': 0,
+        'penalties': 0,
+        'loan_deductions': 0
+    } %}
+{% endif %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- عنوان الصفحة -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-primary mb-1">
+                <i class="fas fa-money-bill-wave me-2"></i>
+                تقرير الرواتب الشامل - {{ month_name }} {{ selected_year }}
+            </h2>
+            <p class="text-muted mb-0">تقرير تفصيلي لرواتب الموظفين مع الخصومات والبدلات والجزاءات والسلف</p>
+            {% if from_date and to_date %}
+            <p class="text-info mb-0">
+                <i class="fas fa-calendar-alt me-1"></i>
+                الفترة: {{ from_date.strftime('%Y-%m-%d') }} إلى {{ to_date.strftime('%Y-%m-%d') }}
+            </p>
+            {% endif %}
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary" onclick="exportToExcel()">
+                <i class="fas fa-file-excel me-1"></i>تصدير Excel
+            </button>
+            <button class="btn btn-outline-success" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
+            <button class="btn btn-outline-danger" onclick="generatePayslips()">
+                <i class="fas fa-file-pdf me-1"></i>كشوف المرتبات
+            </button>
+        </div>
+    </div>
+
+    <!-- فلترة التقرير -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter me-2"></i>خيارات التقرير
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('report_salary_report') }}" class="row g-3">
+                <!-- ✅ حقول التاريخ من وإلى -->
+                <div class="col-md-3">
+                    <label class="form-label">من تاريخ</label>
+                    <input type="date" name="from_date" class="form-control"
+                           value="{{ from_date.strftime('%Y-%m-%d') if from_date else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">إلى تاريخ</label>
+                    <input type="date" name="to_date" class="form-control"
+                           value="{{ to_date.strftime('%Y-%m-%d') if to_date else '' }}">
+                </div>
+
+                <!-- خط فاصل -->
+                <div class="col-md-12">
+                    <hr>
+                    <h6 class="text-muted">أو اختر شهر محدد:</h6>
+                </div>
+
+                <!-- فلترة الشهر/السنة -->
+                <div class="col-md-3">
+                    <label class="form-label">السنة</label>
+                    <select name="year" class="form-select">
+                        {% for year in years %}
+                        <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الشهر</label>
+                    <select name="month" class="form-select">
+                        {% for num, name in months.items() %}
+                        <option value="{{ num }}" {% if num == selected_month %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">الشركة</label>
+                    <select name="company_id" class="form-select">
+                        <option value="">جميع الشركات</option>
+                        {% for company in companies %}
+                        <option value="{{ company.id }}" {% if company.id == selected_company_id %}selected{% endif %}>{{ company.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i>عرض
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- إحصائيات عامة مع إضافة السلف -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                إجمالي الموظفين
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ grand_totals.employees_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                إجمالي الرواتب
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ "{:,.2f}".format(grand_totals.net_salary) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-money-bill fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                إجمالي الخصومات
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ "{:,.2f}".format(grand_totals.deductions + grand_totals.insurance + grand_totals.tax + (grand_totals.penalties or 0) + (grand_totals.loan_deductions or 0)) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-minus-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                متوسط الراتب
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% if grand_totals.employees_count > 0 %}
+                                    {{ "{:,.2f}".format(grand_totals.net_salary / grand_totals.employees_count) }}
+                                {% else %}
+                                    0
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تقارير الشركات -->
+    {% for company in report_data %}
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center bg-primary text-white">
+            <h6 class="m-0 font-weight-bold">
+                <i class="fas fa-building me-2"></i>{{ company.name }}
+                <span class="badge bg-light text-dark ms-2">{{ company.total_employees }} موظف</span>
+                <span class="badge bg-light text-dark ms-2">الإجمالي: {{ "{:,.2f}".format(company.totals.net_salary) }}</span>
+            </h6>
+            <button class="btn btn-sm btn-light" onclick="toggleCompany('company-{{ company.id }}')">
+                <i class="fas fa-chevron-up" id="icon-{{ company.id }}"></i>
+            </button>
+        </div>
+        <div class="card-body" id="company-{{ company.id }}">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" style="font-size: 0.85rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>الموظف</th>
+                            <th>الوظيفة</th>
+                            <th class="text-center">الأجر اليومي</th>
+                            <th class="text-center">أيام الحضور</th>
+                            <th class="text-center">أيام الغياب</th>
+                            <th class="text-center">ساعات إضافية</th>
+                            <th class="text-center">الراتب الأساسي</th>
+                            <th class="text-center">أجر إضافي</th>
+                            <th class="text-center">البدلات</th>
+                            <th class="text-center bg-warning text-white">خصم السلف</th>
+                            <th class="text-center text-danger">الجزاءات</th>
+                            <th class="text-center">خصومات أخرى</th>
+                            <th class="text-center">إجمالي الخصومات</th>
+                            <th class="text-center bg-success text-white">الراتب الصافي</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for emp in company.employees %}
+                        <tr>
+                            <td>
+                                <i class="fas fa-user-circle text-primary me-1"></i>
+                                {{ emp.name }}
+                                {% if emp.has_loans %}
+                                <span class="badge bg-warning ms-1" title="{{ emp.active_loans_count }} سلفة نشطة">
+                                    <i class="fas fa-hand-holding-usd"></i>
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if emp.position == 'مشرف' %}
+                                <span class="badge bg-primary">{{ emp.position }}</span>
+                                {% elif emp.position == 'مراقب' %}
+                                <span class="badge bg-info">{{ emp.position }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ emp.position }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">{{ "{:,.2f}".format(emp.daily_rate) }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-success">{{ emp.present_days }}</span>
+                                <small class="text-muted d-block">({{ emp.attendance_rate }}%)</small>
+                            </td>
+                            <td class="text-center">{{ emp.absent_days }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-info">{{ emp.overtime_hours }}</span>
+                            </td>
+                            <td class="text-center">{{ "{:,.2f}".format(emp.base_pay) }}</td>
+                            <td class="text-center text-success">{{ "{:,.2f}".format(emp.overtime_pay) }}</td>
+                            <td class="text-center">{{ "{:,.2f}".format(emp.allowances) }}</td>
+                            <td class="text-center bg-warning text-white fw-bold">
+                                {% if emp.loan_deductions > 0 %}
+                                    {{ "{:,.2f}".format(emp.loan_deductions) }}
+                                    {% if emp.loan_remaining > 0 %}
+                                    <small class="d-block text-dark">(متبقي: {{ "{:,.2f}".format(emp.loan_remaining) }})</small>
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="text-center text-danger fw-bold">{{ "{:,.2f}".format(emp.penalties or 0) }}</td>
+                            <td class="text-center">{{ "{:,.2f}".format(emp.deductions) }}</td>
+                            <td class="text-center text-danger fw-bold">{{ "{:,.2f}".format(emp.total_deductions) }}</td>
+                            <td class="text-center bg-success text-white fw-bold">{{ "{:,.2f}".format(emp.net_salary) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-secondary fw-bold">
+                        <tr>
+                            <th colspan="2">الإجمالي</th>
+                            <th class="text-center">-</th>
+                            <th class="text-center">{{ company.total_employees }}</th>
+                            <th class="text-center">-</th>
+                            <th class="text-center">-</th>
+                            <th class="text-center">{{ "{:,.2f}".format(company.totals.base_pay) }}</th>
+                            <th class="text-center text-success">{{ "{:,.2f}".format(company.totals.overtime_pay) }}</th>
+                            <th class="text-center">{{ "{:,.2f}".format(company.totals.allowances) }}</th>
+                            <th class="text-center bg-warning text-white">{{ "{:,.2f}".format(company.totals.loan_deductions) }}</th>
+                            <th class="text-center text-danger">{{ "{:,.2f}".format(company.totals.penalties or 0) }}</th>
+                            <th class="text-center">{{ "{:,.2f}".format(company.totals.deductions) }}</th>
+                            <th class="text-center text-danger">{{ "{:,.2f}".format(company.totals.deductions + (company.totals.penalties or 0) + (company.totals.loan_deductions or 0)) }}</th>
+                            <th class="text-center bg-success text-white">{{ "{:,.2f}".format(company.totals.net_salary) }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle fa-2x mb-3"></i>
+        <h5>لا توجد بيانات للعرض</h5>
+        <p>لم يتم العثور على أي شركات أو موظفين للفترة المحددة</p>
+    </div>
+    {% endfor %}
+
+    <!-- ملخص نهائي مع إضافة السلف -->
+    {% if report_data %}
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 bg-success text-white">
+            <h6 class="m-0 font-weight-bold">
+                <i class="fas fa-calculator me-2"></i>الملخص النهائي
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h6>إجمالي الرواتب الأساسية</h6>
+                            <h4 class="text-primary">{{ "{:,.2f}".format(grand_totals.base_pay) }}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h6>إجمالي أجر الإضافي</h6>
+                            <h4 class="text-info">{{ "{:,.2f}".format(grand_totals.overtime_pay) }}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h6>إجمالي البدلات</h6>
+                            <h4 class="text-success">{{ "{:,.2f}".format(grand_totals.allowances) }}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h6>إجمالي خصم السلف</h6>
+                            <h4 class="text-warning">{{ "{:,.2f}".format(grand_totals.loan_deductions or 0) }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h6>إجمالي الجزاءات</h6>
+                            <h4 class="text-danger">{{ "{:,.2f}".format(grand_totals.penalties or 0) }}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h6>إجمالي الخصومات الأخرى</h6>
+                            <h4 class="text-secondary">{{ "{:,.2f}".format(grand_totals.deductions) }}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h6>إجمالي جميع الخصومات</h6>
+                            <h4 class="text-dark">{{ "{:,.2f}".format(grand_totals.deductions + (grand_totals.penalties or 0) + (grand_totals.loan_deductions or 0)) }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h3>صافي الرواتب المستحقة</h3>
+                            <h1 class="display-4">{{ "{:,.2f}".format(grand_totals.net_salary) }}</h1>
+                            <p class="mb-0">فقط {{ grand_totals.net_salary|int }} ريال سعودي</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// دالة لطي/فتح الشركة
+function toggleCompany(companyId) {
+    const element = document.getElementById(companyId);
+    const icon = document.getElementById('icon-' + companyId.split('-')[1]);
+
+    if (element.style.display === 'none') {
+        element.style.display = 'block';
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+    } else {
+        element.style.display = 'none';
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+    }
+}
+
+// ✅ دالة تصدير إلى Excel
+function exportToExcel() {
+    // تجهيز البيانات للتصدير
+    const rows = [];
+
+    {% for company in report_data %}
+        {% for emp in company.employees %}
+        rows.push({
+            'الشركة': '{{ company.name }}',
+            'الموظف': '{{ emp.name }}',
+            'الوظيفة': '{{ emp.position }}',
+            'الأجر اليومي': {{ emp.daily_rate }},
+            'أيام الحضور': {{ emp.present_days }},
+            'أيام الغياب': {{ emp.absent_days }},
+            'ساعات إضافية': {{ emp.overtime_hours }},
+            'الراتب الأساسي': {{ emp.base_pay }},
+            'أجر إضافي': {{ emp.overtime_pay }},
+            'البدلات': {{ emp.allowances }},
+            'خصم السلف': {{ emp.loan_deductions or 0 }},
+            'المتبقي من السلف': {{ emp.loan_remaining or 0 }},
+            'الجزاءات': {{ emp.penalties or 0 }},
+            'خصومات أخرى': {{ emp.deductions }},
+            'إجمالي الخصومات': {{ emp.total_deductions }},
+            'الراتب الصافي': {{ emp.net_salary }}
+        });
+        {% endfor %}
+    {% endfor %}
+
+    // إرسال البيانات إلى API التصدير
+    fetch('/export-to-excel', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            rows: rows,
+            report_name: 'تقرير_الرواتب_{{ month_name }}_{{ selected_year }}',
+            columns: [
+                { field: 'الشركة', label: 'الشركة' },
+                { field: 'الموظف', label: 'الموظف' },
+                { field: 'الوظيفة', label: 'الوظيفة' },
+                { field: 'الأجر اليومي', label: 'الأجر اليومي' },
+                { field: 'أيام الحضور', label: 'أيام الحضور' },
+                { field: 'أيام الغياب', label: 'أيام الغياب' },
+                { field: 'ساعات إضافية', label: 'ساعات إضافية' },
+                { field: 'الراتب الأساسي', label: 'الراتب الأساسي' },
+                { field: 'أجر إضافي', label: 'أجر إضافي' },
+                { field: 'البدلات', label: 'البدلات' },
+                { field: 'خصم السلف', label: 'خصم السلف' },
+                { field: 'المتبقي من السلف', label: 'المتبقي من السلف' },
+                { field: 'الجزاءات', label: 'الجزاءات' },
+                { field: 'خصومات أخرى', label: 'خصومات أخرى' },
+                { field: 'إجمالي الخصومات', label: 'إجمالي الخصومات' },
+                { field: 'الراتب الصافي', label: 'الراتب الصافي' }
+            ]
+        })
+    })
+    .then(response => response.blob())
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'رواتب_{{ month_name }}_{{ selected_year }}.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    })
+    .catch(error => {
+        console.error('خطأ في التصدير:', error);
+        alert('حدث خطأ أثناء تصدير الملف');
+    });
+}
+
+// دالة إنشاء كشوف المرتبات
+function generatePayslips() {
+    alert('جاري إنشاء كشوف المرتبات... سيتم تحميل ملف PDF قريباً');
+    // يمكن إضافة دالة لإنشاء PDF لكل موظف لاحقاً
+}
+
+// دالة الطباعة
+window.onbeforeprint = function() {
+    document.querySelectorAll('[id^="company-"]').forEach(el => {
+        el.style.display = 'block';
+    });
+};
+</script>
+
+<style>
+.border-left-primary {
+    border-left: 4px solid #4e73df;
+}
+.border-left-success {
+    border-left: 4px solid #1cc88a;
+}
+.border-left-info {
+    border-left: 4px solid #36b9cc;
+}
+.border-left-warning {
+    border-left: 4px solid #f6c23e;
+}
+
+.table th {
+    white-space: nowrap;
+    background-color: #f8f9fc;
+    font-size: 0.85rem;
+}
+
+.table td {
+    vertical-align: middle;
+    font-size: 0.85rem;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 3px 6px;
+}
+
+.card-header.bg-primary {
+    background-color: #4e73df !important;
+}
+
+.bg-warning.text-white {
+    background-color: #f6c23e !important;
+}
+
+@media print {
+    .btn, .btn-group, form, .card-header button {
+        display: none !important;
+    }
+
+    .card {
+        border: 1px solid #ddd !important;
+        break-inside: avoid;
+    }
+
+    .table {
+        font-size: 0.7rem !important;
+    }
+}
+</style>
+{% endblock %}

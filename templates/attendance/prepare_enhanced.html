@@ -1,0 +1,1033 @@
+{% extends "base.html" %}
+
+{% block title %}نظام التحضير اليومي{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --present-color: #1cc88a;
+        --absent-color: #e74a3b;
+        --late-color: #f6c23e;
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --success-gradient: linear-gradient(135deg, #1cc88a, #169b6b);
+        --danger-gradient: linear-gradient(135deg, #e74a3b, #c92112);
+        --warning-gradient: linear-gradient(135deg, #f6c23e, #dda20a);
+    }
+
+    /* Header */
+    .preparation-header {
+        background: var(--primary-gradient);
+        color: white;
+        padding: 2rem;
+        border-radius: 20px;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .preparation-header::after {
+        content: '\f073';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        position: absolute;
+        bottom: -20px;
+        left: -20px;
+        font-size: 8rem;
+        opacity: 0.1;
+        color: white;
+        transform: rotate(15deg);
+    }
+
+    /* Date Navigation */
+    .date-nav {
+        background: white;
+        border-radius: 50px;
+        padding: 0.5rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        display: inline-flex;
+        align-items: center;
+        margin: 0 auto 2rem;
+    }
+
+    .date-nav .btn {
+        border-radius: 50px;
+        padding: 0.5rem 1.5rem;
+        border: none;
+        transition: all 0.3s;
+    }
+
+    .date-nav .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .date-nav .current-date {
+        padding: 0.5rem 2rem;
+        font-weight: 600;
+        color: #4e73df;
+    }
+
+    /* Stats Cards */
+    .stat-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+    }
+
+    .stat-card.total::before { background: linear-gradient(90deg, #4e73df, #224abe); }
+    .stat-card.present::before { background: linear-gradient(90deg, #1cc88a, #169b6b); }
+    .stat-card.absent::before { background: linear-gradient(90deg, #e74a3b, #c92112); }
+    .stat-card.late::before { background: linear-gradient(90deg, #f6c23e, #dda20a); }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0.5rem 0;
+    }
+
+    .stat-label {
+        color: #858796;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    /* Filter Section */
+    .filter-section {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+    }
+
+    .search-box {
+        position: relative;
+    }
+
+    .search-box i {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #b7b9cc;
+    }
+
+    .search-box input {
+        padding-right: 40px;
+        border-radius: 25px;
+        border: 1px solid #e3e6f0;
+        height: 45px;
+    }
+
+    .filter-badge {
+        display: inline-block;
+        padding: 0.5rem 1.5rem;
+        border-radius: 25px;
+        background: #f8f9fc;
+        color: #4e73df;
+        cursor: pointer;
+        transition: all 0.3s;
+        border: 1px solid #e3e6f0;
+        font-weight: 500;
+    }
+
+    .filter-badge:hover {
+        background: #4e73df;
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .filter-badge.active {
+        background: #4e73df;
+        color: white;
+        border-color: #4e73df;
+    }
+
+    /* Employee Grid */
+    .employee-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .employee-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        transition: all 0.3s;
+        border: 1px solid rgba(0,0,0,0.05);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .employee-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    .employee-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #4e73df, #224abe);
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .employee-card.present::before {
+        opacity: 1;
+        background: linear-gradient(90deg, #1cc88a, #169b6b);
+    }
+
+    .employee-card.absent::before {
+        opacity: 1;
+        background: linear-gradient(90deg, #e74a3b, #c92112);
+    }
+
+    .employee-card.late::before {
+        opacity: 1;
+        background: linear-gradient(90deg, #f6c23e, #dda20a);
+    }
+
+    .employee-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 15px;
+        background: linear-gradient(135deg, #4e73df, #224abe);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
+    .employee-info h5 {
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .employee-info small {
+        color: #858796;
+    }
+
+    /* Status Buttons */
+    .status-buttons {
+        display: flex;
+        gap: 0.5rem;
+        margin: 1rem 0;
+    }
+
+    .status-btn {
+        flex: 1;
+        padding: 0.5rem;
+        border-radius: 10px;
+        border: 1px solid #e3e6f0;
+        background: white;
+        color: #858796;
+        font-weight: 500;
+        transition: all 0.3s;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .status-btn:hover {
+        transform: translateY(-2px);
+    }
+
+    .status-btn.present:hover {
+        background: rgba(28, 200, 138, 0.1);
+        color: #1cc88a;
+        border-color: #1cc88a;
+    }
+
+    .status-btn.absent:hover {
+        background: rgba(231, 76, 60, 0.1);
+        color: #e74a3b;
+        border-color: #e74a3b;
+    }
+
+    .status-btn.late:hover {
+        background: rgba(246, 194, 62, 0.1);
+        color: #f6c23e;
+        border-color: #f6c23e;
+    }
+
+    .status-btn.active.present {
+        background: #1cc88a;
+        color: white;
+        border-color: #1cc88a;
+    }
+
+    .status-btn.active.absent {
+        background: #e74a3b;
+        color: white;
+        border-color: #e74a3b;
+    }
+
+    .status-btn.active.late {
+        background: #f6c23e;
+        color: white;
+        border-color: #f6c23e;
+    }
+
+    /* Time Inputs */
+    .time-inputs {
+        display: flex;
+        gap: 0.5rem;
+        margin: 1rem 0;
+    }
+
+    .time-input {
+        flex: 1;
+        padding: 0.5rem;
+        border: 1px solid #e3e6f0;
+        border-radius: 10px;
+        text-align: center;
+        transition: all 0.3s;
+    }
+
+    .time-input:focus {
+        border-color: #4e73df;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.25);
+    }
+
+    .time-input:disabled {
+        background: #f8f9fc;
+        cursor: not-allowed;
+    }
+
+    /* Notes Button */
+    .notes-btn {
+        width: 100%;
+        padding: 0.5rem;
+        border-radius: 10px;
+        border: 1px dashed #e3e6f0;
+        background: #f8f9fc;
+        color: #858796;
+        transition: all 0.3s;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .notes-btn:hover {
+        background: #4e73df;
+        color: white;
+        border-color: #4e73df;
+    }
+
+    .notes-btn.has-notes {
+        background: #4e73df;
+        color: white;
+        border-color: #4e73df;
+    }
+
+    /* Action Bar */
+    .action-bar {
+        position: sticky;
+        bottom: 20px;
+        background: white;
+        border-radius: 50px;
+        padding: 1rem 2rem;
+        box-shadow: 0 -5px 30px rgba(0,0,0,0.1);
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        z-index: 1000;
+        margin-top: 2rem;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .action-btn {
+        padding: 0.75rem 2rem;
+        border-radius: 25px;
+        border: none;
+        font-weight: 600;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .action-btn.save {
+        background: var(--success-gradient);
+        color: white;
+    }
+
+    .action-btn.reset {
+        background: #858796;
+        color: white;
+    }
+
+    .action-btn.penalties {
+        background: var(--warning-gradient);
+        color: white;
+    }
+
+    /* Progress Bar */
+    .progress-bar-container {
+        background: #f8f9fc;
+        border-radius: 10px;
+        height: 8px;
+        overflow: hidden;
+        margin: 1rem 0;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4e73df, #224abe);
+        transition: width 0.5s;
+    }
+
+    /* Loading Spinner */
+    .loading-spinner {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255,255,255,0.9);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .loading-spinner.show {
+        display: flex;
+    }
+
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #4e73df;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Animations */
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-slide-in {
+        animation: slideIn 0.5s ease forwards;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .employee-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .date-nav {
+            flex-direction: column;
+            border-radius: 15px;
+        }
+
+        .date-nav .btn {
+            width: 100%;
+        }
+
+        .action-bar {
+            flex-direction: column;
+            border-radius: 15px;
+        }
+
+        .action-btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="preparation-header animate-slide-in">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="text-white mb-2">
+                    <i class="fas fa-clipboard-check me-2"></i>
+                    نظام التحضير اليومي
+                </h1>
+                <p class="text-white-50 mb-0">
+                    سجل حضور وانصراف الموظفين بسهولة وسرعة
+                </p>
+            </div>
+            <div>
+                <a href="{{ url_for('penalties_list') }}" class="btn btn-light me-2">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    إدارة الجزاءات
+                </a>
+                <a href="{{ url_for('attendance_index') }}" class="btn btn-outline-light">
+                    <i class="fas fa-calendar-alt me-1"></i>
+                    سجل الحضور
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Navigation -->
+    <div class="text-center animate-slide-in" style="animation-delay: 0.1s">
+        <div class="date-nav">
+            <a href="{{ url_for('prepare_attendance_enhanced', date=prev_date.isoformat()) }}"
+               class="btn btn-outline-primary">
+                <i class="fas fa-chevron-right me-1"></i>
+                اليوم السابق
+            </a>
+            <span class="current-date">
+                <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                {{ selected_date.strftime('%Y-%m-%d') }}
+            </span>
+            <a href="{{ url_for('prepare_attendance_enhanced', date=next_date.isoformat()) }}"
+               class="btn btn-outline-primary">
+                اليوم التالي
+                <i class="fas fa-chevron-left ms-1"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4 animate-slide-in" style="animation-delay: 0.2s">
+        <div class="col-md-3 mb-3">
+            <div class="stat-card total">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label">إجمالي الموظفين</div>
+                        <div class="stat-number">{{ stats.total_employees }}</div>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded-circle">
+                        <i class="fas fa-users text-primary fa-2x"></i>
+                    </div>
+                </div>
+                <div class="progress-bar-container mt-3">
+                    <div class="progress-bar-fill" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stat-card present">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label">حاضر</div>
+                        <div class="stat-number" style="color: #1cc88a;">{{ stats.present_count }}</div>
+                    </div>
+                    <div class="bg-success bg-opacity-10 p-3 rounded-circle">
+                        <i class="fas fa-check-circle text-success fa-2x"></i>
+                    </div>
+                </div>
+                <div class="progress-bar-container mt-3">
+                    <div class="progress-bar-fill bg-success"
+                         style="width: {{ (stats.present_count/stats.total_employees*100)|round|int if stats.total_employees > 0 else 0 }}%"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stat-card absent">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label">غائب</div>
+                        <div class="stat-number" style="color: #e74a3b;">{{ stats.absent_count }}</div>
+                    </div>
+                    <div class="bg-danger bg-opacity-10 p-3 rounded-circle">
+                        <i class="fas fa-times-circle text-danger fa-2x"></i>
+                    </div>
+                </div>
+                <div class="progress-bar-container mt-3">
+                    <div class="progress-bar-fill bg-danger"
+                         style="width: {{ (stats.absent_count/stats.total_employees*100)|round|int if stats.total_employees > 0 else 0 }}%"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stat-card late">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label">متأخر</div>
+                        <div class="stat-number" style="color: #f6c23e;">{{ stats.late_count }}</div>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
+                        <i class="fas fa-clock text-warning fa-2x"></i>
+                    </div>
+                </div>
+                <div class="progress-bar-container mt-3">
+                    <div class="progress-bar-fill bg-warning"
+                         style="width: {{ (stats.late_count/stats.total_employees*100)|round|int if stats.total_employees > 0 else 0 }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-section animate-slide-in" style="animation-delay: 0.3s">
+        <div class="row">
+            <div class="col-md-6 mb-3 mb-md-0">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" class="form-control" id="searchInput"
+                           placeholder="ابحث عن موظف..." onkeyup="filterEmployees()">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex gap-2 flex-wrap">
+                    <span class="filter-badge active" onclick="filterByStatus('all')" id="filterAll">
+                        <i class="fas fa-list me-1"></i>الكل
+                    </span>
+                    <span class="filter-badge" onclick="filterByStatus('present')" id="filterPresent">
+                        <i class="fas fa-check-circle me-1"></i>حاضر
+                    </span>
+                    <span class="filter-badge" onclick="filterByStatus('absent')" id="filterAbsent">
+                        <i class="fas fa-times-circle me-1"></i>غائب
+                    </span>
+                    <span class="filter-badge" onclick="filterByStatus('late')" id="filterLate">
+                        <i class="fas fa-clock me-1"></i>متأخر
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employee Grid -->
+    <div class="employee-grid" id="employeeGrid">
+        {% for employee in employees %}
+        <div class="employee-card {% if existing_attendance.get(employee.id) %}{{ existing_attendance[employee.id].status }}{% endif %}"
+             data-employee-id="{{ employee.id }}"
+             data-employee-name="{{ employee.full_name }}"
+             data-status="{% if existing_attendance.get(employee.id) %}{{ existing_attendance[employee.id].status }}{% endif %}">
+
+            <div class="d-flex align-items-start gap-3">
+                <!-- Avatar -->
+                <div class="employee-avatar">
+                    {{ employee.full_name[:1] }}
+                </div>
+
+                <!-- Info -->
+                <div class="flex-grow-1">
+                    <div class="employee-info">
+                        <h5>{{ employee.full_name }}</h5>
+                        <small>
+                            <i class="fas fa-briefcase me-1"></i>
+                            {% if employee.position == 'supervisor' %}مشرف
+                            {% elif employee.position == 'monitor' %}مراقب
+                            {% else %}عامل
+                            {% endif %}
+                        </small>
+                    </div>
+
+                    <!-- Status Buttons -->
+                    <div class="status-buttons">
+                        <button class="status-btn present {% if existing_attendance.get(employee.id) and existing_attendance[employee.id].status == 'present' %}active{% endif %}"
+                                onclick="setStatus({{ employee.id }}, 'present')">
+                            <i class="fas fa-check-circle"></i>
+                            حاضر
+                        </button>
+                        <button class="status-btn absent {% if existing_attendance.get(employee.id) and existing_attendance[employee.id].status == 'absent' %}active{% endif %}"
+                                onclick="setStatus({{ employee.id }}, 'absent')">
+                            <i class="fas fa-times-circle"></i>
+                            غائب
+                        </button>
+                        <button class="status-btn late {% if existing_attendance.get(employee.id) and existing_attendance[employee.id].status == 'late' %}active{% endif %}"
+                                onclick="setStatus({{ employee.id }}, 'late')">
+                            <i class="fas fa-clock"></i>
+                            متأخر
+                        </button>
+                    </div>
+
+                    <!-- Time Inputs -->
+                    <div class="time-inputs">
+                        <input type="time" class="time-input" id="check_in_{{ employee.id }}"
+                               value="{{ existing_attendance[employee.id].check_in if existing_attendance.get(employee.id) else '' }}"
+                               placeholder="حضور"
+                               onchange="updateTime({{ employee.id }}, 'check_in', this.value)">
+                        <input type="time" class="time-input" id="check_out_{{ employee.id }}"
+                               value="{{ existing_attendance[employee.id].check_out if existing_attendance.get(employee.id) else '' }}"
+                               placeholder="انصراف"
+                               onchange="updateTime({{ employee.id }}, 'check_out', this.value)">
+                    </div>
+
+                    <!-- Notes Button -->
+                    <button class="notes-btn {% if existing_attendance.get(employee.id) and existing_attendance[employee.id].notes %}has-notes{% endif %}"
+                            onclick="showNotesModal({{ employee.id }})">
+                        <i class="fas fa-sticky-note"></i>
+                        {% if existing_attendance.get(employee.id) and existing_attendance[employee.id].notes %}
+                            تعديل الملاحظات
+                        {% else %}
+                            إضافة ملاحظات
+                        {% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Action Bar -->
+    <div class="action-bar">
+        <button class="action-btn save" onclick="saveAll()">
+            <i class="fas fa-save"></i>
+            حفظ الكل
+        </button>
+        <button class="action-btn reset" onclick="resetAll()">
+            <i class="fas fa-undo-alt"></i>
+            إعادة تعيين
+        </button>
+        <a href="{{ url_for('penalties_list') }}" class="action-btn penalties">
+            <i class="fas fa-exclamation-triangle"></i>
+            إدارة الجزاءات
+        </a>
+    </div>
+</div>
+
+<!-- Notes Modal -->
+<div class="modal fade" id="notesModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-sticky-note me-2"></i>
+                    ملاحظات الحضور
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="notesEmployeeId">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">الملاحظات</label>
+                    <textarea class="form-control" id="employeeNotes" rows="4"
+                              placeholder="أي ملاحظات إضافية عن حضور الموظف..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-info" onclick="saveNotes()">حفظ الملاحظات</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div class="loading-spinner" id="loadingSpinner">
+    <div class="spinner"></div>
+    <div class="text-primary fw-bold">جاري الحفظ...</div>
+</div>
+
+<script>
+// Global variables
+let attendanceData = {};
+let notesModal;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    notesModal = new bootstrap.Modal(document.getElementById('notesModal'));
+
+    // Load existing data
+    {% for emp_id, data in existing_attendance.items() %}
+    attendanceData[{{ emp_id }}] = {
+        status: '{{ data.status }}',
+        check_in: '{{ data.check_in }}',
+        check_out: '{{ data.check_out }}',
+        notes: '{{ data.notes }}'
+    };
+    {% endfor %}
+
+    // Update stats
+    updateStats();
+});
+
+// Filter employees by search
+function filterEmployees() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const cards = document.querySelectorAll('.employee-card');
+
+    cards.forEach(card => {
+        const name = card.dataset.employeeName.toLowerCase();
+        if (name.includes(searchTerm)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+// Filter by status
+function filterByStatus(status) {
+    // Update active filter
+    document.querySelectorAll('.filter-badge').forEach(badge => badge.classList.remove('active'));
+    document.getElementById(`filter${status.charAt(0).toUpperCase() + status.slice(1)}`).classList.add('active');
+
+    const cards = document.querySelectorAll('.employee-card');
+
+    cards.forEach(card => {
+        if (status === 'all') {
+            card.style.display = 'block';
+        } else {
+            const cardStatus = card.dataset.status;
+            card.style.display = cardStatus === status ? 'block' : 'none';
+        }
+    });
+}
+
+// Set employee status
+function setStatus(employeeId, status) {
+    // Update card
+    const card = document.querySelector(`.employee-card[data-employee-id="${employeeId}"]`);
+    card.classList.remove('present', 'absent', 'late');
+    card.classList.add(status);
+    card.dataset.status = status;
+
+    // Update buttons
+    card.querySelectorAll('.status-btn').forEach(btn => btn.classList.remove('active'));
+    card.querySelector(`.status-btn.${status}`).classList.add('active');
+
+    // Update data
+    if (!attendanceData[employeeId]) attendanceData[employeeId] = {};
+    attendanceData[employeeId].status = status;
+
+    // Enable/disable time inputs based on status
+    const checkIn = document.getElementById(`check_in_${employeeId}`);
+    const checkOut = document.getElementById(`check_out_${employeeId}`);
+
+    if (status === 'present' || status === 'late') {
+        checkIn.disabled = false;
+        checkOut.disabled = false;
+    } else {
+        checkIn.disabled = true;
+        checkOut.disabled = true;
+        checkIn.value = '';
+        checkOut.value = '';
+        attendanceData[employeeId].check_in = '';
+        attendanceData[employeeId].check_out = '';
+    }
+
+    updateStats();
+}
+
+// Update time input
+function updateTime(employeeId, type, value) {
+    if (!attendanceData[employeeId]) attendanceData[employeeId] = {};
+    attendanceData[employeeId][type] = value;
+}
+
+// Show notes modal
+function showNotesModal(employeeId) {
+    document.getElementById('notesEmployeeId').value = employeeId;
+    document.getElementById('employeeNotes').value = attendanceData[employeeId]?.notes || '';
+    notesModal.show();
+}
+
+// Save notes
+function saveNotes() {
+    const employeeId = document.getElementById('notesEmployeeId').value;
+    const notes = document.getElementById('employeeNotes').value;
+
+    if (!attendanceData[employeeId]) attendanceData[employeeId] = {};
+    attendanceData[employeeId].notes = notes;
+
+    // Update notes button
+    const notesBtn = document.querySelector(`.employee-card[data-employee-id="${employeeId}"] .notes-btn`);
+    if (notes) {
+        notesBtn.classList.add('has-notes');
+        notesBtn.innerHTML = '<i class="fas fa-sticky-note"></i> تعديل الملاحظات';
+    } else {
+        notesBtn.classList.remove('has-notes');
+        notesBtn.innerHTML = '<i class="fas fa-sticky-note"></i> إضافة ملاحظات';
+    }
+
+    notesModal.hide();
+}
+// Save all data
+function saveAll() {
+    const spinner = document.getElementById('loadingSpinner');
+    spinner.classList.add('show');
+
+    const data = [];
+
+    document.querySelectorAll('.employee-card').forEach(card => {
+        const employeeId = parseInt(card.dataset.employeeId);
+        const status = attendanceData[employeeId]?.status || 'absent';
+        const checkIn = document.getElementById(`check_in_${employeeId}`).value;
+        const checkOut = document.getElementById(`check_out_${employeeId}`).value;
+        const notes = attendanceData[employeeId]?.notes || '';
+
+        data.push({
+            employee_id: employeeId,
+            date: '{{ selected_date.isoformat() }}',
+            status: status,
+            shift_type: 'morning',
+            check_in: checkIn,
+            check_out: checkOut,
+            notes: notes
+        });
+    });
+
+    console.log('📤 إرسال البيانات:', data);
+
+    fetch('{{ url_for("prepare_attendance_enhanced") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)  // إرسال المصفوفة مباشرة
+    })
+    .then(response => {
+        console.log('📥 استجابة الحالة:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('📥 استجابة البيانات:', data);
+        spinner.classList.remove('show');
+
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'تم الحفظ',
+                text: data.message,
+                timer: 2000,
+                showConfirmButton: false
+            });
+            updateStats();
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'خطأ',
+                text: data.message
+            });
+        }
+    })
+    .catch(error => {
+        console.error('❌ خطأ:', error);
+        spinner.classList.remove('show');
+        Swal.fire({
+            icon: 'error',
+            title: 'خطأ',
+            text: 'حدث خطأ في الاتصال بالخادم: ' + error.message
+        });
+    });
+}
+
+// Reset all
+function resetAll() {
+    Swal.fire({
+        title: 'تأكيد إعادة التعيين',
+        text: 'هل أنت متأكد من إعادة تعيين جميع البيانات؟',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#f6c23e',
+        cancelButtonColor: '#858796',
+        confirmButtonText: 'نعم، إعادة تعيين',
+        cancelButtonText: 'إلغاء'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            attendanceData = {};
+
+            document.querySelectorAll('.employee-card').forEach(card => {
+                const employeeId = card.dataset.employeeId;
+
+                // Reset status
+                card.classList.remove('present', 'absent', 'late');
+                card.dataset.status = '';
+                card.querySelectorAll('.status-btn').forEach(btn => btn.classList.remove('active'));
+
+                // Reset time inputs
+                const checkIn = document.getElementById(`check_in_${employeeId}`);
+                const checkOut = document.getElementById(`check_out_${employeeId}`);
+                checkIn.value = '';
+                checkOut.value = '';
+                checkIn.disabled = true;
+                checkOut.disabled = true;
+
+                // Reset notes button
+                const notesBtn = card.querySelector('.notes-btn');
+                notesBtn.classList.remove('has-notes');
+                notesBtn.innerHTML = '<i class="fas fa-sticky-note"></i> إضافة ملاحظات';
+            });
+
+            updateStats();
+        }
+    });
+}
+
+// Update statistics
+function updateStats() {
+    let present = 0, absent = 0, late = 0;
+
+    document.querySelectorAll('.employee-card').forEach(card => {
+        const status = card.dataset.status;
+        if (status === 'present') present++;
+        else if (status === 'absent') absent++;
+        else if (status === 'late') late++;
+    });
+
+    const total = document.querySelectorAll('.employee-card').length;
+
+    // Update numbers
+    document.querySelector('.stat-card.present .stat-number').textContent = present;
+    document.querySelector('.stat-card.absent .stat-number').textContent = absent;
+    document.querySelector('.stat-card.late .stat-number').textContent = late;
+
+    // Update progress bars
+    document.querySelector('.stat-card.present .progress-bar-fill').style.width =
+        total > 0 ? `${(present/total*100).toFixed(1)}%` : '0%';
+    document.querySelector('.stat-card.absent .progress-bar-fill').style.width =
+        total > 0 ? `${(absent/total*100).toFixed(1)}%` : '0%';
+    document.querySelector('.stat-card.late .progress-bar-fill').style.width =
+        total > 0 ? `${(late/total*100).toFixed(1)}%` : '0%';
+}
+</script>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+{% endblock %}

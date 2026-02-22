@@ -1,42 +1,108 @@
 <!-- templates/reports/companies_ratings.html -->
 {% extends "base.html" %}
 
-{% block title %}تقييم الشركات حسب المناطق{% endblock %}
+{% block title %}تقييم الشركات والمناطق{% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <!-- شريط العنوان -->
+    <!-- شريط العنوان مع إحصائيات سريعة -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="text-gradient-warning mb-1">
                 <i class="fas fa-star me-2"></i>
-                تقييم الشركات حسب المناطق
+                تقييم الشركات والمناطق
             </h2>
-            <p class="text-muted mb-0">تحليل أداء الشركات وتقييم المناطق التابعة</p>
+            <p class="text-muted mb-0">تحليل أداء الشركات وتقييم المناطق التابعة مع مؤشرات ذكية</p>
         </div>
         <div class="btn-group">
-            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">PDF</button>
-            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">Excel</button>
+            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </button>
+            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-modern btn-info" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
         </div>
     </div>
 
-    <!-- بطاقات التقييم -->
+    <!-- إحصائيات سريعة -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-gradient-primary text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">عدد الشركات</h6>
+                            <h2 class="text-white mb-0">{{ ratings_data|length }}</h2>
+                        </div>
+                        <i class="fas fa-building fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-gradient-success text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">متوسط التقييم</h6>
+                            <h2 class="text-white mb-0">{{ "%.1f"|format(ratings_data|map(attribute='avg_rating')|sum / ratings_data|length if ratings_data else 0) }}/5</h2>
+                        </div>
+                        <i class="fas fa-star fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-gradient-warning text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">أعلى تقييم</h6>
+                            <h2 class="text-white mb-0">{{ ratings_data[0].avg_rating if ratings_data else 0 }}/5</h2>
+                        </div>
+                        <i class="fas fa-trophy fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-gradient-danger text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">إجمالي المناطق</h6>
+                            <h2 class="text-white mb-0">{{ ratings_data|map(attribute='areas_count')|sum }}</h2>
+                        </div>
+                        <i class="fas fa-map-marked-alt fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- بطاقات الشركات مع تحسينات -->
     <div class="row mb-4">
         {% for company in ratings_data %}
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card rating-card h-100">
+            <div class="card rating-card h-100" onclick="showCompanyDetails({{ company.id }})" style="cursor: pointer;">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
                             <h5 class="card-title">{{ company.name }}</h5>
-                            <p class="text-muted small mb-2">{{ company.areas_count }} منطقة</p>
+                            <p class="text-muted small mb-0">
+                                <i class="fas fa-map-marker-alt me-1"></i>{{ company.areas_count }} منطقة
+                            </p>
                         </div>
                         <div class="rating-badge bg-{{ company.rating_color }}">
-                            {{ "%.1f"|format(company.avg_rating) }}
+                            {{ company.avg_rating }}
                         </div>
                     </div>
 
-                    <div class="stars-large mb-3">
+                    <!-- النجوم الكبيرة -->
+                    <div class="stars-large mb-3 text-center">
                         {% for i in range(5) %}
                             {% if i < company.avg_rating|int %}
                                 <i class="fas fa-star text-warning"></i>
@@ -46,24 +112,32 @@
                                 <i class="far fa-star text-warning"></i>
                             {% endif %}
                         {% endfor %}
+                        <span class="ms-2 text-muted">({{ company.avg_rating }}/5)</span>
                     </div>
 
-                    <div class="rating-stats">
+                    <!-- إحصائيات المناطق -->
+                    <div class="rating-stats mb-3">
                         <div class="d-flex justify-content-between mb-2">
-                            <span>أعلى منطقة</span>
-                            <span class="fw-bold">{{ company.max_area }} ({{ company.max_rating }})</span>
+                            <span><i class="fas fa-arrow-up text-success me-1"></i>أعلى منطقة</span>
+                            <span class="fw-bold text-success">{{ company.max_rating }}</span>
                         </div>
+                        <small class="text-muted d-block mb-2">{{ company.max_area }}</small>
+
                         <div class="d-flex justify-content-between mb-2">
-                            <span>أدنى منطقة</span>
-                            <span class="fw-bold">{{ company.min_area }} ({{ company.min_rating }})</span>
+                            <span><i class="fas fa-arrow-down text-danger me-1"></i>أدنى منطقة</span>
+                            <span class="fw-bold text-danger">{{ company.min_rating }}</span>
                         </div>
-                        <div class="progress mt-3" style="height: 8px;">
-                            <div class="progress-bar bg-{{ company.rating_color }}"
-                                 style="width: {{ (company.avg_rating / 5 * 100) }}%;"></div>
-                        </div>
+                        <small class="text-muted d-block">{{ company.min_area }}</small>
                     </div>
 
-                    <button class="btn btn-outline-primary w-100 mt-3" onclick="showCompanyDetails({{ company.id }})">
+                    <!-- شريط التقدم -->
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-{{ company.rating_color }}"
+                             style="width: {{ (company.avg_rating / 5 * 100) }}%;"></div>
+                    </div>
+
+                    <!-- زر التفاصيل -->
+                    <button class="btn btn-outline-primary w-100 mt-3" onclick="event.stopPropagation(); showCompanyDetails({{ company.id }})">
                         <i class="fas fa-chart-line me-1"></i> تحليل المناطق
                     </button>
                 </div>
@@ -72,10 +146,10 @@
         {% endfor %}
     </div>
 
-    <!-- رسم بياني لمقارنة التقييمات -->
+    <!-- رسم بياني متقدم -->
     <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow">
+        <div class="col-lg-8">
+            <div class="card shadow h-100">
                 <div class="card-header bg-white py-3">
                     <h6 class="m-0 font-weight-bold text-primary">
                         <i class="fas fa-chart-bar me-2"></i>مقارنة تقييمات الشركات
@@ -86,58 +160,117 @@
                 </div>
             </div>
         </div>
+        <div class="col-lg-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-pie me-2"></i>توزيع مستويات التقييم
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="ratingsPieChart" style="height: 300px;"></div>
+                    <div class="mt-3">
+                        {% set excellent = ratings_data|selectattr('avg_rating', '>=', 4.5)|list|length %}
+                        {% set good = ratings_data|selectattr('avg_rating', '>=', 4)|selectattr('avg_rating', '<', 4.5)|list|length %}
+                        {% set average = ratings_data|selectattr('avg_rating', '>=', 3)|selectattr('avg_rating', '<', 4)|list|length %}
+                        {% set poor = ratings_data|selectattr('avg_rating', '<', 3)|list|length %}
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><span class="badge bg-excellent me-2">&nbsp;</span> ممتاز</span>
+                            <span>{{ excellent }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><span class="badge bg-good me-2">&nbsp;</span> جيد</span>
+                            <span>{{ good }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><span class="badge bg-average me-2">&nbsp;</span> متوسط</span>
+                            <span>{{ average }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><span class="badge bg-poor me-2">&nbsp;</span> ضعيف</span>
+                            <span>{{ poor }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- جدول تفصيلي للمناطق -->
-    <div class="card shadow">
-        <div class="card-header bg-white py-3">
+    <!-- جدول تفصيلي متطور للمناطق -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold text-primary">
                 <i class="fas fa-table me-2"></i>تفاصيل تقييم المناطق
             </h6>
+            <div class="input-group" style="width: 250px;">
+                <span class="input-group-text bg-white border-end-0">
+                    <i class="fas fa-search text-muted"></i>
+                </span>
+                <input type="text" class="form-control border-start-0" id="searchAreas" placeholder="بحث في المناطق...">
+            </div>
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover" id="areasTable">
                     <thead class="bg-light">
                         <tr>
                             <th>الشركة</th>
                             <th>المنطقة</th>
                             <th>المشرف</th>
-                            <th>عدد التقييمات</th>
-                            <th>التقييم</th>
-                            <th>المستوى</th>
+                            <th class="text-center">عدد التقييمات</th>
+                            <th class="text-center">التقييم</th>
+                            <th class="text-center">المستوى</th>
                             <th>آخر تقييم</th>
+                            <th class="text-center">الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for area in areas_ratings %}
                         <tr>
-                            <td>{{ area.company_name }}</td>
+                            <td>
+                                <span class="badge bg-primary">{{ area.company_name }}</span>
+                            </td>
                             <td class="fw-bold">{{ area.name }}</td>
                             <td>{{ area.supervisor_name|default('غير محدد') }}</td>
-                            <td>{{ area.evaluations_count }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-info">{{ area.evaluations_count }}</span>
+                            </td>
                             <td>
-                                <div class="d-flex align-items-center">
+                                <div class="d-flex align-items-center justify-content-center">
                                     <div class="stars-container me-2">
                                         {% for i in range(5) %}
                                             {% if i < area.rating|int %}
-                                                <i class="fas fa-star text-warning"></i>
+                                                <i class="fas fa-star text-warning small"></i>
                                             {% elif i < area.rating %}
-                                                <i class="fas fa-star-half-alt text-warning"></i>
+                                                <i class="fas fa-star-half-alt text-warning small"></i>
                                             {% else %}
-                                                <i class="far fa-star text-warning"></i>
+                                                <i class="far fa-star text-warning small"></i>
                                             {% endif %}
                                         {% endfor %}
                                     </div>
-                                    <span class="fw-bold">{{ "%.1f"|format(area.rating) }}</span>
+                                    <span class="fw-bold ms-1">{{ "%.1f"|format(area.rating) }}</span>
                                 </div>
                             </td>
-                            <td>
-                                {% set level = 'ممتاز' if area.rating >= 4.5 else 'جيد جداً' if area.rating >= 4 else 'جيد' if area.rating >= 3 else 'مقبول' if area.rating >= 2 else 'ضعيف' %}
-                                {% set level_color = 'success' if area.rating >= 4.5 else 'info' if area.rating >= 4 else 'primary' if area.rating >= 3 else 'warning' if area.rating >= 2 else 'danger' %}
-                                <span class="badge bg-{{ level_color }}">{{ level }}</span>
+                            <td class="text-center">
+                                {% if area.rating >= 4.5 %}
+                                <span class="badge bg-excellent">ممتاز</span>
+                                {% elif area.rating >= 4 %}
+                                <span class="badge bg-good">جيد جداً</span>
+                                {% elif area.rating >= 3 %}
+                                <span class="badge bg-average">جيد</span>
+                                {% elif area.rating >= 2 %}
+                                <span class="badge bg-warning">مقبول</span>
+                                {% else %}
+                                <span class="badge bg-poor">ضعيف</span>
+                                {% endif %}
                             </td>
-                            <td>{{ area.last_evaluation_date|date if area.last_evaluation_date else 'لا يوجد' }}</td>
+                            <td>{{ area.last_evaluation_date|date if area.last_evaluation_date else '-' }}</td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-outline-primary" onclick="showAreaDetails('{{ area.name }}')">
+                                    <i class="fas fa-chart-line"></i>
+                                </button>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -147,10 +280,31 @@
     </div>
 </div>
 
+<!-- نافذة تفاصيل الشركة -->
+<div class="modal fade" id="companyDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="companyModalTitle">
+                    <i class="fas fa-building me-2"></i>تفاصيل الشركة
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="companyModalBody">
+                <!-- يتم تعبئتها ديناميكياً -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
+// بيانات التقييمات
 const ratingsData = {{ ratings_data|tojson }};
+const areasData = {{ areas_ratings|tojson }};
 
 document.addEventListener('DOMContentLoaded', function() {
+    // رسم بياني لمقارنة الشركات
     const chartOptions = {
         series: [{
             name: 'متوسط التقييم',
@@ -177,7 +331,11 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         xaxis: {
             categories: ratingsData.map(c => c.name),
-            labels: { style: { fontFamily: 'Cairo, sans-serif' } }
+            labels: {
+                style: { fontFamily: 'Cairo, sans-serif' },
+                rotate: -45,
+                trim: true
+            }
         },
         yaxis: {
             max: 5,
@@ -191,14 +349,106 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const chart = new ApexCharts(document.querySelector("#ratingsComparisonChart"), chartOptions);
     chart.render();
+
+    // رسم بياني دائري لتوزيع المستويات
+    const excellent = ratingsData.filter(c => c.avg_rating >= 4.5).length;
+    const good = ratingsData.filter(c => c.avg_rating >= 4 && c.avg_rating < 4.5).length;
+    const average = ratingsData.filter(c => c.avg_rating >= 3 && c.avg_rating < 4).length;
+    const poor = ratingsData.filter(c => c.avg_rating < 3).length;
+
+    const pieOptions = {
+        series: [excellent, good, average, poor],
+        chart: {
+            type: 'pie',
+            height: 300,
+            fontFamily: 'Cairo, sans-serif'
+        },
+        labels: ['ممتاز', 'جيد', 'متوسط', 'ضعيف'],
+        colors: ['#1cc88a', '#4e73df', '#f6c23e', '#e74a3b'],
+        legend: { show: false },
+        dataLabels: { enabled: false }
+    };
+
+    const pieChart = new ApexCharts(document.querySelector("#ratingsPieChart"), pieOptions);
+    pieChart.render();
+
+    // تفعيل البحث في الجدول
+    document.getElementById('searchAreas').addEventListener('keyup', function() {
+        const searchTerm = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#areasTable tbody tr');
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchTerm) ? '' : 'none';
+        });
+    });
 });
 
 function showCompanyDetails(companyId) {
-    alert(`عرض تفاصيل الشركة رقم: ${companyId}`);
+    const company = ratingsData.find(c => c.id === companyId);
+    if (!company) return;
+
+    const areas = areasData.filter(a => a.company_name === company.name);
+
+    let areasHtml = '<div class="table-responsive"><table class="table table-sm">';
+    areasHtml += '<thead><tr><th>المنطقة</th><th>التقييم</th><th>المستوى</th><th>عدد التقييمات</th></tr></thead><tbody>';
+
+    areas.forEach(area => {
+        let levelClass = 'success';
+        if (area.rating >= 4.5) levelClass = 'success';
+        else if (area.rating >= 4) levelClass = 'info';
+        else if (area.rating >= 3) levelClass = 'primary';
+        else if (area.rating >= 2) levelClass = 'warning';
+        else levelClass = 'danger';
+
+        areasHtml += `<tr>
+            <td>${area.name}</td>
+            <td>${area.rating.toFixed(1)}/5</td>
+            <td><span class="badge bg-${levelClass}">${area.rating >= 4.5 ? 'ممتاز' : area.rating >= 4 ? 'جيد جداً' : area.rating >= 3 ? 'جيد' : area.rating >= 2 ? 'مقبول' : 'ضعيف'}</span></td>
+            <td>${area.evaluations_count}</td>
+        </tr>`;
+    });
+
+    areasHtml += '</tbody></table></div>';
+
+    document.getElementById('companyModalTitle').innerHTML = `<i class="fas fa-building me-2"></i>${company.name}`;
+    document.getElementById('companyModalBody').innerHTML = areasHtml;
+
+    const modal = new bootstrap.Modal(document.getElementById('companyDetailsModal'));
+    modal.show();
+}
+
+function showAreaDetails(areaName) {
+    alert(`عرض تفاصيل المنطقة: ${areaName}`);
+}
+
+function exportReport(type) {
+    if (type === 'pdf') {
+        alert('سيتم تفعيل تصدير PDF قريباً');
+    } else if (type === 'excel') {
+        alert('سيتم تفعيل تصدير Excel قريباً');
+    }
 }
 </script>
 
 <style>
+.text-gradient-warning {
+    background: linear-gradient(135deg, #f6c23e 0%, #f4b619 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.bg-gradient-primary { background: linear-gradient(135deg, #4e73df, #224abe); }
+.bg-gradient-success { background: linear-gradient(135deg, #1cc88a, #169b6b); }
+.bg-gradient-warning { background: linear-gradient(135deg, #f6c23e, #dda20a); }
+.bg-gradient-danger { background: linear-gradient(135deg, #e74a3b, #be2617); }
+
+.bg-excellent { background: linear-gradient(135deg, #1cc88a, #13855c); }
+.bg-good { background: linear-gradient(135deg, #4e73df, #224abe); }
+.bg-average { background: linear-gradient(135deg, #f6c23e, #dda20a); }
+.bg-poor { background: linear-gradient(135deg, #e74a3b, #be2617); }
+
 .rating-card {
     border-radius: 15px;
     border: none;
@@ -208,7 +458,7 @@ function showCompanyDetails(companyId) {
 
 .rating-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 15px 30px rgba(78,115,223,0.1);
+    box-shadow: 0 15px 30px rgba(78,115,223,0.15);
 }
 
 .rating-badge {
@@ -223,11 +473,6 @@ function showCompanyDetails(companyId) {
     color: white;
 }
 
-.bg-excellent { background: linear-gradient(135deg, #1cc88a, #13855c); }
-.bg-good { background: linear-gradient(135deg, #4e73df, #224abe); }
-.bg-average { background: linear-gradient(135deg, #f6c23e, #dda20a); }
-.bg-poor { background: linear-gradient(135deg, #e74a3b, #be2617); }
-
 .stars-large i {
     font-size: 1.2rem;
     margin-left: 2px;
@@ -237,7 +482,36 @@ function showCompanyDetails(companyId) {
     background: #f8f9fc;
     padding: 1rem;
     border-radius: 10px;
-    margin: 1rem 0;
+}
+
+.btn-modern {
+    border-radius: 25px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.text-white-50 {
+    color: rgba(255,255,255,0.7) !important;
+}
+
+.opacity-50 {
+    opacity: 0.5;
+}
+
+@media print {
+    .btn-group, .btn-modern, .input-group {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #ddd !important;
+        break-inside: avoid;
+    }
 }
 </style>
 {% endblock %}

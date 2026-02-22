@@ -3,198 +3,287 @@
 {% block title %}الملف الشخصي{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
+<div class="container-fluid py-4">
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="page-header">
-                <h1><i class="fas fa-user"></i> الملف الشخصي</h1>
+            <!-- تحسين رأس الصفحة -->
+            <div class="d-flex align-items-center justify-content-between flex-wrap">
+                <h2 class="page-title mb-3 mb-sm-0">
+                    <i class="fas fa-user-circle text-primary ms-2"></i>
+                    الملف الشخصي
+                </h2>
                 <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">الرئيسية</a></li>
-                        <li class="breadcrumb-item active">الملف الشخصي</li>
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item">
+                            <a href="{{ url_for('dashboard') }}" class="text-decoration-none">
+                                <i class="fas fa-home fa-sm"></i> الرئيسية
+                            </a>
+                        </li>
+                        <li class="breadcrumb-item active" aria-current="page">الملف الشخصي</li>
                     </ol>
                 </nav>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-md-4">
-            <!-- بطاقة معلومات المستخدم -->
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0"><i class="fas fa-id-card"></i> معلومات الحساب</h5>
+    <div class="row g-4">
+        <!-- العمود الأيمن - معلومات المستخدم -->
+        <div class="col-lg-4">
+            <!-- بطاقة معلومات الحساب المحسنة -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-gradient-primary text-white py-3">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-id-card ms-2"></i>معلومات الحساب
+                    </h5>
                 </div>
-                <div class="card-body text-center">
-                    <div class="user-avatar mb-3">
-                        <i class="fas fa-user-circle fa-5x text-secondary"></i>
+                <div class="card-body text-center p-4">
+                    <div class="user-avatar-wrapper mb-3">
+                        <div class="avatar-circle-profile mx-auto">
+                            <span class="initials-profile">
+                                {% if current_user.employee_profile and current_user.employee_profile.full_name %}
+                                    {{ current_user.employee_profile.full_name[0] }}
+                                {% else %}
+                                    {{ current_user.username[0] }}
+                                {% endif %}
+                            </span>
+                        </div>
                     </div>
-                    <h4>{{ current_user.username }}</h4>
-                    <p class="text-muted">
+                    <h4 class="fw-bold mb-1">{{ current_user.username }}</h4>
+                    {% if current_user.employee_profile and current_user.employee_profile.full_name %}
+                        <p class="text-muted mb-2">{{ current_user.employee_profile.full_name }}</p>
+                    {% endif %}
+
+                    <!-- دور المستخدم مع شارة محسنة -->
+                    <div class="mb-3">
                         {% if current_user.role == 'owner' %}
-                            <span class="badge badge-success">مالك النظام</span>
+                            <span class="badge bg-success px-3 py-2">
+                                <i class="fas fa-crown ms-1"></i>مالك النظام
+                            </span>
                         {% elif current_user.role == 'supervisor' %}
-                            <span class="badge badge-info">مشرف</span>
+                            <span class="badge bg-info px-3 py-2">
+                                <i class="fas fa-clipboard-list ms-1"></i>مشرف
+                            </span>
                         {% elif current_user.role == 'monitor' %}
-                            <span class="badge badge-warning">مراقب</span>
+                            <span class="badge bg-warning px-3 py-2">
+                                <i class="fas fa-eye ms-1"></i>مراقب
+                            </span>
                         {% elif current_user.role == 'worker' %}
-                            <span class="badge badge-secondary">عامل</span>
+                            <span class="badge bg-secondary px-3 py-2">
+                                <i class="fas fa-hard-hat ms-1"></i>عامل
+                            </span>
                         {% endif %}
-                    </p>
-                    <p class="text-muted">{{ current_user.email }}</p>
+                    </div>
+
+                    <!-- البريد الإلكتروني -->
+                    <div class="d-flex align-items-center justify-content-center text-muted">
+                        <i class="fas fa-envelope ms-2"></i>
+                        <span>{{ current_user.email }}</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- بطاقة الإحصائيات الشخصية -->
-            <div class="card mt-4">
-                <div class="card-header bg-info text-white">
-                    <h5 class="card-title mb-0"><i class="fas fa-chart-bar"></i> إحصائياتي</h5>
+            <!-- بطاقة الإحصائيات الشخصية المحسنة -->
+            {% if current_user.employee_profile %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-gradient-info text-white py-3">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie ms-2"></i>الإحصائيات الشخصية
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
+                            <span class="fw-medium">
+                                <i class="fas fa-calendar-alt text-primary ms-2"></i>تاريخ التعيين
+                            </span>
+                            <span class="badge bg-light text-dark px-3 py-2">
+                                {{ current_user.employee_profile.hire_date.strftime('%Y-%m-%d') if current_user.employee_profile.hire_date else 'غير محدد' }}
+                            </span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
+                            <span class="fw-medium">
+                                <i class="fas fa-toggle-on text-success ms-2"></i>الحالة
+                            </span>
+                            <span class="badge bg-{{ 'success' if current_user.employee_profile.is_active else 'danger' }} px-3 py-2">
+                                <i class="fas fa-{{ 'check-circle' if current_user.employee_profile.is_active else 'exclamation-circle' }} ms-1"></i>
+                                {{ 'نشط' if current_user.employee_profile.is_active else 'غير نشط' }}
+                            </span>
+                        </div>
+                        {% if current_user.role in ['supervisor', 'monitor', 'worker'] and current_user.employee_profile.position %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
+                            <span class="fw-medium">
+                                <i class="fas fa-briefcase text-warning ms-2"></i>المسمى الوظيفي
+                            </span>
+                            <span class="badge bg-light text-dark px-3 py-2">
+                                {% if current_user.employee_profile.position == 'supervisor' %}
+                                    <i class="fas fa-clipboard-list ms-1"></i>مشرف
+                                {% elif current_user.employee_profile.position == 'monitor' %}
+                                    <i class="fas fa-eye ms-1"></i>مراقب
+                                {% elif current_user.employee_profile.position == 'worker' %}
+                                    <i class="fas fa-hard-hat ms-1"></i>عامل
+                                {% else %}
+                                    {{ current_user.employee_profile.position }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- معلومات الاتصال المحسنة -->
+            {% if current_user.employee_profile and (current_user.employee_profile.phone or current_user.employee_profile.address) %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-gradient-secondary text-white py-3">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-address-card ms-2"></i>معلومات الاتصال
+                    </h5>
                 </div>
                 <div class="card-body">
-                    {% if current_user.employee_profile %}
-                        {% set employee = current_user.employee_profile %}
-                        <div class="list-group list-group-flush">
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>تاريخ التعيين</span>
-                                <span class="badge badge-primary">{{ employee.hire_date.strftime('%Y-%m-%d') }}</span>
-                            </div>
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>الحالة</span>
-                                <span class="badge badge-{{ 'success' if employee.is_active else 'danger' }}">
-                                    {{ 'نشط' if employee.is_active else 'غير نشط' }}
-                                </span>
-                            </div>
-                            {% if current_user.role in ['supervisor', 'monitor', 'worker'] %}
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>المسمى الوظيفي</span>
-                                <span class="badge badge-secondary">
-                                    {% if employee.position == 'supervisor' %}مشرف
-                                    {% elif employee.position == 'monitor' %}مراقب
-                                    {% elif employee.position == 'worker' %}عامل
-                                    {% else %}{{ employee.position }}{% endif %}
-                                </span>
-                            </div>
-                            {% endif %}
+                    {% if current_user.employee_profile.phone %}
+                    <div class="d-flex align-items-center mb-3 pb-2 border-bottom">
+                        <div class="contact-icon bg-primary-light rounded-circle p-2 ms-3">
+                            <i class="fas fa-phone-alt text-primary"></i>
                         </div>
-                    {% else %}
-                        <p class="text-muted text-center">لا توجد معلومات إضافية</p>
+                        <div>
+                            <small class="text-muted d-block">رقم الهاتف</small>
+                            <span class="fw-medium">{{ current_user.employee_profile.phone }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if current_user.employee_profile.address %}
+                    <div class="d-flex align-items-center">
+                        <div class="contact-icon bg-info-light rounded-circle p-2 ms-3">
+                            <i class="fas fa-map-marker-alt text-info"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">العنوان</small>
+                            <span class="fw-medium">{{ current_user.employee_profile.address }}</span>
+                        </div>
+                    </div>
                     {% endif %}
                 </div>
             </div>
+            {% endif %}
         </div>
 
-        <div class="col-md-8">
-            <!-- معلومات الاتصال -->
-            <div class="card">
-                <div class="card-header bg-success text-white">
-                    <h5 class="card-title mb-0"><i class="fas fa-address-book"></i> معلومات الاتصال</h5>
-                </div>
-                <div class="card-body">
-                    {% if current_user.employee_profile %}
-                        {% set employee = current_user.employee_profile %}
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label><strong>الاسم الكامل:</strong></label>
-                                    <p class="form-control-plaintext">{{ employee.full_name }}</p>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label><strong>رقم الهاتف:</strong></label>
-                                    <p class="form-control-plaintext">{{ employee.phone or 'غير محدد' }}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="form-group">
-                                    <label><strong>العنوان:</strong></label>
-                                    <p class="form-control-plaintext">{{ employee.address or 'غير محدد' }}</p>
-                                </div>
-                            </div>
-                        </div>
-                    {% else %}
-                        <p class="text-muted text-center">لا توجد معلومات اتصال متاحة</p>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- التقييمات الحديثة (للعاملين) -->
+        <!-- العمود الأيسر -->
+        <div class="col-lg-8">
+            <!-- التقييمات الحديثة المحسنة (للعاملين) -->
             {% if current_user.role == 'worker' and current_user.employee_profile %}
-            <div class="card mt-4">
-                <div class="card-header bg-warning text-white">
-                    <h5 class="card-title mb-0"><i class="fas fa-star"></i> آخر التقييمات</h5>
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-gradient-warning text-white py-3">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-star ms-2"></i>آخر التقييمات
+                        <span class="badge bg-light text-dark ms-2">{{ current_user.employee_profile.evaluations_received|length if current_user.employee_profile.evaluations_received else 0 }}</span>
+                    </h5>
                 </div>
                 <div class="card-body">
-                    {% set evaluations = current_user.employee_profile.evaluations_received|sort(attribute='date', reverse=true)|list %}
+                    {% set evaluations = current_user.employee_profile.evaluations_received|sort(attribute='date', reverse=true)|list if current_user.employee_profile.evaluations_received else [] %}
                     {% if evaluations %}
                         <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
+                            <table class="table table-hover align-middle">
+                                <thead class="bg-light">
                                     <tr>
-                                        <th>التاريخ</th>
-                                        <th>المكان</th>
-                                        <th>التقييم</th>
-                                        <th>الملاحظات</th>
+                                        <th class="fw-medium">التاريخ</th>
+                                        <th class="fw-medium">المكان</th>
+                                        <th class="fw-medium">التقييم</th>
+                                        <th class="fw-medium">الملاحظات</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for eval in evaluations[:5] %}
                                     <tr>
-                                        <td>{{ eval.date.strftime('%Y-%m-%d') }}</td>
+                                        <td>{{ eval.date.strftime('%Y-%m-%d') if eval.date else 'غير محدد' }}</td>
                                         <td>{{ eval.place.name if eval.place else 'غير محدد' }}</td>
                                         <td>
-                                            <span class="badge badge-{{ 'success' if eval.overall_score >= 4 else 'warning' if eval.overall_score >= 3 else 'danger' }}">
-                                                {{ "%.1f"|format(eval.overall_score) }}/5
+                                            <div class="d-flex align-items-center">
+                                                <div class="progress" style="width: 80px; height: 8px; margin-left: 8px;">
+                                                    <div class="progress-bar bg-{{ 'success' if eval.overall_score >= 4 else 'warning' if eval.overall_score >= 3 else 'danger' }}"
+                                                         role="progressbar"
+                                                         style="width: {{ (eval.overall_score/5)*100 if eval.overall_score else 0 }}%">
+                                                    </div>
+                                                </div>
+                                                <span class="badge bg-{{ 'success' if eval.overall_score >= 4 else 'warning' if eval.overall_score >= 3 else 'danger' }}">
+                                                    {{ "%.1f"|format(eval.overall_score) if eval.overall_score else '0.0' }}/5
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="text-truncate d-inline-block" style="max-width: 150px;" title="{{ eval.comments or 'لا توجد ملاحظات' }}">
+                                                {{ eval.comments or 'لا توجد ملاحظات' }}
                                             </span>
                                         </td>
-                                        <td>{{ eval.comments or 'لا توجد ملاحظات' }}</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
                             </table>
                         </div>
+                        {% if evaluations|length > 5 %}
+                        <div class="text-center mt-3">
+                            <a href="{{ url_for('evaluations_list') }}" class="btn btn-sm btn-outline-primary">عرض جميع التقييمات</a>
+                        </div>
+                        {% endif %}
                     {% else %}
-                        <p class="text-muted text-center">لا توجد تقييمات حتى الآن</p>
+                        <div class="text-center py-4">
+                            <i class="fas fa-star-half-alt fa-3x text-muted mb-3"></i>
+                            <p class="text-muted mb-0">لا توجد تقييمات حتى الآن</p>
+                        </div>
                     {% endif %}
                 </div>
             </div>
             {% endif %}
 
-            <!-- الإجراءات السريعة -->
-            <div class="card mt-4">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="card-title mb-0"><i class="fas fa-bolt"></i> إجراءات سريعة</h5>
+            <!-- الإجراءات السريعة المحسنة (بدون رابط settings) -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-gradient-dark text-white py-3">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bolt ms-2"></i>الإجراءات السريعة
+                    </h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
+                    <div class="row g-3">
                         {% if current_user.role in ['owner', 'supervisor', 'monitor'] %}
-                        <div class="col-md-6 mb-2">
-                            <a href="{{ url_for('add_evaluation') }}" class="btn btn-primary btn-block">
-                                <i class="fas fa-plus"></i> إضافة تقييم
+                        <div class="col-md-6">
+                            <a href="{{ url_for('add_evaluation') }}" class="btn btn-primary w-100 py-3">
+                                <i class="fas fa-plus-circle ms-2"></i>
+                                <span class="fw-medium">إضافة تقييم جديد</span>
                             </a>
                         </div>
                         {% endif %}
 
                         {% if current_user.role in ['owner', 'supervisor'] %}
-                        <div class="col-md-6 mb-2">
-                            <a href="{{ url_for('add_attendance') }}" class="btn btn-success btn-block">
-                                <i class="fas fa-user-check"></i> تسجيل حضور
+                        <div class="col-md-6">
+                            <a href="{{ url_for('add_attendance') }}" class="btn btn-success w-100 py-3">
+                                <i class="fas fa-user-check ms-2"></i>
+                                <span class="fw-medium">تسجيل حضور</span>
                             </a>
                         </div>
                         {% endif %}
 
-                        <div class="col-md-6 mb-2">
-                            <a href="{{ url_for('my_attendance') }}" class="btn btn-info btn-block">
-                                <i class="fas fa-history"></i> سجل حضوري
+                        <div class="col-md-6">
+                            <a href="{{ url_for('attendance_index') }}" class="btn btn-info w-100 py-3">
+                                <i class="fas fa-history ms-2"></i>
+                                <span class="fw-medium">سجل الحضور</span>
                             </a>
                         </div>
 
-                        <div class="col-md-6 mb-2">
-                            <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-block"
+                        {% if current_user.role in ['owner'] %}
+                        <div class="col-md-6">
+                            <a href="{{ url_for('users_list') }}" class="btn btn-secondary w-100 py-3">
+                                <i class="fas fa-users-cog ms-2"></i>
+                                <span class="fw-medium">إدارة المستخدمين</span>
+                            </a>
+                        </div>
+                        {% endif %}
+
+                        <div class="col-12 mt-3">
+                            <a href="{{ url_for('logout') }}" class="btn btn-outline-danger w-100 py-2"
                                onclick="return confirm('هل أنت متأكد من تسجيل الخروج؟')">
-                                <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+                                <i class="fas fa-sign-out-alt ms-2"></i>
+                                <span class="fw-medium">تسجيل الخروج</span>
                             </a>
                         </div>
                     </div>
@@ -203,4 +292,134 @@
         </div>
     </div>
 </div>
+
+<!-- إضافة بعض الأنماط المخصصة -->
+<style>
+/* تحسينات إضافية للصفحة */
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #0a1c3a 0%, #1a2f4f 100%);
+}
+
+.bg-gradient-info {
+    background: linear-gradient(135deg, #1a2f4f 0%, #2a3f5f 100%);
+}
+
+.bg-gradient-warning {
+    background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+}
+
+.bg-gradient-secondary {
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+}
+
+.bg-gradient-dark {
+    background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
+}
+
+.bg-primary-light {
+    background-color: rgba(52, 152, 219, 0.1);
+}
+
+.bg-info-light {
+    background-color: rgba(26, 47, 79, 0.1);
+}
+
+/* تحسين الصورة الرمزية */
+.avatar-circle-profile {
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(135deg, #0a1c3a 0%, #1a2f4f 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    border: 3px solid #ffd700;
+}
+
+.initials-profile {
+    color: white;
+    font-weight: 700;
+    font-size: 2.5rem;
+}
+
+/* تحسين أيقونات الاتصال */
+.contact-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* تحسين البطاقات */
+.card {
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+}
+
+/* تحسين الأزرار */
+.btn {
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* تحسين الجدول */
+.table th {
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #4a5568;
+}
+
+.table td {
+    font-size: 0.9rem;
+}
+
+/* تحسين شريط التقدم */
+.progress {
+    border-radius: 4px;
+    background-color: #e9ecef;
+}
+
+/* تحسين العنوان */
+.page-title {
+    font-weight: 600;
+    font-size: 1.75rem;
+    color: #2c3e50;
+}
+
+/* تحسين للشاشات الصغيرة */
+@media (max-width: 768px) {
+    .avatar-circle-profile {
+        width: 80px;
+        height: 80px;
+    }
+
+    .initials-profile {
+        font-size: 2rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+    }
+
+    .btn.py-3 {
+        padding-top: 0.75rem !important;
+        padding-bottom: 0.75rem !important;
+    }
+}
+</style>
 {% endblock %}

@@ -1,17 +1,25 @@
 {% extends "base.html" %}
 
-{% block title %}إدارة المستخدمين - أرض الجوهرة للنظافة{% endblock %}
+{% block title %}إدارة المستخدمين والصلاحيات - أرض الجوهرة للنظافة{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">
-            <i class="fas fa-users text-primary"></i>
-            إدارة المستخدمين
-        </h1>
-        <a href="{{ url_for('add_user') }}" class="btn btn-primary btn-sm">
-            <i class="fas fa-plus me-2"></i>إضافة مستخدم
-        </a>
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-users-cog text-primary"></i>
+                إدارة المستخدمين والصلاحيات
+            </h1>
+            <p class="text-muted mb-0">إضافة وتعديل المستخدمين وتحديد صلاحيات الوصول للتقارير</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('add_permissions_columns') }}" class="btn btn-info btn-sm">
+                <i class="fas fa-database me-2"></i>تحديث هيكل الصلاحيات
+            </a>
+            <a href="{{ url_for('add_user') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-2"></i>إضافة مستخدم
+            </a>
+        </div>
     </div>
 
     <!-- رسائل التنبيه -->
@@ -29,14 +37,21 @@
         {% endif %}
     {% endwith %}
 
-    <!-- إحصائيات -->
+    <!-- إحصائيات متقدمة -->
     <div class="row">
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-primary shadow h-100 py-2">
                 <div class="card-body">
-                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                        إجمالي المستخدمين</div>
-                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ users|length }}</div>
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                إجمالي المستخدمين</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ users|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -44,10 +59,17 @@
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-success shadow h-100 py-2">
                 <div class="card-body">
-                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                        المستخدمين النشطين</div>
-                    <div class="h5 mb-0 font-weight-bold text-gray-800">
-                        {{ users|selectattr('is_active')|list|length }}
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                المستخدمين النشطين</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ users|selectattr('is_active')|list|length }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-check fa-2x text-gray-300"></i>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -56,10 +78,17 @@
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-info shadow h-100 py-2">
                 <div class="card-body">
-                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                        المالكين</div>
-                    <div class="h5 mb-0 font-weight-bold text-gray-800">
-                        {{ users|selectattr('role', 'equalto', 'owner')|list|length }}
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                المالكين</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ users|selectattr('role', 'equalto', 'owner')|list|length }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-crown fa-2x text-gray-300"></i>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -68,20 +97,114 @@
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-warning shadow h-100 py-2">
                 <div class="card-body">
-                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                        المشرفين</div>
-                    <div class="h5 mb-0 font-weight-bold text-gray-800">
-                        {{ users|selectattr('role', 'equalto', 'supervisor')|list|length }}
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                المشرفين</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ users|selectattr('role', 'equalto', 'supervisor')|list|length }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-tie fa-2x text-gray-300"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- جدول المستخدمين -->
+    <!-- إحصائيات إضافية للأدوار الجديدة -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-secondary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                                الإداريين</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ users|selectattr('role', 'equalto', 'admin')|list|length }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-cog fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                المراقبين</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ users|selectattr('role', 'equalto', 'monitor')|list|length }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-eye fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                العمال</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ users|selectattr('role', 'equalto', 'worker')|list|length }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-broom fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                غير النشطين</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ users|rejectattr('is_active')|list|length }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-slash fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول المستخدمين المتقدم -->
     <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">قائمة المستخدمين</h6>
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list me-2"></i>قائمة المستخدمين وصلاحياتهم
+            </h6>
+            <div class="input-group input-group-sm" style="width: 250px;">
+                <input type="text" class="form-control" id="searchInput" placeholder="بحث عن مستخدم...">
+                <button class="btn btn-outline-secondary" type="button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
         </div>
         <div class="card-body">
             {% if users %}
@@ -89,50 +212,100 @@
                 <table class="table table-bordered table-hover" id="usersTable" width="100%" cellspacing="0">
                     <thead class="table-light">
                         <tr>
+                            <th>#</th>
                             <th>اسم المستخدم</th>
                             <th>البريد الإلكتروني</th>
                             <th>الدور</th>
+                            <th>الموظف المرتبط</th>
                             <th>الحالة</th>
                             <th>تاريخ الإنشاء</th>
+                            <th>الصلاحيات</th>
                             <th>الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for user in users %}
                         <tr>
+                            <td>{{ loop.index }}</td>
                             <td>
-                                <strong class="text-dark">{{ user.username }}</strong>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle-sm me-2 bg-{{ 'danger' if user.role == 'owner' else 'warning' if user.role == 'supervisor' else 'purple' if user.role == 'admin' else 'info' if user.role == 'monitor' else 'secondary' }} text-white rounded-circle d-flex align-items-center justify-content-center"
+                                         style="width: 35px; height: 35px;">
+                                        <span class="fw-bold">{{ user.username[0]|upper }}</span>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold">{{ user.username }}</div>
+                                        <small class="text-muted">ID: {{ user.id }}</small>
+                                    </div>
+                                </div>
                             </td>
                             <td>{{ user.email }}</td>
                             <td>
-                                <span class="badge bg-{{ 'danger' if user.role == 'owner' else 'warning' if user.role == 'supervisor' else 'info' if user.role == 'monitor' else 'secondary' }}">
+                                <span class="badge bg-{{ 'danger' if user.role == 'owner' else 'warning' if user.role == 'supervisor' else 'purple' if user.role == 'admin' else 'info' if user.role == 'monitor' else 'secondary' }} px-3 py-2">
                                     {% if user.role == 'owner' %}
-                                        مالك
+                                        <i class="fas fa-crown me-1"></i>مالك
                                     {% elif user.role == 'supervisor' %}
-                                        مشرف
+                                        <i class="fas fa-user-tie me-1"></i>مشرف
+                                    {% elif user.role == 'admin' %}
+                                        <i class="fas fa-user-cog me-1"></i>إداري
                                     {% elif user.role == 'monitor' %}
-                                        مراقب
+                                        <i class="fas fa-eye me-1"></i>مراقب
+                                    {% elif user.role == 'worker' %}
+                                        <i class="fas fa-broom me-1"></i>عامل
                                     {% else %}
-                                        عامل
+                                        {{ user.role }}
                                     {% endif %}
                                 </span>
                             </td>
                             <td>
-                                {% if user.is_active %}
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-check-circle me-1"></i>نشط
-                                    </span>
+                                {% if user.employee_profile %}
+                                <a href="{{ url_for('view_employee', id=user.employee_profile.id) }}" class="text-decoration-none">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-user-check text-success me-1"></i>
+                                        {{ user.employee_profile.full_name }}
+                                        <small class="text-muted ms-1">({{ user.employee_profile.code or '—' }})</small>
+                                    </div>
+                                </a>
                                 {% else %}
-                                    <span class="badge bg-secondary">
-                                        <i class="fas fa-times-circle me-1"></i>غير نشط
-                                    </span>
+                                <span class="text-muted">
+                                    <i class="fas fa-user-slash me-1"></i>غير مرتبط
+                                </span>
                                 {% endif %}
                             </td>
-                            <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                {% if user.is_active %}
+                                <span class="badge bg-success px-3 py-2">
+                                    <i class="fas fa-check-circle me-1"></i>نشط
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary px-3 py-2">
+                                    <i class="fas fa-times-circle me-1"></i>غير نشط
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '—' }}</td>
+                            <td>
+                                {% if user.role == 'owner' %}
+                                <span class="badge bg-light text-dark">
+                                    <i class="fas fa-shield-alt text-primary me-1"></i>جميع الصلاحيات
+                                </span>
+                                {% else %}
+                                <button class="btn btn-sm btn-outline-info" onclick="showPermissions({{ user.id }})"
+                                        title="عرض الصلاحيات">
+                                    <i class="fas fa-shield-alt me-1"></i>عرض
+                                </button>
+                                {% endif %}
+                            </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
+                                    {% if user.role != 'owner' and user.id != current_user.id %}
+                                    <button class="btn btn-outline-primary" onclick="editPermissions({{ user.id }})"
+                                            title="تعديل الصلاحيات">
+                                        <i class="fas fa-lock"></i>
+                                    </button>
+                                    {% endif %}
                                     <a href="{{ url_for('edit_user', user_id=user.id) }}"
-                                       class="btn btn-outline-warning" title="تعديل المستخدم">
+                                       class="btn btn-outline-warning" title="تعديل البيانات">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     {% if user.id != current_user.id %}
@@ -167,26 +340,380 @@
         </div>
     </div>
 </div>
+
+<!-- مودال عرض الصلاحيات -->
+<div class="modal fade" id="permissionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    صلاحيات المستخدم
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="permissionsContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إغلاق
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- مودال تعديل الصلاحيات -->
+<div class="modal fade" id="editPermissionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>
+                    تعديل صلاحيات المستخدم
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="editPermissionsContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إلغاء
+                </button>
+                <button type="button" class="btn btn-success" onclick="savePermissions()">
+                    <i class="fas fa-save me-1"></i>حفظ التغييرات
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+let currentUserId = null;
+
+// عرض الصلاحيات
+function showPermissions(userId) {
+    currentUserId = userId;
+    const modal = new bootstrap.Modal(document.getElementById('permissionsModal'));
+    modal.show();
+
+    fetch(`/api/user-permissions/${userId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayPermissions(data.user, data.permissions);
+            } else {
+                document.getElementById('permissionsContent').innerHTML = `
+                    <div class="alert alert-danger">${data.message}</div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('permissionsContent').innerHTML = `
+                <div class="alert alert-danger">حدث خطأ في تحميل الصلاحيات</div>
+            `;
+        });
+}
+
+function displayPermissions(user, permissions) {
+    let html = `
+        <div class="mb-4 p-3 bg-light rounded">
+            <h5 class="mb-3">${user.username} - ${user.role_ar}</h5>
+            <p class="mb-0 text-muted">${user.email}</p>
+        </div>
+    `;
+
+    const categories = {
+        'الموظفين': ['can_view_employees', 'can_edit_employees', 'can_add_employees', 'can_delete_employees'],
+        'الحضور والانصراف': ['can_view_attendance', 'can_record_attendance', 'can_view_attendance_reports', 'can_view_overtime', 'can_view_absence_rates'],
+        'التقييمات': ['can_view_evaluations', 'can_add_evaluations', 'can_view_evaluation_reports', 'can_view_detailed_evaluations'],
+        'الأداء': ['can_view_performance', 'can_view_top_employees', 'can_view_employee_efficiency'],
+        'الشركات والمناطق': ['can_view_companies', 'can_view_company_stats', 'can_view_zones'],
+        'المالية': ['can_view_salaries', 'can_view_salary_reports', 'can_view_financial', 'can_view_invoices', 'can_view_penalties'],
+        'لوحة التحكم': ['can_view_dashboard', 'can_view_kpis', 'can_view_heatmap'],
+        'إعدادات النظام': ['can_manage_users', 'can_manage_roles']
+    };
+
+    const permissionNames = {
+        'can_view_employees': 'عرض الموظفين',
+        'can_edit_employees': 'تعديل الموظفين',
+        'can_add_employees': 'إضافة موظفين',
+        'can_delete_employees': 'حذف الموظفين',
+        'can_view_attendance': 'عرض الحضور',
+        'can_record_attendance': 'تسجيل حضور',
+        'can_view_attendance_reports': 'تقارير الحضور',
+        'can_view_overtime': 'تقرير الساعات الإضافية',
+        'can_view_absence_rates': 'نسب الغياب',
+        'can_view_evaluations': 'عرض التقييمات',
+        'can_add_evaluations': 'إضافة تقييمات',
+        'can_view_evaluation_reports': 'تقارير التقييمات',
+        'can_view_detailed_evaluations': 'تقييمات تفصيلية',
+        'can_view_performance': 'أداء الموظفين',
+        'can_view_top_employees': 'أفضل الموظفين',
+        'can_view_employee_efficiency': 'كفاءة الموظفين',
+        'can_view_companies': 'عرض الشركات',
+        'can_view_company_stats': 'إحصائيات الشركات',
+        'can_view_zones': 'عرض المناطق',
+        'can_view_salaries': 'عرض الرواتب',
+        'can_view_salary_reports': 'تقارير الرواتب',
+        'can_view_financial': 'التقارير المالية',
+        'can_view_invoices': 'الفواتير',
+        'can_view_penalties': 'الجزاءات',
+        'can_view_dashboard': 'لوحة التحكم',
+        'can_view_kpis': 'مؤشرات الأداء',
+        'can_view_heatmap': 'الخريطة الحرارية',
+        'can_manage_users': 'إدارة المستخدمين',
+        'can_manage_roles': 'إدارة الصلاحيات'
+    };
+
+    for (const [category, perms] of Object.entries(categories)) {
+        html += `
+            <div class="mb-4">
+                <h6 class="text-primary border-bottom pb-2 mb-3">${category}</h6>
+                <div class="row">
+        `;
+
+        for (const perm of perms) {
+            if (permissions[perm] !== undefined) {
+                html += `
+                    <div class="col-md-6 mb-2">
+                        <div class="d-flex align-items-center">
+                            <i class="fas ${permissions[perm] ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'} me-2"></i>
+                            <span>${permissionNames[perm] || perm}</span>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        html += `</div></div>`;
+    }
+
+    document.getElementById('permissionsContent').innerHTML = html;
+}
+
+// تعديل الصلاحيات
+function editPermissions(userId) {
+    currentUserId = userId;
+    const modal = new bootstrap.Modal(document.getElementById('editPermissionsModal'));
+    modal.show();
+
+    fetch(`/api/user-permissions/${userId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayEditForm(data.user, data.permissions);
+            } else {
+                document.getElementById('editPermissionsContent').innerHTML = `
+                    <div class="alert alert-danger">${data.message}</div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('editPermissionsContent').innerHTML = `
+                <div class="alert alert-danger">حدث خطأ في تحميل الصلاحيات</div>
+            `;
+        });
+}
+
+function displayEditForm(user, permissions) {
+    let html = `
+        <div class="mb-4 p-3 bg-light rounded">
+            <h5 class="mb-3">${user.username} - ${user.role_ar}</h5>
+            <p class="mb-0 text-muted">${user.email}</p>
+        </div>
+        <form id="permissionsForm">
+    `;
+
+    const categories = {
+        'الموظفين': ['can_view_employees', 'can_edit_employees', 'can_add_employees', 'can_delete_employees'],
+        'الحضور والانصراف': ['can_view_attendance', 'can_record_attendance', 'can_view_attendance_reports', 'can_view_overtime', 'can_view_absence_rates'],
+        'التقييمات': ['can_view_evaluations', 'can_add_evaluations', 'can_view_evaluation_reports', 'can_view_detailed_evaluations'],
+        'الأداء': ['can_view_performance', 'can_view_top_employees', 'can_view_employee_efficiency'],
+        'الشركات والمناطق': ['can_view_companies', 'can_view_company_stats', 'can_view_zones'],
+        'المالية': ['can_view_salaries', 'can_view_salary_reports', 'can_view_financial', 'can_view_invoices', 'can_view_penalties'],
+        'لوحة التحكم': ['can_view_dashboard', 'can_view_kpis', 'can_view_heatmap'],
+        'إعدادات النظام': ['can_manage_users', 'can_manage_roles']
+    };
+
+    const permissionNames = {
+        'can_view_employees': 'عرض الموظفين',
+        'can_edit_employees': 'تعديل الموظفين',
+        'can_add_employees': 'إضافة موظفين',
+        'can_delete_employees': 'حذف الموظفين',
+        'can_view_attendance': 'عرض الحضور',
+        'can_record_attendance': 'تسجيل حضور',
+        'can_view_attendance_reports': 'تقارير الحضور',
+        'can_view_overtime': 'تقرير الساعات الإضافية',
+        'can_view_absence_rates': 'نسب الغياب',
+        'can_view_evaluations': 'عرض التقييمات',
+        'can_add_evaluations': 'إضافة تقييمات',
+        'can_view_evaluation_reports': 'تقارير التقييمات',
+        'can_view_detailed_evaluations': 'تقييمات تفصيلية',
+        'can_view_performance': 'أداء الموظفين',
+        'can_view_top_employees': 'أفضل الموظفين',
+        'can_view_employee_efficiency': 'كفاءة الموظفين',
+        'can_view_companies': 'عرض الشركات',
+        'can_view_company_stats': 'إحصائيات الشركات',
+        'can_view_zones': 'عرض المناطق',
+        'can_view_salaries': 'عرض الرواتب',
+        'can_view_salary_reports': 'تقارير الرواتب',
+        'can_view_financial': 'التقارير المالية',
+        'can_view_invoices': 'الفواتير',
+        'can_view_penalties': 'الجزاءات',
+        'can_view_dashboard': 'لوحة التحكم',
+        'can_view_kpis': 'مؤشرات الأداء',
+        'can_view_heatmap': 'الخريطة الحرارية',
+        'can_manage_users': 'إدارة المستخدمين',
+        'can_manage_roles': 'إدارة الصلاحيات'
+    };
+
+    for (const [category, perms] of Object.entries(categories)) {
+        html += `
+            <div class="mb-4">
+                <h6 class="text-primary border-bottom pb-2 mb-3">${category}</h6>
+                <div class="row">
+        `;
+
+        for (const perm of perms) {
+            if (permissions[perm] !== undefined) {
+                html += `
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox"
+                                   id="${perm}" name="${perm}"
+                                   ${permissions[perm] ? 'checked' : ''}>
+                            <label class="form-check-label" for="${perm}">
+                                ${permissionNames[perm] || perm}
+                            </label>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        html += `</div></div>`;
+    }
+
+    html += `</form>`;
+
+    document.getElementById('editPermissionsContent').innerHTML = html;
+}
+
+function savePermissions() {
+    const form = document.getElementById('permissionsForm');
+    const formData = new FormData(form);
+    const permissions = {};
+
+    formData.forEach((value, key) => {
+        permissions[key] = true;
+    });
+
+    const allCheckboxes = form.querySelectorAll('input[type="checkbox"]');
+    allCheckboxes.forEach(cb => {
+        if (!permissions[cb.name]) {
+            permissions[cb.name] = false;
+        }
+    });
+
+    fetch(`/api/update-user-permissions/${currentUserId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(permissions)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('✅ تم تحديث الصلاحيات بنجاح', 'success');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editPermissionsModal'));
+            modal.hide();
+        } else {
+            showAlert('❌ ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('حدث خطأ في حفظ الصلاحيات', 'danger');
+    });
+}
+
 // حذف المستخدم
+function deleteUser(userId, username) {
+    if (confirm(`هل أنت متأكد من حذف المستخدم "${username}"؟`)) {
+        fetch(`/users/delete/${userId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('✅ تم حذف المستخدم بنجاح', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert('❌ ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('حدث خطأ في حذف المستخدم', 'danger');
+        });
+    }
+}
+
+// تهيئة أزرار الحذف
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.delete-user-btn').forEach(button => {
         button.addEventListener('click', function() {
             const userId = this.getAttribute('data-id');
             const username = this.getAttribute('data-username');
-
-            if (confirm(`هل أنت متأكد من حذف المستخدم "${username}"؟`)) {
-                // يمكنك إضافة دالة حذف هنا إذا كنت تريد حذفاً مباشراً
-                // أو استخدام redirect للصفحة
-                showAlert('⚠️ هذه الخاصية تحت التطوير', 'warning');
-            }
+            deleteUser(userId, username);
         });
     });
+
+    // البحث في الجدول
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            const searchText = this.value.toLowerCase();
+            const table = document.getElementById('usersTable');
+            if (!table) return;
+
+            const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+            for (let row of rows) {
+                const username = row.cells[1].textContent.toLowerCase();
+                const email = row.cells[2].textContent.toLowerCase();
+                const role = row.cells[3].textContent.toLowerCase();
+
+                if (username.includes(searchText) || email.includes(searchText) || role.includes(searchText)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        });
+    }
 });
 
+// دالة عرض الإشعارات
 function showAlert(message, type) {
     const alertClass = type === 'success' ? 'alert-success' : type === 'warning' ? 'alert-warning' : 'alert-danger';
     const icon = type === 'success' ? 'fa-check-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-exclamation-circle';
@@ -201,7 +728,6 @@ function showAlert(message, type) {
         </div>
     `;
 
-    // إضافة التنبيه في أعلى الصفحة
     document.querySelector('.container-fluid').insertAdjacentHTML('afterbegin', alertHtml);
 
     setTimeout(() => {
@@ -239,5 +765,50 @@ function showAlert(message, type) {
 .border-left-success { border-left: 0.25rem solid #1cc88a !important; }
 .border-left-info { border-left: 0.25rem solid #36b9cc !important; }
 .border-left-warning { border-left: 0.25rem solid #f6c23e !important; }
+.border-left-secondary { border-left: 0.25rem solid #858796 !important; }
+.border-left-danger { border-left: 0.25rem solid #e74a3b !important; }
+
+.avatar-circle-sm {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.bg-purple {
+    background-color: #6f42c1 !important;
+    color: white;
+}
+
+.form-switch .form-check-input {
+    width: 3em;
+    height: 1.5em;
+    margin-left: 0.5rem;
+    cursor: pointer;
+}
+
+.form-switch .form-check-input:checked {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.modal-xl {
+    max-width: 90%;
+}
+
+@media (min-width: 1200px) {
+    .modal-xl {
+        max-width: 1140px;
+    }
+}
+
+.border-bottom {
+    border-bottom: 1px solid #e3e6f0 !important;
+}
 </style>
 {% endblock %}

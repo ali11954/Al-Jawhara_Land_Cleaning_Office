@@ -16,6 +16,9 @@
             --danger-color: #e74a3b;
             --light-bg: #f8f9fc;
             --dark-text: #5a5c69;
+            --header-gradient-start: #0a1c3a;
+            --header-gradient-end: #1a2f4f;
+            --header-hover: #3498db;
         }
 
         body {
@@ -25,11 +28,228 @@
             color: var(--dark-text);
         }
 
-        .navbar-brand {
-            font-weight: 700;
-            font-size: 1.5rem;
+        /* الهيدر الجديد - أصغر حجماً ومتحرك مع الصفحة */
+        .navbar {
+            padding: 0.2rem 1rem !important;
+            background: linear-gradient(135deg, var(--header-gradient-start), var(--header-gradient-end)) !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            min-height: 50px !important;
         }
 
+        .navbar-brand {
+            font-weight: 600;
+            font-size: 1.1rem !important;
+            padding: 0.2rem 0;
+            letter-spacing: 0.5px;
+            background: linear-gradient(45deg, #fff, #e0e0e0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .navbar-brand i {
+            -webkit-text-fill-color: initial;
+            color: #ffd700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            font-size: 1rem;
+        }
+
+        .navbar-nav .nav-link {
+            font-size: 0.85rem !important;
+            padding: 0.3rem 0.8rem !important;
+            margin: 0.1rem 0;
+            border-radius: 5px;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            color: rgba(255,255,255,0.9) !important;
+        }
+
+        .navbar-nav .nav-link i {
+            font-size: 0.8rem;
+            transition: transform 0.2s ease;
+        }
+
+        .navbar-nav .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff !important;
+        }
+
+        .navbar-nav .nav-link:hover i {
+            transform: scale(1.1);
+            color: #ffd700;
+        }
+
+        .navbar-nav .nav-link.active {
+            background: rgba(255,255,255,0.15);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .navbar-nav .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            right: 50%;
+            transform: translateX(50%);
+            width: 25px;
+            height: 2px;
+            background: #ffd700;
+            border-radius: 2px;
+        }
+
+        /* تحسين مربع البحث - أصغر */
+        .search-container .input-group {
+            background: rgba(255,255,255,0.1);
+            border-radius: 18px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .search-container .input-group-sm {
+            min-height: 30px !important;
+        }
+
+        .search-container .form-control {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 0.8rem;
+            padding: 0.2rem 0.8rem;
+            height: 28px;
+        }
+
+        .search-container .form-control::placeholder {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.75rem;
+        }
+
+        .search-container .btn {
+            border: none;
+            color: rgba(255,255,255,0.8);
+            padding: 0.2rem 0.8rem;
+            background: transparent;
+            font-size: 0.8rem;
+        }
+
+        .search-container .btn:hover {
+            color: #ffd700;
+            transform: none;
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* تحسين أيقونة الإشعارات - أصغر */
+        .nav-link.position-relative {
+            padding: 0.3rem 0.5rem !important;
+        }
+
+        .nav-link.position-relative i {
+            font-size: 1rem;
+        }
+
+        .nav-link.position-relative .badge {
+            font-size: 0.5rem;
+            padding: 0.15rem 0.3rem;
+            background: linear-gradient(135deg, #e74a3b, #c0392b) !important;
+            border: 1.5px solid rgba(255,255,255,0.2);
+        }
+
+        /* تحسين القائمة المنسدلة */
+        .dropdown-menu {
+            background: #1a2f4f;
+            border: none;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            margin-top: 0.3rem;
+            border-radius: 8px;
+            padding: 0.3rem 0;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.85rem;
+        }
+
+        .dropdown-menu::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            right: 20px;
+            width: 8px;
+            height: 8px;
+            background: #1a2f4f;
+            transform: rotate(45deg);
+            border-left: 1px solid rgba(255,255,255,0.1);
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .dropdown-header {
+            color: #ffd700;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0.4rem 1.2rem;
+        }
+
+        .dropdown-item {
+            color: rgba(255,255,255,0.9);
+            font-size: 0.8rem;
+            padding: 0.4rem 1.2rem;
+            transition: all 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255,255,255,0.1);
+            color: #ffd700;
+            padding-right: 1.8rem;
+        }
+
+        .dropdown-item i {
+            width: 1.1rem;
+            font-size: 0.8rem;
+        }
+
+        .dropdown-divider {
+            border-top-color: rgba(255,255,255,0.1);
+            margin: 0.3rem 0;
+        }
+
+        /* تحسين عرض الوقت - أصغر */
+        #currentDateTime {
+            background: rgba(0,0,0,0.2);
+            padding: 0.2rem 0.8rem;
+            border-radius: 16px;
+            font-size: 0.75rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.9);
+        }
+
+        /* تحسين الصورة الرمزية - أصغر */
+        .avatar-circle-sm {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #ffd700, #f39c12);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .avatar-circle-sm .initials-sm {
+            color: #0a1c3a;
+            font-weight: 700;
+            font-size: 0.65rem;
+        }
+
+        /* تقليل حجم الخط للاسم في القائمة */
+        .navbar-nav .nav-link.dropdown-toggle span {
+            font-size: 0.8rem;
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* أنماط البطاقات */
         .card {
             border: none;
             border-radius: 0.5rem;
@@ -40,28 +260,13 @@
 
         .card:hover {
             box-shadow: 0 0.5rem 1.5rem rgba(58, 59, 69, 0.15);
+            transform: translateY(-2px);
         }
 
         .border-left-primary { border-left: 0.25rem solid var(--primary-color) !important; }
         .border-left-success { border-left: 0.25rem solid var(--success-color) !important; }
         .border-left-info { border-left: 0.25rem solid var(--info-color) !important; }
         .border-left-warning { border-left: 0.25rem solid var(--warning-color) !important; }
-
-        .avatar-circle-sm {
-            width: 30px;
-            height: 30px;
-            background-color: var(--primary-color);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .avatar-circle-sm .initials-sm {
-            color: white;
-            font-weight: 600;
-            font-size: 0.8rem;
-        }
 
         .stat-card {
             transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -90,24 +295,47 @@
             display: none !important;
         }
 
+        /* تحسين المسافات للشاشات الصغيرة */
         @media (max-width: 768px) {
+            .navbar {
+                padding: 0.15rem 0.5rem !important;
+            }
+
             .navbar-nav .nav-link {
-                padding: 0.75rem 1rem;
+                padding: 0.4rem !important;
+                font-size: 0.9rem !important;
+            }
+
+            .search-container {
+                margin: 0.3rem 0;
+            }
+
+            .search-container .input-group {
+                width: 100%;
+            }
+
+            #currentDateTime {
+                margin: 0.3rem 0;
+                display: inline-block;
+            }
+
+            .navbar-brand {
+                font-size: 1rem !important;
             }
         }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- شريط التنقل -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+    <!-- شريط التنقل - أصغر حجماً ومتحرك مع الصفحة -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
             <a class="navbar-brand" href="/dashboard">
-                <i class="fas fa-gem me-2"></i>
-                أرض الجوهرة للنظافة
+                <i class="fas fa-gem me-1"></i>
+                أرض الجوهرة
             </a>
 
-            <div class="text-light me-3 d-none d-lg-block">
+            <div class="text-light me-2 d-none d-lg-block">
                 <small id="currentDateTime"></small>
             </div>
 
@@ -125,7 +353,7 @@
                     {% if current_user.is_authenticated and current_user.role == 'owner' %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'users_list' %}active{% endif %}" href="/users">
-                            <i class="fas fa-user-cog me-1"></i>إدارة المستخدمين
+                            <i class="fas fa-user-cog me-1"></i>المستخدمين
                         </a>
                     </li>
                     {% endif %}
@@ -145,6 +373,17 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'deductions_dashboard' %}active{% endif %}" href="/financial/deductions">
+                            <i class="fas fa-calculator me-1"></i>الخصومات
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'preparation_hub' %}active{% endif %}"
+                           href="{{ url_for('preparation_hub') }}">
+                            <i class="fas fa-tools me-1"></i>التحضير
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if request.endpoint in ['reports_index', 'reports_daily_evaluations'] %}active{% endif %}" href="/reports">
                             <i class="fas fa-chart-bar me-1"></i>التقارير
                         </a>
@@ -156,10 +395,10 @@
                     </li>
                 </ul>
 
-                <div class="search-container me-3 my-2 my-lg-0">
+                <div class="search-container me-2 my-1 my-lg-0">
                     <div class="input-group input-group-sm">
-                        <input type="text" id="globalSearch" class="form-control" placeholder="بحث سريع..." style="width: 200px;">
-                        <button class="btn btn-outline-light" type="button" onclick="quickSearch()">
+                        <input type="text" id="globalSearch" class="form-control" placeholder="بحث...">
+                        <button class="btn" type="button" onclick="quickSearch()">
                             <i class="fas fa-search"></i>
                         </button>
                     </div>
@@ -174,21 +413,21 @@
                             </span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationsDropdown">
-                            <li><h6 class="dropdown-header">الإشعارات</h6></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-info-circle text-info me-2"></i>تقييم جديد مطلوب</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-exclamation-triangle text-warning me-2"></i>موظف يحتاج متابعة</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-check-circle text-success me-2"></i>تم إكمال المهمة</a></li>
+                            <li><h6 class="dropdown-header"><i class="fas fa-bell me-2"></i>الإشعارات</h6></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-info-circle me-2"></i>تقييم جديد</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-exclamation-triangle me-2"></i>موظف يحتاج متابعة</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-check-circle me-2"></i>تم إكمال المهمة</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-center" href="#">عرض جميع الإشعارات</a></li>
+                            <li><a class="dropdown-item text-center" href="#">عرض الكل</a></li>
                         </ul>
                     </li>
 
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user me-1"></i>
+                            <i class="fas fa-user-circle me-1"></i>
                             <span>
                                 {% if current_user.is_authenticated %}
-                                    {{ current_user.username }}
+                                    {{ current_user.username.split()[0] if current_user.username.split() else current_user.username }}
                                 {% else %}
                                     زائر
                                 {% endif %}
@@ -208,14 +447,14 @@
                                             </span>
                                         </div>
                                         <div>
-                                            <div class="fw-bold">
+                                            <div class="fw-bold" style="font-size: 0.8rem;">
                                                 {% if current_user.is_authenticated %}
                                                     {{ current_user.username }}
                                                 {% else %}
                                                     زائر
                                                 {% endif %}
                                             </div>
-                                            <small class="text-muted">
+                                            <small style="color: rgba(255,255,255,0.6); font-size: 0.65rem;">
                                                 {% if current_user.is_authenticated %}
                                                     {{ current_user.role }}
                                                 {% else %}
@@ -268,7 +507,9 @@
     </div>
 
     <!-- المحتوى الرئيسي -->
-    {% block content %}{% endblock %}
+    <main>
+        {% block content %}{% endblock %}
+    </main>
 
     <!-- الفوتر -->
     <footer class="bg-dark text-white mt-5 py-4">
@@ -284,8 +525,7 @@
                         <br>
                         <i class="fas fa-envelope me-2"></i>aljwahrh-land@gamil.com
                     </p>
-                    <p class="mb-0 mt-2"> 2025  جميع الحقوق محفوظة لدى الغيث لتصميم البرامج</p>
-
+                    <p class="mb-0 mt-2"> 2025 جميع الحقوق محفوظة لدى الغيث لتصميم البرامج</p>
                 </div>
             </div>
         </div>
@@ -360,7 +600,7 @@
         function quickSearch() {
             const query = document.getElementById('globalSearch').value.trim();
             if (query) {
-                alert(`سيتم البحث عن: ${query}`);
+                alert(`جاري البحث عن: ${query}`);
             }
         }
 

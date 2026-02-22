@@ -4,103 +4,308 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- رأس الصفحة المتحرك -->
+    <div class="d-flex justify-content-between align-items-center mb-4 fade-in">
         <div>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">الرئيسية</a></li>
-                    <li class="breadcrumb-item"><a href="{{ url_for('employees_list') }}">الموظفين</a></li>
-                    <li class="breadcrumb-item active">{{ company }}</li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}" class="text-decoration-none">
+                        <i class="fas fa-home me-1"></i>الرئيسية
+                    </a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('employees_list') }}" class="text-decoration-none">
+                        <i class="fas fa-users me-1"></i>الموظفين
+                    </a></li>
+                    <li class="breadcrumb-item active">
+                        <i class="fas fa-building me-1"></i>{{ company }}
+                    </li>
                 </ol>
             </nav>
-            <h2 class="text-primary">
-                <i class="fas fa-building me-2"></i>موظفي شركة {{ company }}
+            <h2 class="text-gradient-primary">
+                <i class="fas fa-building me-2 icon-float"></i>موظفي شركة {{ company }}
             </h2>
+            <p class="text-muted mb-0">
+                عرض وإدارة جميع الموظفين العاملين في شركة {{ company }}
+            </p>
         </div>
-        <a href="{{ url_for('employees_list') }}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-right me-2"></i>العودة
-        </a>
+        <div>
+            <a href="{{ url_for('employees_list') }}" class="btn btn-outline-primary btn-float">
+                <i class="fas fa-arrow-right me-2"></i>العودة للقائمة الرئيسية
+            </a>
+            {% if current_user.role == 'owner' %}
+            <a href="{{ url_for('add_employee') }}?company={{ company }}" class="btn btn-success btn-float">
+                <i class="fas fa-plus me-2"></i>إضافة موظف للشركة
+            </a>
+            {% endif %}
+        </div>
     </div>
 
-    <!-- إحصائيات سريعة -->
+    <!-- بطاقات الإحصائيات المتحركة -->
+    <div class="row mb-4 stats-row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card stat-card-primary animate__animated animate__fadeInUp" style="animation-delay: 0.1s">
+                <div class="stat-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="stat-label">إجمالي الموظفين</span>
+                            <h3 class="stat-value">{{ company_stats.total }}</h3>
+                            <span class="stat-trend text-success">
+                                <i class="fas fa-arrow-up"></i> 100%
+                            </span>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                    <div class="stat-progress mt-3">
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-primary" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card stat-card-warning animate__animated animate__fadeInUp" style="animation-delay: 0.2s">
+                <div class="stat-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="stat-label">المشرفين</span>
+                            <h3 class="stat-value">{{ company_stats.supervisors }}</h3>
+                            <span class="stat-trend text-info">
+                                <i class="fas fa-user-tie"></i> قيادات
+                            </span>
+                        </div>
+                        <div class="stat-icon bg-warning-soft">
+                            <i class="fas fa-user-tie text-warning"></i>
+                        </div>
+                    </div>
+                    <div class="stat-progress mt-3">
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-warning" style="width: {{ (company_stats.supervisors / company_stats.total * 100) if company_stats.total > 0 else 0 }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card stat-card-info animate__animated animate__fadeInUp" style="animation-delay: 0.3s">
+                <div class="stat-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="stat-label">المراقبين</span>
+                            <h3 class="stat-value">{{ company_stats.monitors }}</h3>
+                            <span class="stat-trend text-info">
+                                <i class="fas fa-eye"></i> مراقبة
+                            </span>
+                        </div>
+                        <div class="stat-icon bg-info-soft">
+                            <i class="fas fa-eye text-info"></i>
+                        </div>
+                    </div>
+                    <div class="stat-progress mt-3">
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-info" style="width: {{ (company_stats.monitors / company_stats.total * 100) if company_stats.total > 0 else 0 }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card stat-card-secondary animate__animated animate__fadeInUp" style="animation-delay: 0.4s">
+                <div class="stat-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="stat-label">عمال النظافة</span>
+                            <h3 class="stat-value">{{ company_stats.workers }}</h3>
+                            <span class="stat-trend text-secondary">
+                                <i class="fas fa-broom"></i> عمال
+                            </span>
+                        </div>
+                        <div class="stat-icon bg-secondary-soft">
+                            <i class="fas fa-broom text-secondary"></i>
+                        </div>
+                    </div>
+                    <div class="stat-progress mt-3">
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-secondary" style="width: {{ (company_stats.workers / company_stats.total * 100) if company_stats.total > 0 else 0 }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- بطاقة معلومات الشركة -->
     <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <h6 class="text-white-50">إجمالي الموظفين</h6>
-                    <h3>{{ company_stats.total }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-warning">
-                <div class="card-body">
-                    <h6 class="text-dark">المشرفين</h6>
-                    <h3 class="text-dark">{{ company_stats.supervisors }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <h6 class="text-white-50">المراقبين</h6>
-                    <h3>{{ company_stats.monitors }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-secondary text-white">
-                <div class="card-body">
-                    <h6 class="text-white-50">عمال النظافة</h6>
-                    <h3>{{ company_stats.workers }}</h3>
+        <div class="col-12">
+            <div class="company-profile-card">
+                <div class="company-profile-header">
+                    <div class="company-logo">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <div class="company-info">
+                        <h4 class="company-name">شركة {{ company }}</h4>
+                        <p class="company-desc">
+                            تضم الشركة {{ company_stats.total }} موظف موزعين على مناصب مختلفة
+                        </p>
+                    </div>
+                    <div class="company-badges">
+                        <span class="badge bg-primary">
+                            <i class="fas fa-user-tie me-1"></i>{{ company_stats.supervisors }} مشرف
+                        </span>
+                        <span class="badge bg-info">
+                            <i class="fas fa-eye me-1"></i>{{ company_stats.monitors }} مراقب
+                        </span>
+                        <span class="badge bg-secondary">
+                            <i class="fas fa-broom me-1"></i>{{ company_stats.workers }} عامل
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- جدول الموظفين -->
+    <!-- شريط البحث والفلترة -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="search-box">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="form-control search-input" id="searchEmployee"
+                       placeholder="ابحث عن موظف بالاسم أو المنصب...">
+            </div>
+        </div>
+        <div class="col-md-6 text-start">
+            <div class="btn-group" role="group">
+                <button class="btn btn-outline-primary filter-btn active" onclick="filterByPosition('all')">
+                    <i class="fas fa-users me-1"></i>الكل
+                </button>
+                <button class="btn btn-outline-warning filter-btn" onclick="filterByPosition('supervisor')">
+                    <i class="fas fa-user-tie me-1"></i>مشرفين
+                </button>
+                <button class="btn btn-outline-info filter-btn" onclick="filterByPosition('monitor')">
+                    <i class="fas fa-eye me-1"></i>مراقبين
+                </button>
+                <button class="btn btn-outline-secondary filter-btn" onclick="filterByPosition('worker')">
+                    <i class="fas fa-broom me-1"></i>عمال
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول الموظفين المحسن -->
     <div class="card shadow">
-        <div class="card-header">
-            <h6 class="m-0 font-weight-bold text-primary">
-                قائمة الموظفين في {{ company }}
-            </h6>
+        <div class="card-header bg-gradient-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="m-0">
+                    <i class="fas fa-list me-2"></i>قائمة الموظفين في {{ company }}
+                    <span class="badge bg-light text-primary ms-2" id="employeeCount">{{ employees|length }}</span>
+                </h6>
+                <div>
+                    <button class="btn btn-sm btn-light" onclick="exportToExcel()">
+                        <i class="fas fa-file-excel text-success me-1"></i>تصدير
+                    </button>
+                    <button class="btn btn-sm btn-light" onclick="printTable()">
+                        <i class="fas fa-print text-info me-1"></i>طباعة
+                    </button>
+                </div>
+            </div>
         </div>
         <div class="card-body">
             {% if employees %}
             <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
+                <table class="table table-hover" id="employeesTable">
+                    <thead class="table-light">
                         <tr>
                             <th>#</th>
-                            <th>الاسم</th>
+                            <th>الموظف</th>
                             <th>المنصب</th>
-                            <th>المشرف</th>
-                            <th>الهاتف</th>
+                            <th>المشرف المباشر</th>
+                            <th>معلومات الاتصال</th>
                             <th>الحالة</th>
                             <th>الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for emp in employees %}
-                        <tr>
-                            <td>{{ loop.index }}</td>
-                            <td>{{ emp.full_name }}</td>
-                            <td>
-                                <span class="badge {% if emp.position == 'supervisor' %}bg-warning{% elif emp.position == 'monitor' %}bg-info{% else %}bg-secondary{% endif %}">
-                                    {{ emp.position_ar }}
-                                </span>
+                        <tr data-position="{{ emp.position }}" data-name="{{ emp.full_name }}">
+                            <td class="align-middle">{{ loop.index }}</td>
+                            <td class="align-middle">
+                                <div class="d-flex align-items-center">
+                                    <div class="employee-avatar me-2"
+                                         style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+                                        {{ emp.full_name[0] }}
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold">{{ emp.full_name }}</div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-hashtag me-1"></i>{{ emp.code or 'بدون كود' }}
+                                        </small>
+                                    </div>
+                                </div>
                             </td>
-                            <td>{{ emp.supervisor.full_name if emp.supervisor else 'بدون مشرف' }}</td>
-                            <td>{{ emp.phone or 'غير محدد' }}</td>
-                            <td>
-                                <span class="badge bg-{{ 'success' if emp.is_active else 'danger' }}">
-                                    {{ 'نشط' if emp.is_active else 'غير نشط' }}
+                            <td class="align-middle">
+                                {% if emp.position == 'supervisor' %}
+                                <span class="position-badge position-supervisor">
+                                    <i class="fas fa-user-tie me-1"></i>مشرف
                                 </span>
+                                {% elif emp.position == 'monitor' %}
+                                <span class="position-badge position-monitor">
+                                    <i class="fas fa-eye me-1"></i>مراقب
+                                </span>
+                                {% else %}
+                                <span class="position-badge position-worker">
+                                    <i class="fas fa-broom me-1"></i>عامل نظافة
+                                </span>
+                                {% endif %}
                             </td>
-                            <td>
-                                <a href="{{ url_for('view_employee', id=emp.id) }}" class="btn btn-sm btn-info">
-                                    <i class="fas fa-eye"></i>
+                            <td class="align-middle">
+                                {% if emp.supervisor %}
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-user-tie text-warning me-2"></i>
+                                    {{ emp.supervisor.full_name }}
+                                </div>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>بدون مشرف
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="align-middle">
+                                {% if emp.phone %}
+                                <a href="tel:{{ emp.phone }}" class="text-decoration-none">
+                                    <i class="fas fa-phone-alt text-success me-1"></i>{{ emp.phone }}
                                 </a>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="align-middle">
+                                {% if emp.is_active %}
+                                <span class="status-badge status-active">
+                                    <span class="status-dot"></span>
+                                    نشط
+                                </span>
+                                {% else %}
+                                <span class="status-badge status-inactive">
+                                    <span class="status-dot"></span>
+                                    غير نشط
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="align-middle">
+                                <div class="action-buttons">
+                                    <button class="btn-action btn-view" onclick="viewEmployeeDetails('{{ emp.full_name }}', '{{ emp.code }}', '{{ emp.position }}', '{{ emp.qualification }}', '{{ emp.specialization }}', '{{ emp.phone }}', {{ 'true' if emp.is_active else 'false' }})">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    {% if current_user.role == 'owner' %}
+                                    <a href="{{ url_for('edit_employee', id=emp.id) }}" class="btn-action btn-edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -108,9 +313,386 @@
                 </table>
             </div>
             {% else %}
-            <p class="text-center text-muted py-4">لا يوجد موظفين في هذه الشركة</p>
+            <div class="text-center py-5">
+                <i class="fas fa-building fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">لا يوجد موظفين في هذه الشركة</h4>
+                <p class="text-muted mb-4">لم يتم إضافة أي موظفين لشركة {{ company }} بعد</p>
+                {% if current_user.role == 'owner' %}
+                <a href="{{ url_for('add_employee') }}?company={{ company }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>إضافة أول موظف
+                </a>
+                {% endif %}
+            </div>
             {% endif %}
         </div>
     </div>
 </div>
+
+<!-- مودال عرض التفاصيل -->
+<div class="modal fade" id="employeeDetailsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-circle me-2"></i>تفاصيل الموظف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="employeeDetailsContent">
+                <!-- يتم التعبئة عبر JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// دوال البحث والتصفية
+document.getElementById('searchEmployee').addEventListener('keyup', function() {
+    let searchText = this.value.toLowerCase();
+    let rows = document.querySelectorAll('#employeesTable tbody tr');
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+        let name = row.getAttribute('data-name').toLowerCase();
+        if (name.includes(searchText) || searchText === '') {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    document.getElementById('employeeCount').textContent = visibleCount;
+});
+
+function filterByPosition(position) {
+    // تحديث حالة الأزرار
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+
+    // تصفية الجدول
+    let rows = document.querySelectorAll('#employeesTable tbody tr');
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+        if (position === 'all' || row.getAttribute('data-position') === position) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    document.getElementById('employeeCount').textContent = visibleCount;
+}
+
+// عرض تفاصيل الموظف
+function viewEmployeeDetails(name, code, position, qualification, specialization, phone, isActive) {
+    const positionMap = {
+        'supervisor': 'مشرف',
+        'monitor': 'مراقب',
+        'worker': 'عامل نظافة'
+    };
+
+    const modalContent = `
+        <div class="text-center mb-4">
+            <div class="avatar-large mx-auto mb-3"
+                 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+                ${name[0]}
+            </div>
+            <h5>${name}</h5>
+            <span class="badge bg-primary">${code || 'بدون كود'}</span>
+        </div>
+        <table class="table table-bordered">
+            <tr>
+                <th>المنصب</th>
+                <td><span class="badge ${position === 'supervisor' ? 'bg-warning' : position === 'monitor' ? 'bg-info' : 'bg-secondary'}">${positionMap[position]}</span></td>
+            </tr>
+            <tr>
+                <th>المؤهل</th>
+                <td>${qualification || 'غير محدد'}</td>
+            </tr>
+            <tr>
+                <th>التخصص</th>
+                <td>${specialization || 'غير محدد'}</td>
+            </tr>
+            <tr>
+                <th>الهاتف</th>
+                <td>${phone || 'غير محدد'}</td>
+            </tr>
+            <tr>
+                <th>الحالة</th>
+                <td><span class="badge bg-${isActive ? 'success' : 'danger'}">${isActive ? 'نشط' : 'غير نشط'}</span></td>
+            </tr>
+        </table>
+    `;
+
+    document.getElementById('employeeDetailsContent').innerHTML = modalContent;
+    new bootstrap.Modal(document.getElementById('employeeDetailsModal')).show();
+}
+
+// دوال التصدير
+function exportToExcel() {
+    alert('سيتم إضافة خاصية التصدير قريباً');
+}
+
+function printTable() {
+    window.print();
+}
+</script>
+
+<style>
+/* تحسينات التدرج اللوني */
+.text-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* تأثيرات حركية */
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.6s ease-out;
+}
+
+.icon-float {
+    animation: float 3s ease-in-out infinite;
+}
+
+.btn-float {
+    transition: all 0.3s ease;
+}
+.btn-float:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+/* بطاقات الإحصائيات */
+.stat-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+}
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+.stat-card-body {
+    padding: 20px;
+}
+.stat-label {
+    font-size: 13px;
+    color: #858796;
+    font-weight: 500;
+}
+.stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #5a5c69;
+    margin: 5px 0;
+}
+.stat-trend {
+    font-size: 12px;
+}
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+.bg-warning-soft {
+    background: rgba(246,194,62,0.1);
+}
+.bg-info-soft {
+    background: rgba(54,185,204,0.1);
+}
+.bg-secondary-soft {
+    background: rgba(108,117,125,0.1);
+}
+
+/* بروفايل الشركة */
+.company-profile-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    padding: 30px;
+    color: white;
+    box-shadow: 0 10px 25px rgba(102,126,234,0.3);
+}
+.company-profile-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+.company-logo {
+    width: 60px;
+    height: 60px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+}
+.company-name {
+    margin: 0;
+    font-size: 24px;
+}
+.company-desc {
+    margin: 5px 0 0 0;
+    opacity: 0.9;
+    font-size: 14px;
+}
+.company-badges {
+    margin-right: auto;
+    display: flex;
+    gap: 10px;
+}
+
+/* شريط البحث */
+.search-box {
+    position: relative;
+}
+.search-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #858796;
+    z-index: 10;
+}
+.search-input {
+    padding-right: 40px;
+    border-radius: 10px;
+    border: 1px solid #e3e6f0;
+}
+.search-input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+}
+
+/* الصورة الرمزية */
+.employee-avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+}
+.avatar-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 32px;
+    font-weight: 600;
+}
+
+/* شارات المنصب */
+.position-badge {
+    padding: 5px 12px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+}
+.position-supervisor {
+    background: rgba(246,194,62,0.1);
+    color: #b8860b;
+}
+.position-monitor {
+    background: rgba(54,185,204,0.1);
+    color: #138496;
+}
+.position-worker {
+    background: rgba(108,117,125,0.1);
+    color: #5a6268;
+}
+
+/* شارة الحالة */
+.status-badge {
+    padding: 5px 12px;
+    border-radius: 30px;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+}
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-left: 6px;
+}
+.status-active {
+    background: rgba(28,200,138,0.1);
+    color: #1cc88a;
+}
+.status-active .status-dot {
+    background: #1cc88a;
+    box-shadow: 0 0 0 3px rgba(28,200,138,0.2);
+}
+.status-inactive {
+    background: rgba(231,74,59,0.1);
+    color: #e74a3b;
+}
+.status-inactive .status-dot {
+    background: #e74a3b;
+    box-shadow: 0 0 0 3px rgba(231,74,59,0.2);
+}
+
+/* أزرار الإجراءات */
+.action-buttons {
+    display: flex;
+    gap: 5px;
+}
+.btn-action {
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+.btn-view {
+    background: rgba(54,185,204,0.1);
+    color: #36b9cc;
+}
+.btn-view:hover {
+    background: #36b9cc;
+    color: white;
+}
+.btn-edit {
+    background: rgba(246,194,62,0.1);
+    color: #f6c23e;
+}
+.btn-edit:hover {
+    background: #f6c23e;
+    color: white;
+}
+</style>
 {% endblock %}

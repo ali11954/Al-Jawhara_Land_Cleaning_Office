@@ -168,11 +168,11 @@
                                 </li>
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance" type="button" role="tab">الحضور والانصراف</button>
-                               </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="supervisors-tab" data-bs-toggle="tab" data-bs-target="#supervisors" type="button" role="tab">
-            <i class="fas fa-user-tie me-1"></i>المشرفين
-        </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="supervisors-tab" data-bs-toggle="tab" data-bs-target="#supervisors" type="button" role="tab">
+                                        <i class="fas fa-user-tie me-1"></i>المشرفين
+                                    </button>
                                 </li>
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="financial-tab" data-bs-toggle="tab" data-bs-target="#financial" type="button" role="tab">المالية</button>
@@ -193,340 +193,371 @@
                                                     <th>إجراءات</th>
                                                 </tr>
                                             </thead>
-                                           <tbody>
-    <tr>
-        <td>
-            <i class="fas fa-user-tie text-primary me-2"></i>
-            تقرير أداء الموظفين الشامل
-        </td>
-        <td>{{ now|date if now else today|date if today else '' }}</td>
-        <td><span class="badge bg-success">مفعل</span></td>
-        <td>
-            <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_employees_performance') }}'">
-                <i class="fas fa-eye"></i> عرض
-            </button>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <i class="fas fa-chart-line text-success me-2"></i>
-            تحليل كفاءة الموظفين
-        </td>
-        <td>{{ now|date if now else today|date if today else '' }}</td>
-        <td><span class="badge bg-success">مفعل</span></td>
-        <td>
-            <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_employees_efficiency') }}'">
-                <i class="fas fa-eye"></i> عرض
-            </button>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <i class="fas fa-medal text-warning me-2"></i>
-            أفضل الموظفين أداءً
-        </td>
-        <td>{{ now|date if now else today|date if today else '' }}</td>
-        <td><span class="badge bg-success">مفعل</span></td>
-        <td>
-            <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_top_employees') }}'">
-                <i class="fas fa-eye"></i> عرض
-            </button>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <i class="fas fa-clock text-info me-2"></i>
-            سجل حضور الموظفين
-        </td>
-        <td>{{ now|date if now else today|date if today else '' }}</td>
-        <td><span class="badge bg-success">مفعل</span></td>
-        <td>
-            <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_attendance_record') }}'">
-                <i class="fas fa-eye"></i> عرض
-            </button>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <i class="fas fa-exclamation-triangle text-danger me-2"></i>
-            الموظفون المتأخرون
-        </td>
-        <td>{{ now|date if now else today|date if today else '' }}</td>
-        <td><span class="badge bg-success">مفعل</span></td>
-        <td>
-            <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_late_employees') }}'">
-                <i class="fas fa-eye"></i> عرض
-            </button>
-        </td>
-    </tr>
-</tbody>
+                                            <tbody>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-user-tie text-primary me-2"></i>
+                                                        تقرير أداء الموظفين الشامل
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_employees_performance') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-chart-line text-success me-2"></i>
+                                                        تحليل كفاءة الموظفين
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_employees_efficiency') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-medal text-warning me-2"></i>
+                                                        أفضل الموظفين أداءً
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_top_employees') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-clock text-info me-2"></i>
+                                                        سجل حضور الموظفين
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_attendance_record') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                                                        الموظفون المتأخرون
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_late_employees') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
                                         </table>
                                     </div>
                                 </div>
 
-                           <!-- تقارير الشركات والمناطق -->
-<div class="tab-pane fade" id="companies" role="tabpanel">
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>التقرير</th>
-                    <th>آخر تحديث</th>
-                    <th>حالة التفعيل</th>
-                    <th>إجراءات</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>
-                        <i class="fas fa-building text-primary me-2"></i>
-                        تقرير الشركات والمناطق - شامل
-                    </td>
-                    <td>{{ now|date if now else today|date if today else '' }}</td>
-                    <td><span class="badge bg-success">مفعل</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_companies_zones') }}'">
-                            <i class="fas fa-eye"></i> عرض
-                        </button>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <i class="fas fa-chart-bar text-success me-2"></i>
-                        توزيع الموظفين على الشركات - تحليل متقدم
-                    </td>
-                    <td>{{ now|date if now else today|date if today else '' }}</td>
-                    <td><span class="badge bg-success">مفعل</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_employees_distribution') }}'">
-                            <i class="fas fa-eye"></i> عرض
-                        </button>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <i class="fas fa-star text-warning me-2"></i>
-                        تقييم الشركات حسب المناطق - تحليل ذكي
-                    </td>
-                    <td>{{ now|date if now else today|date if today else '' }}</td>
-                    <td><span class="badge bg-success">مفعل</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_companies_ratings') }}'">
-                            <i class="fas fa-eye"></i> عرض
-                        </button>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <i class="fas fa-fire text-danger me-2"></i>
-                        خريطة المناطق الحرارية - تفاعلية
-                    </td>
-                    <td>{{ now|date if now else today|date if today else '' }}</td>
-                    <td><span class="badge bg-success">مفعل</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_heatmap') }}'">
-                            <i class="fas fa-eye"></i> عرض
-                        </button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
-<!-- تقارير التقييمات -->
-<div class="tab-pane fade" id="evaluations" role="tabpanel">
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>التقرير</th>
-                    <th>آخر تحديث</th>
-                    <th>حالة التفعيل</th>
-                    <th>إجراءات</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>
-                        <i class="fas fa-calendar-check text-primary me-2"></i>
-                        التقييمات اليومية - تقرير ذكي
-                    </td>
-                    <td>{{ now|date if now else today|date if today else '' }}</td>
-                    <td><span class="badge bg-success">مفعل</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_daily_evaluations_advanced') }}'">
-                            <i class="fas fa-eye"></i> عرض
-                        </button>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <i class="fas fa-chart-line text-success me-2"></i>
-                        اتجاهات التقييم الشهرية - تحليل متقدم
-                    </td>
-                    <td>{{ now|date if now else today|date if today else '' }}</td>
-                    <td><span class="badge bg-success">مفعل</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_monthly_trends_advanced') }}'">
-                            <i class="fas fa-eye"></i> عرض
-                        </button>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <i class="fas fa-clipboard-list text-warning me-2"></i>
-                        تفاصيل التقييمات حسب المعايير
-                    </td>
-                    <td>{{ now|date if now else today|date if today else '' }}</td>
-                    <td><span class="badge bg-success">مفعل</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_evaluation_details_advanced') }}'">
-                            <i class="fas fa-eye"></i> عرض
-                        </button>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <i class="fas fa-flag-checkered text-info me-2"></i>
-                        مؤشرات الأداء الرئيسية - KPIs
-                    </td>
-                    <td>{{ now|date if now else today|date if today else '' }}</td>
-                    <td><span class="badge bg-success">مفعل</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_kpis_advanced') }}'">
-                            <i class="fas fa-eye"></i> عرض
-                        </button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
-                         <!-- تقارير الحضور والانصراف -->
-<div class="tab-pane fade" id="attendance" role="tabpanel">
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>التقرير</th>
-                    <th>آخر تحديث</th>
-                    <th>حالة التفعيل</th>
-                    <th>إجراءات</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>
-                        <i class="fas fa-fingerprint text-primary me-2"></i>
-                        سجل الحضور والانصراف - متقدم
-                    </td>
-                    <td>{{ now|date if now else today|date if today else '' }}</td>
-                    <td><span class="badge bg-success">مفعل</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_attendance_record_advanced') }}'">
-                            <i class="fas fa-eye"></i> عرض
-                        </button>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <i class="fas fa-hourglass-half text-success me-2"></i>
-                        ساعات العمل الإضافية - تحليلي
-                    </td>
-                    <td>{{ now|date if now else today|date if today else '' }}</td>
-                    <td><span class="badge bg-success">مفعل</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_overtime') }}'">
-                            <i class="fas fa-eye"></i> عرض
-                        </button>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <i class="fas fa-calendar-alt text-warning me-2"></i>
-                        ملخص الحضور الشهري - شامل
-                    </td>
-                    <td>{{ now|date if now else today|date if today else '' }}</td>
-                    <td><span class="badge bg-success">مفعل</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_monthly_summary') }}'">
-                            <i class="fas fa-eye"></i> عرض
-                        </button>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <i class="fas fa-percent text-info me-2"></i>
-                        نسب الغياب والتأخير - تحليلي
-                    </td>
-                    <td>{{ now|date if now else today|date if today else '' }}</td>
-                    <td><span class="badge bg-success">مفعل</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_absence_rates') }}'">
-                            <i class="fas fa-eye"></i> عرض
-                        </button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
-                  <!-- تقارير المشرفين - جديدة -->
-    <div class="tab-pane fade" id="supervisors" role="tabpanel">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>التقرير</th>
-                        <th>آخر تحديث</th>
-                        <th>حالة التفعيل</th>
-                        <th>إجراءات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>
-                            <i class="fas fa-user-tie text-primary me-2"></i>
-                            تقرير أداء المشرفين الشامل
-                        </td>
-                        <td>{{ now|date if now else today|date if today else '' }}</td>
-                        <td><span class="badge bg-success">مفعل</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_supervisor_performance') }}'">
-                                <i class="fas fa-eye"></i> عرض
-                            </button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <i class="fas fa-clipboard-list text-success me-2"></i>
-                            تقييم المشرفين التفصيلي
-                        </td>
-                        <td>{{ now|date if now else today|date if today else '' }}</td>
-                        <td><span class="badge bg-success">مفعل</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_supervisor_detailed_evaluation') }}'">
-                                <i class="fas fa-eye"></i> عرض
-                            </button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <i class="fas fa-chart-line text-warning me-2"></i>
-                            لوحة مؤشرات أداء المشرفين
-                        </td>
-                        <td>{{ now|date if now else today|date if today else '' }}</td>
-                        <td><span class="badge bg-success">مفعل</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_supervisor_kpi_dashboard') }}'">
-                                <i class="fas fa-eye"></i> عرض
-                            </button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
+                                <!-- تقارير الشركات والمناطق -->
+                                <div class="tab-pane fade" id="companies" role="tabpanel">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>التقرير</th>
+                                                    <th>آخر تحديث</th>
+                                                    <th>حالة التفعيل</th>
+                                                    <th>إجراءات</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-building text-primary me-2"></i>
+                                                        تقرير الشركات والمناطق - شامل
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_companies_zones') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-chart-bar text-success me-2"></i>
+                                                        توزيع الموظفين على الشركات - تحليل متقدم
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_employees_distribution') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-star text-warning me-2"></i>
+                                                        تقييم الشركات حسب المناطق - تحليل ذكي
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_companies_ratings') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-fire text-danger me-2"></i>
+                                                        خريطة المناطق الحرارية - تفاعلية
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_heatmap') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- تقارير التقييمات -->
+                                <div class="tab-pane fade" id="evaluations" role="tabpanel">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>التقرير</th>
+                                                    <th>آخر تحديث</th>
+                                                    <th>حالة التفعيل</th>
+                                                    <th>إجراءات</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-calendar-check text-primary me-2"></i>
+                                                        التقييمات اليومية - تقرير ذكي
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_daily_evaluations_advanced') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-chart-line text-success me-2"></i>
+                                                        اتجاهات التقييم الشهرية - تحليل متقدم
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_monthly_trends_advanced') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-clipboard-list text-warning me-2"></i>
+                                                        تفاصيل التقييمات حسب المعايير
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_evaluation_details_advanced') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-flag-checkered text-info me-2"></i>
+                                                        مؤشرات الأداء الرئيسية - KPIs
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_kpis_advanced') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- تقارير الحضور والانصراف مع رابط الجزاءات -->
+                                <div class="tab-pane fade" id="attendance" role="tabpanel">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>التقرير</th>
+                                                    <th>آخر تحديث</th>
+                                                    <th>حالة التفعيل</th>
+                                                    <th>إجراءات</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-fingerprint text-primary me-2"></i>
+                                                        سجل الحضور والانصراف - متقدم
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_attendance_record_advanced') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-hourglass-half text-success me-2"></i>
+                                                        ساعات العمل الإضافية - تحليلي
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_overtime') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-building text-info me-2"></i>
+                                                        تقرير حضور الموظفين على مستوى الشركات
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_company_attendance') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-calendar-alt text-warning me-2"></i>
+                                                        ملخص الحضور الشهري - شامل
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_monthly_summary') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-percent text-info me-2"></i>
+                                                        نسب الغياب والتأخير - تحليلي
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_absence_rates') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <!-- رابط الجزاءات مع تلوين مميز -->
+                                                <tr class="table-warning">
+                                                    <td>
+                                                        <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                                                        <strong>قائمة الجزاءات والخصومات</strong>
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-danger" onclick="window.location.href='{{ url_for('penalties_list') }}'">
+                                                            <i class="fas fa-eye"></i> عرض الجزاءات
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- تقارير المشرفين -->
+                                <div class="tab-pane fade" id="supervisors" role="tabpanel">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>التقرير</th>
+                                                    <th>آخر تحديث</th>
+                                                    <th>حالة التفعيل</th>
+                                                    <th>إجراءات</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-user-tie text-primary me-2"></i>
+                                                        تقرير أداء المشرفين الشامل
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_supervisor_performance') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-clipboard-list text-success me-2"></i>
+                                                        تقييم المشرفين التفصيلي
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_supervisor_detailed_evaluation') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <i class="fas fa-chart-line text-warning me-2"></i>
+                                                        لوحة مؤشرات أداء المشرفين
+                                                    </td>
+                                                    <td>{{ now|date if now else today|date if today else '' }}</td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_supervisor_kpi_dashboard') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
                                 <!-- التقارير المالية -->
                                 <div class="tab-pane fade" id="financial" role="tabpanel">
                                     <div class="table-responsive">
@@ -542,40 +573,92 @@
                                             <tbody>
                                                 <tr>
                                                     <td>
-                                                        <i class="fas fa-money-bill-wave text-primary me-2"></i>
-                                                        تكاليف المشاريع
+                                                        <i class="fas fa-money-bill-wave text-success me-2"></i>
+                                                        تقرير الرواتب الشامل - على مستوى الشركات
                                                     </td>
                                                     <td>{{ now|date if now else today|date if today else '' }}</td>
-                                                    <td><span class="badge bg-warning text-dark">قيد التفعيل</span></td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
                                                     <td>
-                                                        <button class="btn btn-sm btn-outline-secondary" disabled>
-                                                            <i class="fas fa-eye"></i> قريباً
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_salary_report') }}'">
+                                                            <i class="fas fa-eye"></i> عرض
                                                         </button>
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        <i class="fas fa-file-invoice-dollar text-success me-2"></i>
-                                                        الفواتير والمدفوعات
+                                                        <i class="fas fa-file-invoice-dollar text-primary me-2"></i>
+                                                        كشوف المرتبات الشهرية
                                                     </td>
                                                     <td>{{ now|date if now else today|date if today else '' }}</td>
-                                                    <td><span class="badge bg-warning text-dark">قيد التفعيل</span></td>
+                                                    <td><span class="badge bg-success">مفعل</span></td>
                                                     <td>
-                                                        <button class="btn btn-sm btn-outline-secondary" disabled>
-                                                            <i class="fas fa-eye"></i> قريباً
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('report_salary_report') }}?month={{ today.month }}&year={{ today.year }}'">
+                                                            <i class="fas fa-eye"></i> عرض
                                                         </button>
                                                     </td>
                                                 </tr>
+                                               <tr>
+    <td>
+        <i class="fas fa-chart-pie text-danger me-2"></i>
+        تقرير الإغلاق الشهري - متقدم
+    </td>
+    <td>{{ now|date if now else today|date if today else '' }}</td>
+    <td><span class="badge bg-success">مفعل</span></td>
+    <td>
+        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('monthly_closing') }}'">
+            <i class="fas fa-eye"></i> عرض
+        </button>
+    </td>
+</tr>
+                                                <tr>
+    <td>
+        <i class="fas fa-file-invoice text-info me-2"></i>
+        فواتير الشركات
+    </td>
+    <td>{{ now|date if now else today|date if today else '' }}</td>
+    <td><span class="badge bg-success">جديد</span></td>
+    <td>
+        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('company_invoices_list') }}'">
+            <i class="fas fa-eye"></i> عرض
+        </button>
+    </td>
+</tr>
+<tr>
+    <td>
+        <i class="fas fa-plus-circle text-success me-2"></i>
+        إيرادات أخرى
+    </td>
+    <td>{{ now|date if now else today|date if today else '' }}</td>
+    <td><span class="badge bg-success">جديد</span></td>
+    <td>
+        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('other_income') }}'">
+            <i class="fas fa-eye"></i> عرض
+        </button>
+    </td>
+</tr>
+<tr>
+    <td>
+        <i class="fas fa-chart-pie text-danger me-2"></i>
+        تقرير الإغلاق الشهري المتقدم
+    </td>
+    <td>{{ now|date if now else today|date if today else '' }}</td>
+    <td><span class="badge bg-success">جديد</span></td>
+    <td>
+        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('monthly_closing') }}'">
+            <i class="fas fa-eye"></i> عرض
+        </button>
+    </td>
+</tr>
                                                 <tr>
                                                     <td>
                                                         <i class="fas fa-chart-pie text-info me-2"></i>
-                                                        تحليل التكاليف والإيرادات
+                                                        تحليل الرواتب والمصروفات
                                                     </td>
                                                     <td>{{ now|date if now else today|date if today else '' }}</td>
-                                                    <td><span class="badge bg-secondary">غير مفعل</span></td>
+                                                    <td><span class="badge bg-warning text-dark">قريباً</span></td>
                                                     <td>
-                                                        <button class="btn btn-sm btn-primary" onclick="activateReport('financial')">
-                                                            <i class="fas fa-play"></i> تفعيل
+                                                        <button class="btn btn-sm btn-outline-secondary" disabled>
+                                                            <i class="fas fa-eye"></i> قريباً
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -583,11 +666,12 @@
                                         </table>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                            </div> <!-- نهاية tab-content -->
+                        </div> <!-- نهاية card-body -->
+                    </div> <!-- نهاية card -->
+                </div> <!-- نهاية col-lg-8 -->
 
+                <!-- العمود الأيمن للتقارير الذكية -->
                 <div class="col-lg-4">
                     <!-- التقارير الذكية والتوصيات -->
                     <div class="card shadow mb-4">
@@ -721,11 +805,11 @@
                             </button>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+                </div> <!-- نهاية col-lg-4 -->
+            </div> <!-- نهاية row -->
+        </div> <!-- نهاية col-12 -->
+    </div> <!-- نهاية row -->
+</div> <!-- نهاية container-fluid -->
 
 <!-- نافذة معاينة التقرير -->
 <div class="modal fade" id="reportPreviewModal" tabindex="-1">

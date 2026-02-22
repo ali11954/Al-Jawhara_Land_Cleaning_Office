@@ -21,9 +21,10 @@
                             <label for="position" class="form-label">
                                 <i class="fas fa-briefcase me-1"></i>المسمى الوظيفي <span class="text-danger">*</span>
                             </label>
-                            <select class="form-select" id="position" name="position" required>
+                            <select class="form-select" id="position" name="position" required onchange="toggleFields()">
                                 <option value="">-- اختر المسمى الوظيفي --</option>
                                 <option value="supervisor">مشرف</option>
+                                <option value="admin">إداري</option>
                                 <option value="monitor">مراقب نظافة</option>
                                 <option value="worker">عامل نظافة</option>
                             </select>
@@ -33,6 +34,25 @@
 
                     <!-- جميع الحقول الأخرى - مخفية في البداية -->
                     <div id="allFields" style="display: none;">
+                        <!-- الرقم التسلسلي (يظهر للقراءة فقط) -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="code" class="form-label">
+                                    <i class="fas fa-hashtag me-1"></i>الرقم التسلسلي
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light" id="codePrefix">#</span>
+                                    <input type="text" class="form-control bg-light" id="code" name="code"
+                                           value="سيتم توليده تلقائياً" readonly disabled
+                                           style="background-color: #f8f9fa; color: #4e73df; font-weight: 500;">
+                                </div>
+                                <div class="form-text text-muted">
+                                    <i class="fas fa-info-circle me-1 text-info"></i>
+                                    يتم توليد رقم تسلسلي تلقائي للموظف يبدأ من 1001
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- الاسم الكامل والهاتف -->
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -110,7 +130,47 @@
                             </div>
                         </div>
 
-                        <!-- المشرف المباشر - يظهر للمراقبين والعمال فقط -->
+                        <!-- المؤهل العلمي - يظهر للمشرفين والإداريين -->
+                        <div class="row" id="qualificationRow" style="display: none;">
+                            <div class="col-md-6 mb-3">
+                                <label for="qualification" class="form-label">
+                                    <i class="fas fa-graduation-cap me-1"></i>المؤهل العلمي <span class="text-danger" id="qualificationRequired">*</span>
+                                </label>
+                                <select class="form-select" id="qualification" name="qualification">
+                                    <option value="">-- اختر المؤهل العلمي --</option>
+                                    <option value="ثانوية عامة">ثانوية عامة</option>
+                                    <option value="دبلوم">دبلوم</option>
+                                    <option value="بكالوريوس">بكالوريوس</option>
+                                    <option value="ماجستير">ماجستير</option>
+                                    <option value="دكتوراه">دكتوراه</option>
+                                    <option value="أخرى">أخرى</option>
+                                </select>
+                                <div class="invalid-feedback">يرجى اختيار المؤهل العلمي</div>
+                            </div>
+                            <div class="col-md-6 mb-3" id="qualificationOtherRow" style="display: none;">
+                                <label for="qualification_other" class="form-label">
+                                    <i class="fas fa-pen me-1"></i>تحديد المؤهل
+                                </label>
+                                <input type="text" class="form-control" id="qualification_other" name="qualification_other"
+                                       placeholder="أدخل المؤهل العلمي" disabled>
+                                <div class="form-text">أدخل المؤهل العلمي إذا اخترت "أخرى"</div>
+                            </div>
+                        </div>
+
+                        <!-- حقل التخصص - يظهر للمشرفين والإداريين -->
+                        <div class="row" id="specializationRow" style="display: none;">
+                            <div class="col-md-6 mb-3">
+                                <label for="specialization" class="form-label">
+                                    <i class="fas fa-certificate me-1"></i>التخصص <span class="text-danger" id="specializationRequired">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="specialization" name="specialization"
+                                       placeholder="أدخل التخصص (مثال: مالية، موارد بشرية، إدارة عامة)">
+                                <div class="form-text text-muted">أدخل التخصص الوظيفي للموظف</div>
+                                <div class="invalid-feedback">يرجى إدخال التخصص</div>
+                            </div>
+                        </div>
+
+                        <!-- المشرف المباشر - يظهر للمراقبين والعمال والإداريين -->
                         <div class="row" id="supervisorRow" style="display: none;">
                             <div class="col-md-6 mb-3">
                                 <label for="supervisor_id" class="form-label">
@@ -119,7 +179,7 @@
                                 <select class="form-select" id="supervisor_id" name="supervisor_id">
                                     <option value="">-- بدون مشرف مباشر --</option>
                                     {% for supervisor in supervisors %}
-                                    <option value="{{ supervisor.id }}">{{ supervisor.full_name }}</option>
+                                    <option value="{{ supervisor.id }}">{{ supervisor.full_name }} ({{ supervisor.code or 'بدون رقم' }})</option>
                                     {% endfor %}
                                 </select>
                                 <div class="form-text">اختر المشرف المسؤول عن هذا الموظف</div>
@@ -131,7 +191,7 @@
                             <hr class="my-4">
                             <div class="alert alert-primary mb-3">
                                 <i class="fas fa-info-circle me-2"></i>
-                                <strong>معلومات تسجيل الدخول:</strong> سيتم إنشاء حساب للمشرف
+                                <strong>معلومات تسجيل الدخول:</strong> سيتم إنشاء حساب للمشرف فقط
                             </div>
 
                             <div class="row">
@@ -147,7 +207,7 @@
                                         </button>
                                     </div>
                                     <div class="invalid-feedback username-feedback"></div>
-                                    <div class="form-text">3 أحرف على الأقل</div>
+                                    <div class="form-text">3 أحرف على الأقل، سيتم إنشاء حساب للمشرف فقط</div>
                                 </div>
 
                                 <div class="col-md-6 mb-3">
@@ -192,6 +252,8 @@
                                 <li>جميع الحقول التي تحمل علامة <span class="text-danger">*</span> إلزامية</li>
                                 <li>يتم تحديد صلاحيات الموظف بناءً على المسمى الوظيفي</li>
                                 <li class="text-primary">حساب المستخدم يُنشأ فقط للمشرفين</li>
+                                <li class="text-success"><i class="fas fa-hashtag me-1"></i>الرقم التسلسلي يُنشأ تلقائياً يبدأ من 1001</li>
+                                <li class="text-info"><i class="fas fa-certificate me-1"></i>حقل التخصص مطلوب للمشرفين والإداريين</li>
                             </ul>
                         </div>
 
@@ -211,50 +273,216 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const positionSelect = document.getElementById('position');
+// دالة إظهار/إخفاء الحقول حسب المسمى الوظيفي
+function toggleFields() {
+    const position = document.getElementById('position').value;
     const allFields = document.getElementById('allFields');
+    const qualificationRow = document.getElementById('qualificationRow');
+    const specializationRow = document.getElementById('specializationRow');
     const supervisorRow = document.getElementById('supervisorRow');
     const userFields = document.getElementById('userFields');
+    const qualificationSelect = document.getElementById('qualification');
+    const specializationInput = document.getElementById('specialization');
 
-    console.log('✅ تم تحميل الصفحة - في انتظار اختيار المسمى الوظيفي');
+    console.log('📝 تم اختيار:', position);
 
-    positionSelect.addEventListener('change', function() {
-        const position = this.value;
-        console.log('📝 تم اختيار:', position);
+    if (position) {
+        // إظهار جميع الحقول الأساسية
+        allFields.style.display = 'block';
 
-        if (position) {
-            // إظهار جميع الحقول الأساسية
-            allFields.style.display = 'block';
+        // إخفاء جميع الحقول الخاصة أولاً
+        qualificationRow.style.display = 'none';
+        specializationRow.style.display = 'none';
+        supervisorRow.style.display = 'none';
+        userFields.style.display = 'none';
 
-            // إخفاء الحقول الخاصة أولاً
-            supervisorRow.style.display = 'none';
-            userFields.style.display = 'none';
-
-            // إعادة تعيين الحقول
-            if (document.getElementById('username')) {
-                document.getElementById('username').required = false;
-                document.getElementById('password').required = false;
-                document.getElementById('confirm_password').required = false;
-            }
-
-            // إظهار الحقول المناسبة حسب المسمى
-            if (position === 'supervisor') {
-                userFields.style.display = 'block';
-                document.getElementById('username').required = true;
-                document.getElementById('password').required = true;
-                document.getElementById('confirm_password').required = true;
-                console.log('✅ تم إظهار حقول المستخدم للمشرف');
-            }
-            else if (position === 'monitor' || position === 'worker') {
-                supervisorRow.style.display = 'block';
-                console.log('✅ تم إظهار المشرف المباشر للمراقب/العامل');
-            }
-        } else {
-            // إخفاء جميع الحقول الأخرى
-            allFields.style.display = 'none';
-            console.log('🔻 تم إخفاء جميع الحقول');
+        // إعادة تعيين الحقول
+        if (qualificationSelect) {
+            qualificationSelect.required = false;
+            qualificationSelect.value = '';
         }
+        if (specializationInput) {
+            specializationInput.required = false;
+            specializationInput.value = '';
+        }
+        if (document.getElementById('username')) {
+            document.getElementById('username').required = false;
+            document.getElementById('password').required = false;
+            document.getElementById('confirm_password').required = false;
+        }
+
+        // إظهار الحقول المناسبة حسب المسمى
+        if (position === 'supervisor') {
+            // للمشرف: إظهار المؤهل العلمي، التخصص، وحقول المستخدم
+            qualificationRow.style.display = 'block';
+            specializationRow.style.display = 'block';
+            userFields.style.display = 'block';
+
+            qualificationSelect.required = true;
+            specializationInput.required = true;
+            document.getElementById('username').required = true;
+            document.getElementById('password').required = true;
+            document.getElementById('confirm_password').required = true;
+
+            console.log('✅ تم إظهار حقول المشرف');
+        }
+        else if (position === 'admin') {
+            // للإداري: إظهار المؤهل العلمي، التخصص، والمشرف المباشر
+            qualificationRow.style.display = 'block';
+            specializationRow.style.display = 'block';
+            supervisorRow.style.display = 'block';
+
+            qualificationSelect.required = true;
+            specializationInput.required = true;
+
+            console.log('✅ تم إظهار حقول الإداري');
+        }
+        else if (position === 'monitor' || position === 'worker') {
+            // للمراقب والعامل: إظهار المشرف المباشر فقط
+            supervisorRow.style.display = 'block';
+            console.log('✅ تم إظهار المشرف المباشر للمراقب/العامل');
+        }
+    } else {
+        // إخفاء جميع الحقول الأخرى
+        allFields.style.display = 'none';
+        console.log('🔻 تم إخفاء جميع الحقول');
+    }
+}
+
+// معالجة تغيير المؤهل العلمي
+document.addEventListener('DOMContentLoaded', function() {
+    const qualificationSelect = document.getElementById('qualification');
+    const qualificationOtherRow = document.getElementById('qualificationOtherRow');
+    const qualificationOther = document.getElementById('qualification_other');
+
+    if (qualificationSelect) {
+        qualificationSelect.addEventListener('change', function() {
+            if (this.value === 'أخرى') {
+                qualificationOtherRow.style.display = 'block';
+                qualificationOther.disabled = false;
+                qualificationOther.required = true;
+            } else {
+                qualificationOtherRow.style.display = 'none';
+                qualificationOther.disabled = true;
+                qualificationOther.required = false;
+                qualificationOther.value = '';
+            }
+        });
+    }
+});
+
+// التحقق من صحة النموذج قبل الإرسال
+document.getElementById('employeeForm').addEventListener('submit', function(e) {
+    const position = document.getElementById('position').value;
+
+    if (!position) {
+        e.preventDefault();
+        document.getElementById('position').classList.add('is-invalid');
+        alert('❌ يرجى اختيار المسمى الوظيفي أولاً');
+        return;
+    }
+
+    // التحقق من الاسم الكامل
+    const fullName = document.getElementById('full_name');
+    if (!fullName.value.trim()) {
+        e.preventDefault();
+        fullName.classList.add('is-invalid');
+        fullName.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        alert('❌ يرجى إدخال الاسم الكامل');
+        return;
+    }
+
+    // التحقق من الشركة
+    const company = document.getElementById('company_id');
+    if (!company.value) {
+        e.preventDefault();
+        company.classList.add('is-invalid');
+        company.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        alert('❌ يرجى اختيار الشركة');
+        return;
+    }
+
+    // التحقق من المؤهل العلمي للمشرف والإداري
+    if (position === 'supervisor' || position === 'admin') {
+        const qualification = document.getElementById('qualification');
+        if (!qualification.value) {
+            e.preventDefault();
+            qualification.classList.add('is-invalid');
+            qualification.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            alert('❌ يرجى اختيار المؤهل العلمي');
+            return;
+        }
+
+        // التحقق من التخصص
+        const specialization = document.getElementById('specialization');
+        if (!specialization.value.trim()) {
+            e.preventDefault();
+            specialization.classList.add('is-invalid');
+            specialization.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            alert('❌ يرجى إدخال التخصص');
+            return;
+        }
+    }
+
+    // التحقق من اسم المستخدم وكلمة المرور للمشرف فقط
+    if (position === 'supervisor') {
+        const username = document.getElementById('username');
+        const password = document.getElementById('password');
+        const confirmPassword = document.getElementById('confirm_password');
+
+        if (!username.value.trim()) {
+            e.preventDefault();
+            username.classList.add('is-invalid');
+            username.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            alert('❌ اسم المستخدم مطلوب للمشرفين');
+            return;
+        }
+
+        if (username.value.length < 3) {
+            e.preventDefault();
+            username.classList.add('is-invalid');
+            document.querySelector('.username-feedback').textContent = '❌ اسم المستخدم قصير جداً (3 أحرف على الأقل)';
+            username.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            alert('❌ اسم المستخدم يجب أن يكون 3 أحرف على الأقل');
+            return;
+        }
+
+        if (!password.value) {
+            e.preventDefault();
+            password.classList.add('is-invalid');
+            password.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            alert('❌ كلمة المرور مطلوبة للمشرفين');
+            return;
+        }
+
+        if (password.value.length < 6) {
+            e.preventDefault();
+            password.classList.add('is-invalid');
+            password.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            alert('❌ كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+            return;
+        }
+
+        if (password.value !== confirmPassword.value) {
+            e.preventDefault();
+            confirmPassword.classList.add('is-invalid');
+            document.getElementById('passwordMatchFeedback').textContent = '❌ كلمة المرور غير متطابقة';
+            confirmPassword.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            alert('❌ كلمة المرور غير متطابقة');
+            return;
+        }
+    }
+
+    console.log('✅ تم التحقق من جميع الحقول - جاري الإرسال...');
+});
+
+// إزالة class is-invalid عند التغيير
+document.querySelectorAll('input, select').forEach(field => {
+    field.addEventListener('input', function() {
+        this.classList.remove('is-invalid');
+    });
+    field.addEventListener('change', function() {
+        this.classList.remove('is-invalid');
     });
 });
 </script>
@@ -263,6 +491,10 @@ document.addEventListener('DOMContentLoaded', function() {
     .card {
         border: none;
         box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+        transition: all 0.3s ease;
+    }
+    .card:hover {
+        box-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.15);
     }
     .card-header {
         background-color: #f8f9fc;
@@ -281,14 +513,44 @@ document.addEventListener('DOMContentLoaded', function() {
         background-color: #cce5ff;
         border-color: #b8daff;
         color: #004085;
+        border-radius: 0.5rem;
     }
     .alert-info {
         background-color: #e1f5fe;
         border-color: #b3e5fc;
         color: #01579b;
+        border-radius: 0.5rem;
     }
     #allFields {
         transition: all 0.3s ease;
+        animation: fadeIn 0.5s;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .input-group-text {
+        background-color: #f8f9fa;
+        border-color: #d1d3e2;
+    }
+    .btn {
+        transition: all 0.2s;
+    }
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 0.2rem 0.5rem rgba(0,0,0,0.1);
+    }
+    .is-invalid {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+    }
+    .form-switch {
+        padding-left: 2.5em;
+    }
+    .form-switch .form-check-input {
+        width: 2em;
+        margin-left: -2.5em;
+        height: 1.25em;
     }
 </style>
 {% endblock %}

@@ -1,154 +1,557 @@
 <!-- templates/reports/monthly_trends.html -->
 {% extends "base.html" %}
 
-{% block title %}اتجاهات التقييم الشهرية{% endblock %}
+{% block title %}اتجاهات التقييم الشهرية - تحليل متقدم{% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
+    <!-- شريط العنوان مع خيارات الفلترة -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-success">
-            <i class="fas fa-chart-line me-2"></i>
-            اتجاهات التقييم الشهرية
-        </h2>
+        <div>
+            <h2 class="text-gradient-success mb-1">
+                <i class="fas fa-chart-line me-2"></i>
+                اتجاهات التقييم الشهرية - تحليل متقدم
+            </h2>
+            <p class="text-muted mb-0">تحليل شامل لأداء التقييمات على مدى 12 شهر مع مؤشرات ذكية</p>
+        </div>
         <div class="btn-group">
-            <button class="btn btn-outline-primary" onclick="exportReport('pdf')">PDF</button>
-            <button class="btn btn-outline-success" onclick="exportReport('excel')">Excel</button>
+            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </button>
+            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-modern btn-info" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
+        </div>
+    </div>
+
+    <!-- فلترة السنة -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('report_monthly_trends_advanced') }}" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">اختر السنة</label>
+                    <select name="year" class="form-select">
+                        {% for y in range(2020, 2027) %}
+                        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i>عرض
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
     <!-- مؤشرات الأداء الشهرية -->
     <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card bg-primary text-white">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card card-stats gradient-primary h-100">
                 <div class="card-body">
-                    <h6>أفضل شهر</h6>
-                    <h3>{{ best_month.name }}</h3>
-                    <small>{{ best_month.avg }}%</small>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">أفضل شهر في السنة</h6>
+                            <h3 class="text-white mb-1">{{ best_month.name }}</h3>
+                            <p class="text-white-50 mb-0">
+                                <i class="fas fa-star me-1"></i>{{ "%.1f"|format(best_month.avg) }}/5
+                            </p>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-crown fa-2x text-white"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-success text-white">
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card card-stats gradient-success h-100">
                 <div class="card-body">
-                    <h6>متوسط 3 أشهر</h6>
-                    <h3>{{ three_month_avg }}%</h3>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">متوسط آخر 3 أشهر</h6>
+                            <h3 class="text-white mb-1">{{ "%.1f"|format(three_month_avg) }}/5</h3>
+                            <p class="text-white-50 mb-0">
+                                <i class="fas fa-chart-line me-1"></i>من 5
+                            </p>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-calendar-check fa-2x text-white"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-info text-white">
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card card-stats gradient-info h-100">
                 <div class="card-body">
-                    <h6>نمو سنوي</h6>
-                    <h3>{{ yearly_growth }}%</h3>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">نمو سنوي</h6>
+                            <h3 class="text-white mb-1">
+                                <span class="{% if yearly_growth > 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ "%.1f"|format(yearly_growth) }}%
+                                </span>
+                            </h3>
+                            <p class="text-white-50 mb-0">
+                                <i class="fas fa-arrow-{{ 'up' if yearly_growth > 0 else 'down' }} me-1"></i>
+                                مقارنة بالعام الماضي
+                            </p>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-rocket fa-2x text-white"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-warning text-white">
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card card-stats gradient-warning h-100">
                 <div class="card-body">
-                    <h6>اتجاه العام</h6>
-                    <h3>{{ trend_direction }}</h3>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">اتجاه العام</h6>
+                            <h3 class="text-white mb-1">{{ trend_direction }}</h3>
+                            <p class="text-white-50 mb-0">
+                                <i class="fas fa-{{ 'trending-up' if trend_direction == 'تصاعدي' else 'trending-down' if trend_direction == 'تنازلي' else 'minus' }} me-1"></i>
+                                خلال الـ12 شهر
+                            </p>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-{{ 'chart-line' if trend_direction == 'تصاعدي' else 'chart-line' if trend_direction == 'تنازلي' else 'chart-bar' }} fa-2x text-white"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- الرسوم البيانية -->
+    <!-- الرسوم البيانية المتقدمة -->
     <div class="row">
-        <div class="col-md-8 mb-4">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <i class="fas fa-chart-line me-2"></i>تطور التقييمات الشهرية
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-line me-2"></i>تطور التقييمات الشهرية - {{ selected_year }}
+                    </h6>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary active" onclick="changeChartType('line')">خطي</button>
+                        <button class="btn btn-outline-primary" onclick="changeChartType('bar')">أعمدة</button>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <canvas id="monthlyTrendChart" style="height: 400px;"></canvas>
+                <div class="card-body p-3">
+                    <div style="position: relative; height: 400px; width: 100%;">
+                        <canvas id="monthlyTrendChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4 mb-4">
-            <div class="card shadow">
-                <div class="card-header bg-success text-white">
-                    <i class="fas fa-chart-pie me-2"></i>توزيع التقييمات
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-pie me-2"></i>توزيع التقييمات
+                    </h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="monthlyDistributionChart" style="height: 300px;"></canvas>
+                <div class="card-body p-3">
+                    <div style="position: relative; height: 300px; width: 100%;">
+                        <canvas id="monthlyDistributionChart"></canvas>
+                    </div>
+                    <div class="mt-3">
+                        {% for i in range(distribution_labels|length) %}
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>
+                                <span class="badge" style="background-color: {{ ['#1cc88a', '#4e73df', '#36b9cc', '#f6c23e', '#e74a3b'][i] }};">&nbsp;</span>
+                                {{ distribution_labels[i] }}
+                            </span>
+                            <span class="fw-bold">{{ distribution_data[i] }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- جدول التحليل الشهري -->
+    <!-- جدول التحليل الشهري المتقدم -->
     <div class="row">
         <div class="col-12">
             <div class="card shadow">
-                <div class="card-header bg-info text-white">
-                    <i class="fas fa-table me-2"></i>تحليل شهري مفصل
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-table me-2"></i>تحليل شهري مفصل - {{ selected_year }}
+                        </h6>
+                        <div class="input-group" style="width: 250px;">
+                            <span class="input-group-text bg-white border-end-0">
+                                <i class="fas fa-search text-muted"></i>
+                            </span>
+                            <input type="text" class="form-control border-start-0" id="searchMonth" placeholder="بحث في الشهر...">
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>الشهر</th>
-                                <th>عدد التقييمات</th>
-                                <th>المعدل</th>
-                                <th>التغيير</th>
-                                <th>أفضل موظف</th>
-                                <th>أفضل شركة</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for month in monthly_data %}
-                            <tr>
-                                <td>{{ month.name }}</td>
-                                <td>{{ month.count }}</td>
-                                <td>
-                                    <div class="progress" style="height: 20px;">
-                                        <div class="progress-bar bg-{{ month.color }}" style="width: {{ month.avg*20 }}%;">
-                                            {{ "%.1f"|format(month.avg) }}/5
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="monthlyTable">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>الشهر</th>
+                                    <th class="text-center">عدد التقييمات</th>
+                                    <th class="text-center">المعدل</th>
+                                    <th class="text-center">التغيير</th>
+                                    <th>أفضل موظف</th>
+                                    <th>أفضل شركة</th>
+                                    <th class="text-center">الأداء</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for month in monthly_data %}
+                                <tr class="month-row">
+                                    <td class="fw-bold">{{ month.name }}</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info">{{ month.count }}</span>
+                                    </td>
+                                    <td class="text-center" style="width: 200px;">
+                                        <div class="d-flex align-items-center">
+                                            <span class="me-2 fw-bold">{{ "%.1f"|format(month.avg) }}/5</span>
+                                            <div class="progress flex-grow-1" style="height: 8px;">
+                                                <div class="progress-bar bg-{{ month.color }}" style="width: {{ (month.avg / 5 * 100) }}%;"></div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </td>
-                                <td class="text-{{ 'success' if month.change > 0 else 'danger' }}">
-                                    <i class="fas fa-arrow-{{ 'up' if month.change > 0 else 'down' }}"></i>
-                                    {{ month.change }}%
-                                </td>
-                                <td>{{ month.top_employee }}</td>
-                                <td>{{ month.top_company }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if month.change > 0 %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-arrow-up me-1"></i>{{ "%.1f"|format(month.change) }}%
+                                        </span>
+                                        {% elif month.change < 0 %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-arrow-down me-1"></i>{{ "%.1f"|format(month.change|abs) }}%
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">0%</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm me-2" style="background-color: #4e73df">
+                                                {{ month.top_employee[:1] if month.top_employee != 'لا يوجد' else '?' }}
+                                            </div>
+                                            {{ month.top_employee }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ month.top_company }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if month.avg >= 4.5 %}
+                                        <span class="badge bg-success">ممتاز</span>
+                                        {% elif month.avg >= 4 %}
+                                        <span class="badge bg-info">جيد جداً</span>
+                                        {% elif month.avg >= 3 %}
+                                        <span class="badge bg-primary">جيد</span>
+                                        {% elif month.avg >= 2 %}
+                                        <span class="badge bg-warning">مقبول</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">ضعيف</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تحليل إضافي: أفضل وأسوأ الأشهر -->
+    <div class="row mt-4">
+        <div class="col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-medal me-2"></i>أفضل 3 أشهر أداءً
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% set sorted_months = monthly_data|sort(attribute='avg', reverse=true) %}
+                        {% for i in range(3) %}
+                            {% if sorted_months[i] %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-{{ ['crown', 'medal', 'medal'][i] }} text-warning me-2"></i>
+                                    {{ sorted_months[i].name }}
+                                </div>
+                                <span class="badge bg-success rounded-pill">{{ "%.1f"|format(sorted_months[i].avg) }}/5</span>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-danger text-white">
+                    <i class="fas fa-exclamation-triangle me-2"></i>أشهر تحتاج تحسين
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% set sorted_months = monthly_data|sort(attribute='avg') %}
+                        {% for i in range(3) %}
+                            {% if sorted_months[i] %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-{{ ['exclamation-circle', 'exclamation-triangle', 'info-circle'][i] }} text-danger me-2"></i>
+                                    {{ sorted_months[i].name }}
+                                </div>
+                                <span class="badge bg-danger rounded-pill">{{ "%.1f"|format(sorted_months[i].avg) }}/5</span>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-new Chart(document.getElementById('monthlyTrendChart'), {
-    type: 'line',
-    data: {
-        labels: {{ month_labels|tojson }},
-        datasets: [{
-            label: 'متوسط التقييم',
-            data: {{ month_averages|tojson }},
-            borderColor: '#4e73df',
-            backgroundColor: 'rgba(78,115,223,0.1)',
-            tension: 0.3,
-            fill: true
-        }]
+// بيانات الرسوم البيانية
+const monthLabels = {{ month_labels|tojson if month_labels else '[]' }};
+const monthAverages = {{ month_averages|tojson if month_averages else '[]' }};
+const distributionLabels = {{ distribution_labels|tojson if distribution_labels else '[]' }};
+const distributionData = {{ distribution_data|tojson if distribution_data else '[]' }};
+
+let trendChart;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // رسم بياني للاتجاهات الشهرية
+    const trendCtx = document.getElementById('monthlyTrendChart');
+    if (trendCtx) {
+        trendChart = new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: monthLabels,
+                datasets: [{
+                    label: 'متوسط التقييم',
+                    data: monthAverages,
+                    borderColor: '#4e73df',
+                    backgroundColor: 'rgba(78,115,223,0.1)',
+                    tension: 0.3,
+                    fill: true,
+                    pointBackgroundColor: '#4e73df',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'المعدل: ' + context.raw.toFixed(1) + '/5';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 5,
+                        ticks: { stepSize: 1 },
+                        title: {
+                            display: true,
+                            text: 'المعدل (من 5)'
+                        }
+                    }
+                }
+            }
+        });
     }
+
+    // رسم بياني دائري للتوزيع
+    const distCtx = document.getElementById('monthlyDistributionChart');
+    if (distCtx) {
+        new Chart(distCtx, {
+            type: 'doughnut',
+            data: {
+                labels: distributionLabels,
+                datasets: [{
+                    data: distributionData,
+                    backgroundColor: ['#1cc88a', '#4e73df', '#36b9cc', '#f6c23e', '#e74a3b'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.raw + ' شهر';
+                            }
+                        }
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+    }
+
+    // تفعيل البحث في الجدول
+    setupSearch();
 });
 
-new Chart(document.getElementById('monthlyDistributionChart'), {
-    type: 'doughnut',
-    data: {
-        labels: {{ distribution_labels|tojson }},
-        datasets: [{
-            data: {{ distribution_data|tojson }},
-            backgroundColor: ['#1cc88a', '#4e73df', '#36b9cc', '#f6c23e', '#e74a3b']
-        }]
+function setupSearch() {
+    const searchInput = document.getElementById('searchMonth');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('.month-row');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
     }
-});
+}
+
+function changeChartType(type) {
+    if (!trendChart) return;
+
+    // تحديث نوع الرسم البياني
+    trendChart.config.type = type;
+    trendChart.update();
+
+    // تحديث حالة الأزرار
+    document.querySelectorAll('.btn-group .btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+}
+
+function exportReport(type) {
+    if (type === 'pdf') {
+        alert('سيتم تفعيل تصدير PDF قريباً');
+    } else if (type === 'excel') {
+        alert('سيتم تفعيل تصدير Excel قريباً');
+    }
+}
 </script>
+
+<style>
+.text-gradient-success {
+    background: linear-gradient(135deg, #1cc88a 0%, #169b6b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.card-stats {
+    border: none;
+    border-radius: 15px;
+    transition: transform 0.3s;
+}
+.card-stats:hover {
+    transform: translateY(-5px);
+}
+
+.gradient-primary { background: linear-gradient(135deg, #4e73df, #224abe); }
+.gradient-success { background: linear-gradient(135deg, #1cc88a, #169b6b); }
+.gradient-info { background: linear-gradient(135deg, #36b9cc, #1f8f9f); }
+.gradient-warning { background: linear-gradient(135deg, #f6c23e, #dda20a); }
+
+.icon-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bg-white-20 {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.text-white-50 {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.btn-modern {
+    border-radius: 25px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+.btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.progress {
+    border-radius: 10px;
+    background-color: #e9ecef;
+}
+.progress-bar {
+    border-radius: 10px;
+}
+
+/* إصلاح مشكلة ارتفاع الرسوم البيانية */
+canvas {
+    max-height: 100%;
+    max-width: 100%;
+}
+
+.list-group-item {
+    border: none;
+    border-bottom: 1px solid #e9ecef;
+    padding: 1rem;
+}
+.list-group-item:last-child {
+    border-bottom: none;
+}
+
+@media print {
+    .btn-group, .btn-modern, form, .input-group {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #ddd !important;
+        break-inside: avoid;
+    }
+}
+</style>
 {% endblock %}

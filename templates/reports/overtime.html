@@ -15,8 +15,54 @@
             <p class="text-muted mb-0">تحليل متقدم لساعات العمل الإضافية والتكاليف</p>
         </div>
         <div class="btn-group">
-            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">PDF</button>
-            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">Excel</button>
+            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </button>
+            <button class="btn btn-modern btn-success" onclick="exportToExcel()">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-modern btn-warning" onclick="transferToPayroll()">
+                <i class="fas fa-exchange-alt me-1"></i>ترحيل إلى المرتبات
+            </button>
+        </div>
+    </div>
+
+    <!-- فلترة التقرير -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter me-2"></i>فلترة التقرير
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('report_overtime') }}" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">من تاريخ</label>
+                    <input type="date" name="from_date" class="form-control"
+                           value="{{ from_date_str if from_date_str else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">إلى تاريخ</label>
+                    <input type="date" name="to_date" class="form-control"
+                           value="{{ to_date_str if to_date_str else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">الموظف</label>
+                    <select name="employee_id" class="form-select">
+                        <option value="">جميع الموظفين</option>
+                        {% for emp in employees %}
+                        <option value="{{ emp.id }}" {% if emp.id == selected_employee %}selected{% endif %}>
+                            {{ emp.full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i>عرض
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -28,7 +74,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6>إجمالي الساعات الإضافية</h6>
-                            <h2 class="text-white">{{ total_overtime_hours }}</h2>
+                            <h2 class="text-white">{{ total_overtime_hours|default(0) }}</h2>
                         </div>
                         <i class="fas fa-clock fa-3x opacity-50"></i>
                     </div>
@@ -42,7 +88,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6>متوسط الساعات/موظف</h6>
-                            <h2 class="text-white">{{ avg_overtime_per_employee }}</h2>
+                            <h2 class="text-white">{{ avg_overtime_per_employee|default(0) }}</h2>
                         </div>
                         <i class="fas fa-chart-line fa-3x opacity-50"></i>
                     </div>
@@ -56,8 +102,8 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6>أكثر موظف</h6>
-                            <h5 class="text-white">{{ top_overtime_employee }}</h5>
-                            <small>{{ top_overtime_hours }} ساعة</small>
+                            <h5 class="text-white">{{ top_overtime_employee|default('لا يوجد') }}</h5>
+                            <small>{{ top_overtime_hours|default(0) }} ساعة</small>
                         </div>
                         <i class="fas fa-trophy fa-3x opacity-50"></i>
                     </div>
@@ -71,7 +117,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6>التكلفة الإجمالية</h6>
-                            <h2 class="text-white">{{ total_overtime_cost }} ر.س</h2>
+                            <h2 class="text-white">{{ total_overtime_cost|default(0) }} ر.ي</h2>
                         </div>
                         <i class="fas fa-money-bill-wave fa-3x opacity-50"></i>
                     </div>
@@ -80,7 +126,7 @@
         </div>
     </div>
 
-    <!-- رسم بياني للعمل الإضافي -->
+    <!-- ✅ رسم بياني للعمل الإضافي - نسخة محسنة -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow">
@@ -89,25 +135,42 @@
                         <i class="fas fa-chart-bar me-2"></i>تحليل ساعات العمل الإضافية (شهري)
                     </h6>
                 </div>
-                <div class="card-body">
-                    <div id="overtimeChart" style="height: 350px;"></div>
+                <div class="card-body p-3">
+                    <!-- ✅ إصلاح مشكلة ارتفاع الرسم البياني -->
+                    <div style="position: relative; height: 350px; width: 100%;" id="chartContainer">
+                        <div id="overtimeChart"></div>
+                    </div>
+                    {% if not overtime_chart_data or overtime_chart_data|length == 0 %}
+                    <p class="text-center text-muted py-3">لا توجد بيانات كافية للرسم البياني</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- جدول ساعات العمل الإضافية -->
+    <!-- جدول ساعات العمل الإضافية مع إمكانية التحديد -->
     <div class="card shadow">
-        <div class="card-header bg-white py-3">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold text-primary">
                 <i class="fas fa-table me-2"></i>تفاصيل ساعات العمل الإضافية
             </h6>
+            <div>
+                <button class="btn btn-sm btn-outline-primary" onclick="selectAll()">
+                    <i class="fas fa-check-double me-1"></i>تحديد الكل
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="deselectAll()">
+                    <i class="fas fa-times me-1"></i>إلغاء التحديد
+                </button>
+            </div>
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover" id="overtimeTable">
                     <thead class="bg-light">
                         <tr>
+                            <th width="50">
+                                <input type="checkbox" id="selectAllCheckbox" onclick="toggleAllCheckboxes()">
+                            </th>
                             <th>الموظف</th>
                             <th>القسم</th>
                             <th>الشهر</th>
@@ -115,11 +178,22 @@
                             <th>المعدل/ساعة</th>
                             <th>التكلفة</th>
                             <th>نسبة من الراتب</th>
+                            <th>الحالة</th>
+                            <th>إجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for overtime in overtime_data %}
-                        <tr>
+                        <tr id="row-{{ overtime.id }}" class="{% if overtime.is_transferred %}table-success{% endif %}">
+                            <td>
+                                <input type="checkbox" class="row-checkbox" value="{{ overtime.id }}"
+                                       data-employee="{{ overtime.employee_id }}"
+                                       data-hours="{{ overtime.hours }}"
+                                       data-cost="{{ overtime.cost }}"
+                                       data-month="{{ overtime.month_num }}"
+                                       data-year="{{ overtime.year }}"
+                                       {% if overtime.is_transferred %}disabled{% endif %}>
+                            </td>
                             <td>
                                 <div class="d-flex align-items-center">
                                     <div class="avatar-sm me-2" style="background-color: {{ overtime.employee_color }}">
@@ -129,12 +203,19 @@
                                 </div>
                             </td>
                             <td>{{ overtime.department }}</td>
-                            <td>{{ overtime.month }}</td>
+                            <td>
+                                {% set month_names = {
+                                    1: 'يناير', 2: 'فبراير', 3: 'مارس', 4: 'أبريل',
+                                    5: 'مايو', 6: 'يونيو', 7: 'يوليو', 8: 'أغسطس',
+                                    9: 'سبتمبر', 10: 'أكتوبر', 11: 'نوفمبر', 12: 'ديسمبر'
+                                } %}
+                                {{ month_names[overtime.month_num] if overtime.month_num in month_names else overtime.month_num }}
+                            </td>
                             <td>
                                 <span class="fw-bold">{{ overtime.hours }}</span>
                             </td>
-                            <td>{{ overtime.hourly_rate }} ر.س</td>
-                            <td class="fw-bold text-success">{{ overtime.cost }} ر.س</td>
+                            <td>{{ overtime.hourly_rate }} ر.ي</td>
+                            <td class="fw-bold text-success">{{ overtime.cost }} ر.ي</td>
                             <td>
                                 <div class="d-flex align-items-center">
                                     <span class="me-2">{{ overtime.percentage }}%</span>
@@ -143,47 +224,617 @@
                                     </div>
                                 </div>
                             </td>
+                            <td>
+                                {% if overtime.is_transferred %}
+                                <span class="badge bg-success">تم الترحيل</span>
+                                {% else %}
+                                <span class="badge bg-warning">غير مرحل</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not overtime.is_transferred %}
+                                <button class="btn btn-sm btn-success" onclick="transferSingle({{ overtime.id }})">
+                                    <i class="fas fa-exchange-alt me-1"></i>ترحيل
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="10" class="text-center text-muted py-4">
+                                <i class="fas fa-info-circle fa-2x mb-2"></i><br>
+                                لا توجد ساعات إضافية للفترة المحددة
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+
+            <!-- أزرار الترحيل الجماعي -->
+            <div class="mt-3 d-flex justify-content-end">
+                <button class="btn btn-warning me-2" onclick="transferSelected()" id="transferSelectedBtn" disabled>
+                    <i class="fas fa-exchange-alt me-1"></i>ترحيل المحدد (0)
+                </button>
+                <button class="btn btn-primary" onclick="transferAll()">
+                    <i class="fas fa-forward me-1"></i>ترحيل الكل
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- نافذة تأكيد الترحيل -->
+<div class="modal fade" id="transferModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title text-white">
+                    <i class="fas fa-exchange-alt me-2"></i>تأكيد ترحيل الساعات الإضافية
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>هل أنت متأكد من ترحيل <span id="transferCount">0</span> سجل من الساعات الإضافية إلى كشف المرتبات؟</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    سيتم إضافة تكلفة الساعات الإضافية إلى كشف مرتبات الموظفين للشهر المحدد.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-warning" onclick="confirmTransfer()">تأكيد الترحيل</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- تضمين مكتبة ApexCharts -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
 <script>
-new ApexCharts(document.querySelector("#overtimeChart"), {
-    series: [{
-        name: 'ساعات العمل الإضافية',
-        data: {{ overtime_chart_data|tojson }}
-    }],
-    chart: {
-        type: 'bar',
-        height: 350,
-        toolbar: { show: false },
-        fontFamily: 'Cairo, sans-serif'
-    },
-    colors: ['#f6c23e'],
-    plotOptions: {
-        bar: {
-            borderRadius: 10,
-            columnWidth: '50%'
+// ============================================
+// كود محسن لصفحة الساعات الإضافية
+// ============================================
+
+// بيانات الرسم البياني - مع التأكد من وجود بيانات صحيحة
+const overtimeChartData = {{ overtime_chart_data|tojson if overtime_chart_data else '[]' }};
+const monthsLabels = {{ months_labels|tojson if months_labels else '[]' }};
+
+let overtimeChart = null;
+
+// تهيئة الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ تم تحميل الصفحة - بدء تهيئة العناصر');
+
+    // تهيئة جميع الأزرار
+    initializeButtons();
+
+    // تهيئة الرسم البياني
+    setTimeout(initializeChart, 100); // تأخير بسيط للتأكد من تحميل المكتبة
+
+    // تحديث عداد المحددات
+    updateSelectedCount();
+
+    // مراقبة تغيير حجم النافذة لإعادة رسم الرسم البياني
+    window.addEventListener('resize', function() {
+        if (overtimeChart) {
+            overtimeChart.updateOptions({
+                chart: {
+                    width: '100%',
+                    height: 350
+                }
+            });
         }
-    },
-    xaxis: {
-        categories: {{ months_labels|tojson }},
-        labels: { style: { fontFamily: 'Cairo, sans-serif' } }
-    },
-    yaxis: {
-        title: { text: 'عدد الساعات' },
-        labels: { style: { fontFamily: 'Cairo, sans-serif' } }
-    },
-    dataLabels: {
-        enabled: true,
-        formatter: (val) => val + ' ساعة',
-        style: { fontFamily: 'Cairo, sans-serif' }
+    });
+});
+
+// تهيئة الأزرار
+function initializeButtons() {
+    // زر تحديد الكل
+    const selectAllBtn = document.querySelector('button[onclick="selectAll()"]');
+    if (selectAllBtn) {
+        selectAllBtn.onclick = function(e) {
+            e.preventDefault();
+            selectAll();
+        };
     }
-}).render();
+
+    // زر إلغاء التحديد
+    const deselectAllBtn = document.querySelector('button[onclick="deselectAll()"]');
+    if (deselectAllBtn) {
+        deselectAllBtn.onclick = function(e) {
+            e.preventDefault();
+            deselectAll();
+        };
+    }
+
+    // زر ترحيل المحدد
+    const transferSelectedBtn = document.getElementById('transferSelectedBtn');
+    if (transferSelectedBtn) {
+        transferSelectedBtn.onclick = function(e) {
+            e.preventDefault();
+            transferSelected();
+        };
+    }
+
+    // زر ترحيل الكل
+    const transferAllBtn = document.querySelector('button[onclick="transferAll()"]');
+    if (transferAllBtn) {
+        transferAllBtn.onclick = function(e) {
+            e.preventDefault();
+            transferAll();
+        };
+    }
+
+    // زر الترحيل الرئيسي
+    const transferToPayrollBtn = document.querySelector('button[onclick="transferToPayroll()"]');
+    if (transferToPayrollBtn) {
+        transferToPayrollBtn.onclick = function(e) {
+            e.preventDefault();
+            transferToPayroll();
+        };
+    }
+
+    // أزرار ترحيل فردية
+    document.querySelectorAll('.btn-sm.btn-success').forEach(btn => {
+        btn.onclick = function(e) {
+            e.preventDefault();
+            const id = this.getAttribute('data-id') ||
+                      this.getAttribute('onclick')?.match(/\d+/)?.[0];
+            if (id) {
+                transferSingle(parseInt(id));
+            }
+        };
+    });
+
+    console.log('✅ تم تهيئة جميع الأزرار');
+}
+
+// ✅ تهيئة الرسم البياني - نسخة محسنة
+function initializeChart() {
+    const chartContainer = document.getElementById('overtimeChart');
+    if (!chartContainer) {
+        console.log('⚠️ عنصر الرسم البياني غير موجود');
+        return;
+    }
+
+    // التحقق من وجود مكتبة ApexCharts
+    if (typeof ApexCharts === 'undefined') {
+        console.log('⚠️ مكتبة ApexCharts غير متوفرة');
+        chartContainer.innerHTML = '<p class="text-center text-muted py-3">مكتبة الرسم البياني غير متوفرة</p>';
+        return;
+    }
+
+    // التحقق من وجود بيانات
+    if (!overtimeChartData || overtimeChartData.length === 0) {
+        chartContainer.innerHTML = '<p class="text-center text-muted py-3">لا توجد بيانات كافية للرسم البياني</p>';
+        return;
+    }
+
+    // التحقق من وجود تسميات
+    if (!monthsLabels || monthsLabels.length === 0) {
+        chartContainer.innerHTML = '<p class="text-center text-muted py-3">لا توجد تسميات للرسم البياني</p>';
+        return;
+    }
+
+    try {
+        // إزالة أي رسم بياني سابق
+        if (overtimeChart) {
+            overtimeChart.destroy();
+        }
+
+        // إعداد خيارات الرسم البياني
+        const options = {
+            series: [{
+                name: 'ساعات العمل الإضافية',
+                data: overtimeChartData
+            }],
+            chart: {
+                type: 'bar',
+                height: 350,
+                width: '100%',
+                toolbar: {
+                    show: true,
+                    tools: {
+                        download: true,
+                        selection: true,
+                        zoom: true,
+                        zoomin: true,
+                        zoomout: true,
+                        pan: true,
+                        reset: true
+                    }
+                },
+                fontFamily: 'Cairo, sans-serif',
+                background: '#ffffff',
+                animations: {
+                    enabled: true,
+                    easing: 'easeinout',
+                    speed: 800
+                }
+            },
+            colors: ['#f6c23e'],
+            plotOptions: {
+                bar: {
+                    borderRadius: 10,
+                    columnWidth: '50%',
+                    distributed: false,
+                    dataLabels: {
+                        position: 'top'
+                    }
+                }
+            },
+            dataLabels: {
+                enabled: true,
+                formatter: function(val) {
+                    return val + ' س';
+                },
+                offsetY: -20,
+                style: {
+                    fontSize: '12px',
+                    fontFamily: 'Cairo, sans-serif'
+                }
+            },
+            xaxis: {
+                categories: monthsLabels,
+                labels: {
+                    style: {
+                        fontFamily: 'Cairo, sans-serif',
+                        fontSize: '12px'
+                    },
+                    rotate: -45,
+                    rotateAlways: false
+                },
+                title: {
+                    text: 'الشهر',
+                    style: {
+                        fontFamily: 'Cairo, sans-serif'
+                    }
+                }
+            },
+            yaxis: {
+                labels: {
+                    style: {
+                        fontFamily: 'Cairo, sans-serif',
+                        fontSize: '12px'
+                    },
+                    formatter: function(value) {
+                        return value.toFixed(1);
+                    }
+                },
+                title: {
+                    text: 'عدد الساعات',
+                    style: {
+                        fontFamily: 'Cairo, sans-serif'
+                    }
+                }
+            },
+            tooltip: {
+                y: {
+                    formatter: function(value) {
+                        return value.toFixed(1) + ' ساعة';
+                    }
+                },
+                theme: 'light',
+                style: {
+                    fontFamily: 'Cairo, sans-serif'
+                }
+            },
+            grid: {
+                borderColor: '#e0e0e0',
+                row: {
+                    colors: ['#f8f9fc', 'transparent'],
+                    opacity: 0.5
+                }
+            },
+            legend: {
+                position: 'bottom',
+                fontFamily: 'Cairo, sans-serif'
+            },
+            responsive: [{
+                breakpoint: 768,
+                options: {
+                    chart: {
+                        height: 300
+                    },
+                    dataLabels: {
+                        enabled: false
+                    }
+                }
+            }]
+        };
+
+        // إنشاء الرسم البياني
+        overtimeChart = new ApexCharts(chartContainer, options);
+        overtimeChart.render();
+
+        console.log('✅ تم إنشاء الرسم البياني بنجاح');
+
+        // إضافة حدث لتحديث الرسم البياني عند تغيير حجم النافذة
+        window.addEventListener('resize', function() {
+            if (overtimeChart) {
+                overtimeChart.updateOptions({
+                    chart: {
+                        width: '100%',
+                        height: 350
+                    }
+                });
+            }
+        });
+
+    } catch (e) {
+        console.error('❌ خطأ في إنشاء الرسم البياني:', e);
+        chartContainer.innerHTML = '<p class="text-center text-danger py-3">حدث خطأ في تحميل الرسم البياني</p>';
+    }
+}
+
+// ============================================
+// دوال تحديد السجلات
+// ============================================
+
+function selectAll() {
+    document.querySelectorAll('.row-checkbox:not(:disabled)').forEach(cb => {
+        cb.checked = true;
+    });
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    if (selectAllCheckbox) selectAllCheckbox.checked = true;
+    updateSelectedCount();
+}
+
+function deselectAll() {
+    document.querySelectorAll('.row-checkbox').forEach(cb => {
+        cb.checked = false;
+    });
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    if (selectAllCheckbox) selectAllCheckbox.checked = false;
+    updateSelectedCount();
+}
+
+function toggleAllCheckboxes() {
+    const selectAll = document.getElementById('selectAllCheckbox')?.checked || false;
+    document.querySelectorAll('.row-checkbox:not(:disabled)').forEach(cb => {
+        cb.checked = selectAll;
+    });
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+    const count = checkboxes.length;
+
+    let totalHours = 0;
+    let totalCost = 0;
+
+    checkboxes.forEach(cb => {
+        totalHours += parseFloat(cb.dataset.hours || 0);
+        totalCost += parseFloat(cb.dataset.cost || 0);
+    });
+
+    const btn = document.getElementById('transferSelectedBtn');
+    if (btn) {
+        btn.disabled = count === 0;
+        btn.innerHTML = `<i class="fas fa-exchange-alt me-1"></i>ترحيل المحدد (${count}) - ${totalHours.toFixed(1)} ساعة - ${totalCost.toFixed(2)} ر.ي`;
+    }
+}
+
+// ============================================
+// دوال الترحيل
+// ============================================
+
+function transferSelected() {
+    const selected = [];
+    document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
+        selected.push(parseInt(cb.value));
+    });
+
+    if (selected.length === 0) {
+        alert('الرجاء تحديد سجلات للترحيل');
+        return;
+    }
+
+    executeTransfer(selected);
+}
+
+function transferSingle(id) {
+    executeTransfer([id]);
+}
+
+function transferAll() {
+    const selected = [];
+    document.querySelectorAll('.row-checkbox:not(:disabled)').forEach(cb => {
+        selected.push(parseInt(cb.value));
+    });
+
+    if (selected.length === 0) {
+        alert('لا توجد سجلات غير مرحّلة');
+        return;
+    }
+
+    executeTransfer(selected);
+}
+
+function transferToPayroll() {
+    const pending = document.querySelectorAll('.row-checkbox:not(:disabled)');
+    if (pending.length === 0) {
+        alert('لا توجد ساعات إضافية غير مرحّلة');
+        return;
+    }
+
+    selectAll();
+    const selected = [];
+    document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
+        selected.push(parseInt(cb.value));
+    });
+    executeTransfer(selected);
+}
+
+function executeTransfer(ids) {
+    if (!confirm(`هل أنت متأكد من ترحيل ${ids.length} سجل من الساعات الإضافية؟`)) {
+        return;
+    }
+
+    const btn = document.activeElement;
+    const originalText = btn?.innerHTML || 'ترحيل';
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري الترحيل...';
+    }
+
+    const now = new Date();
+    const data = {
+        overtime_ids: ids,
+        month: now.getMonth() + 1,
+        year: now.getFullYear()
+    };
+
+    console.log('📤 إرسال:', data);
+
+    fetch('/overtime/transfer-to-payroll', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().catch(() => {
+                throw new Error('فشل الاتصال بالخادم');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('📥 استجابة:', data);
+
+        if (data.success) {
+            ids.forEach(id => {
+                const row = document.getElementById(`row-${id}`);
+                if (row) {
+                    row.classList.add('table-success');
+                    const badge = row.querySelector('.badge');
+                    if (badge) {
+                        badge.className = 'badge bg-success';
+                        badge.innerText = 'تم الترحيل';
+                    }
+                    const cb = row.querySelector('.row-checkbox');
+                    if (cb) {
+                        cb.disabled = true;
+                        cb.checked = false;
+                    }
+                    const actionBtn = row.querySelector('.btn-sm.btn-success');
+                    if (actionBtn) {
+                        actionBtn.style.display = 'none';
+                    }
+                }
+            });
+            updateSelectedCount();
+            alert(`✅ تم ترحيل ${data.transferred_count || ids.length} سجل بنجاح`);
+        } else {
+            alert(`❌ خطأ: ${data.message || 'فشل الترحيل'}`);
+        }
+    })
+    .catch(error => {
+        console.error('❌ خطأ:', error);
+        alert(`❌ خطأ في الاتصال: ${error.message}`);
+    })
+    .finally(() => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    });
+}
+
+// ============================================
+// دوال التصدير
+// ============================================
+
+function exportToExcel() {
+    alert('ميزة تصدير Excel ستكون متاحة قريباً');
+}
+
+function exportReport(type) {
+    if (type === 'pdf') {
+        alert('ميزة تصدير PDF ستكون متاحة قريباً');
+    } else if (type === 'excel') {
+        exportToExcel();
+    }
+}
 </script>
+
+<style>
+.text-gradient-warning {
+    background: linear-gradient(135deg, #f6c23e 0%, #f4b619 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.bg-gradient-primary { background: linear-gradient(135deg, #4e73df, #224abe); }
+.bg-gradient-success { background: linear-gradient(135deg, #1cc88a, #169b6b); }
+.bg-gradient-warning { background: linear-gradient(135deg, #f6c23e, #dda20a); }
+.bg-gradient-danger { background: linear-gradient(135deg, #e74a3b, #be2617); }
+
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+
+.opacity-50 {
+    opacity: 0.5;
+}
+
+.table-success {
+    background-color: rgba(40, 167, 69, 0.1) !important;
+}
+
+.btn-modern {
+    border-radius: 25px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.progress {
+    border-radius: 10px;
+    background-color: #e9ecef;
+}
+
+.progress-bar {
+    border-radius: 10px;
+}
+
+/* إصلاح مشكلة ارتفاع الرسم البياني */
+#overtimeChart {
+    min-height: 350px;
+    width: 100%;
+}
+
+#chartContainer {
+    position: relative;
+    height: 350px;
+    width: 100%;
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    #chartContainer {
+        height: 300px;
+    }
+}
+</style>
 {% endblock %}

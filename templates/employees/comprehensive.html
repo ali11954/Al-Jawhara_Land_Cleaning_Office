@@ -1,0 +1,1147 @@
+{% extends "base.html" %}
+
+{% block title %}البيانات الشاملة للموظفين{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --comp-primary: #4e73df;
+        --comp-success: #1cc88a;
+        --comp-info: #36b9cc;
+        --comp-warning: #f6c23e;
+        --comp-danger: #e74a3b;
+        --comp-secondary: #858796;
+    }
+
+    .comp-container {
+        padding: 20px 0;
+    }
+
+    /* بطاقات الإحصائيات */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+        border-right: 4px solid var(--comp-primary);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-card.primary { border-right-color: var(--comp-primary); }
+    .stat-card.success { border-right-color: var(--comp-success); }
+    .stat-card.info { border-right-color: var(--comp-info); }
+    .stat-card.warning { border-right-color: var(--comp-warning); }
+    .stat-card.danger { border-right-color: var(--comp-danger); }
+
+    .stat-icon {
+        position: absolute;
+        left: 20px;
+        top: 20px;
+        font-size: 2.5rem;
+        opacity: 0.2;
+        color: var(--comp-primary);
+    }
+
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin: 10px 0;
+        color: #2c3e50;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    /* فلترة البحث */
+    .filter-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 30px;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+    }
+
+    /* بطاقة الموظف */
+    .employee-card {
+        background: white;
+        border-radius: 15px;
+        margin-bottom: 20px;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .employee-card:hover {
+        box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.15);
+    }
+
+    .employee-header {
+        background: linear-gradient(135deg, #f8f9fc, #e9ecef);
+        padding: 15px 20px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #e3e6f0;
+    }
+
+    .employee-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: var(--comp-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-left: 15px;
+    }
+
+    .employee-title {
+        flex: 1;
+    }
+
+    .employee-name {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin: 0;
+        color: #2c3e50;
+    }
+
+    .employee-subtitle {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin: 5px 0 0;
+    }
+
+    .employee-badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-left: 10px;
+    }
+
+    .badge-supervisor { background: var(--comp-primary); color: white; }
+    .badge-monitor { background: var(--comp-info); color: white; }
+    .badge-worker { background: var(--comp-success); color: white; }
+    .badge-active { background: var(--comp-success); color: white; }
+    .badge-inactive { background: var(--comp-secondary); color: white; }
+
+    .employee-stats {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .stat-item {
+        text-align: center;
+        min-width: 80px;
+    }
+
+    .stat-item-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+
+    .stat-item-label {
+        font-size: 0.7rem;
+        color: #6c757d;
+        text-transform: uppercase;
+    }
+
+    /* محتوى الموظف الموسع */
+    .employee-content {
+        padding: 20px;
+        background: white;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .info-card {
+        background: #f8f9fc;
+        border-radius: 10px;
+        padding: 15px;
+        border: 1px solid #e3e6f0;
+    }
+
+    .info-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--comp-primary);
+        margin-bottom: 15px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #e3e6f0;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px dashed #e3e6f0;
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .info-value {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .value-positive { color: var(--comp-success); }
+    .value-negative { color: var(--comp-danger); }
+    .value-warning { color: var(--comp-warning); }
+
+    /* شريط التقدم */
+    .progress-sm {
+        height: 6px;
+        border-radius: 3px;
+        background: #e9ecef;
+        margin: 5px 0;
+    }
+
+    .progress-bar-sm {
+        height: 6px;
+        border-radius: 3px;
+    }
+
+    /* بطاقات المواقع */
+    .location-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        background: #e9ecef;
+        color: #495057;
+        margin: 2px;
+    }
+
+    .place-item {
+        background: white;
+        border-radius: 6px;
+        padding: 8px 12px;
+        margin: 5px 0;
+        border: 1px solid #e3e6f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    /* الألوان */
+    .text-salary { color: var(--comp-primary); }
+    .text-overtime { color: var(--comp-success); }
+    .text-loan { color: var(--comp-warning); }
+    .text-penalty { color: var(--comp-danger); }
+
+    /* مؤشرات الأداء */
+    .performance-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-left: 5px;
+    }
+
+    .indicator-excellent { background: var(--comp-success); }
+    .indicator-good { background: var(--comp-info); }
+    .indicator-average { background: var(--comp-warning); }
+    .indicator-poor { background: var(--comp-danger); }
+
+    /* طباعة */
+    @media print {
+        .no-print, .filter-card, .btn-group {
+            display: none !important;
+        }
+
+        .employee-card {
+            break-inside: avoid;
+            page-break-inside: avoid;
+            border: 1px solid #ddd;
+        }
+    }
+
+    /* تحريك */
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .collapse-content {
+        animation: slideDown 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- شريط العنوان -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-gradient-primary mb-1">
+                <i class="fas fa-chart-pie me-2"></i>
+                البيانات الشاملة للموظفين
+            </h2>
+            <p class="text-muted mb-0">
+                عرض متكامل لجميع بيانات الموظفين: الرواتب، السلف، الجزاءات، الساعات الإضافية، الحضور
+            </p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary" onclick="expandAll()">
+                <i class="fas fa-expand-alt me-1"></i>فتح الكل
+            </button>
+            <button class="btn btn-outline-secondary" onclick="collapseAll()">
+                <i class="fas fa-compress-alt me-1"></i>إغلاق الكل
+            </button>
+            <button class="btn btn-outline-success" onclick="exportToExcel()">
+                <i class="fas fa-file-excel me-1"></i>تصدير
+            </button>
+            <button class="btn btn-outline-danger" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
+        </div>
+    </div>
+
+    <!-- معلومات الفترة -->
+    <div class="alert alert-info mb-4">
+        <i class="fas fa-calendar-alt me-2"></i>
+        عرض بيانات شهر <strong>{{ month_name }} {{ selected_year }}</strong>
+        (من {{ start_date.strftime('%Y-%m-%d') }} إلى {{ end_date.strftime('%Y-%m-%d') }})
+    </div>
+
+    <!-- الإحصائيات العامة -->
+    <div class="stats-grid">
+        <div class="stat-card primary">
+            <i class="fas fa-users stat-icon"></i>
+            <div class="stat-label">إجمالي الموظفين</div>
+            <div class="stat-value">{{ stats.total_employees }}</div>
+        </div>
+        <div class="stat-card success">
+            <i class="fas fa-money-bill-wave stat-icon"></i>
+            <div class="stat-label">إجمالي الرواتب</div>
+            <div class="stat-value">{{ "{:,.2f}".format(stats.total_salaries) }}</div>
+        </div>
+        <div class="stat-card info">
+            <i class="fas fa-clock stat-icon"></i>
+            <div class="stat-label">الساعات الإضافية</div>
+            <div class="stat-value">{{ "{:,.2f}".format(stats.total_overtime) }}</div>
+        </div>
+        <div class="stat-card warning">
+            <i class="fas fa-hand-holding-usd stat-icon"></i>
+            <div class="stat-label">أقساط السلف</div>
+            <div class="stat-value">{{ "{:,.2f}".format(stats.total_loans) }}</div>
+        </div>
+        <div class="stat-card danger">
+            <i class="fas fa-gavel stat-icon"></i>
+            <div class="stat-label">الجزاءات</div>
+            <div class="stat-value">{{ "{:,.2f}".format(stats.total_penalties) }}</div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-calendar-check stat-icon"></i>
+            <div class="stat-label">أيام الحضور</div>
+            <div class="stat-value">{{ stats.total_attendance }}</div>
+        </div>
+    </div>
+
+    <!-- فلترة البحث -->
+    <div class="filter-card no-print">
+        <form method="GET" action="{{ url_for('employees_comprehensive') }}" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label fw-bold">بحث</label>
+                <input type="text" name="search" class="form-control"
+                       placeholder="الاسم - الكود - رقم الجوال"
+                       value="{{ search_query }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-bold">الشركة</label>
+                <select name="company_id" class="form-select">
+                    <option value="">جميع الشركات</option>
+                    {% for company in companies %}
+                    <option value="{{ company.id }}" {% if company.id == selected_company %}selected{% endif %}>
+                        {{ company.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-bold">الوظيفة</label>
+                <select name="position" class="form-select">
+                    <option value="all">الكل</option>
+                    <option value="supervisor" {% if selected_position == 'supervisor' %}selected{% endif %}>مشرف</option>
+                    <option value="monitor" {% if selected_position == 'monitor' %}selected{% endif %}>مراقب</option>
+                    <option value="worker" {% if selected_position == 'worker' %}selected{% endif %}>عامل</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-bold">الشهر</label>
+                <select name="month" class="form-select">
+                    {% for num, name in month_names.items() %}
+                    <option value="{{ num }}" {% if num == selected_month %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label fw-bold">السنة</label>
+                <select name="year" class="form-select">
+                    {% for year in years %}
+                    <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-1"></i>عرض
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- قائمة الموظفين -->
+    <div class="comp-container">
+        {% for emp in employees %}
+        <div class="employee-card" id="emp-{{ emp.id }}">
+            <!-- رأس بطاقة الموظف -->
+            <div class="employee-header" onclick="toggleEmployee({{ emp.id }})">
+                <div class="d-flex align-items-center">
+                    <div class="employee-avatar">
+                        {{ emp.name[:1] }}
+                    </div>
+                    <div class="employee-title">
+                        <h5 class="employee-name">
+                            {{ emp.name }}
+                            {% if emp.code %}
+                            <small class="text-muted">({{ emp.code }})</small>
+                            {% endif %}
+                        </h5>
+                        <p class="employee-subtitle">
+                            <i class="fas fa-building me-1"></i> {{ emp.company }}
+                            <i class="fas fa-phone ms-3 me-1"></i> {{ emp.phone }}
+                        </p>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center">
+                    <span class="employee-badge badge-{{ emp.position_en }}">
+                        {{ emp.position }}
+                    </span>
+                    <span class="employee-badge {% if emp.is_active %}badge-active{% else %}badge-inactive{% endif %}">
+                        {{ 'نشط' if emp.is_active else 'غير نشط' }}
+                    </span>
+                    <button class="btn btn-sm btn-light" onclick="event.stopPropagation()">
+                        <i class="fas fa-chevron-down" id="icon-{{ emp.id }}"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- محتوى الموظف الموسع -->
+            <div class="employee-content" id="content-{{ emp.id }}" style="display: none;">
+                <!-- مؤشرات سريعة -->
+                <div class="employee-stats mb-3">
+                    <div class="stat-item">
+                        <div class="stat-item-value">{{ emp.present_days }}</div>
+                        <div class="stat-item-label">أيام الحضور</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-item-value">{{ emp.overtime_hours }}</div>
+                        <div class="stat-item-label">ساعات إضافية</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-item-value text-warning">{{ "{:,.0f}".format(emp.remaining_loans) }}</div>
+                        <div class="stat-item-label">متبقي سلف</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-item-value text-danger">{{ "{:,.0f}".format(emp.penalties_amount) }}</div>
+                        <div class="stat-item-label">جزاءات</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-item-value text-success">{{ "{:,.0f}".format(emp.net_salary) }}</div>
+                        <div class="stat-item-label">صافي الراتب</div>
+                    </div>
+                </div>
+
+                <!-- شبكة المعلومات -->
+                <div class="info-grid">
+                    <!-- بطاقة الراتب -->
+                    <div class="info-card">
+                        <h6 class="info-title">
+                            <i class="fas fa-money-bill-wave me-2 text-primary"></i>
+                            تفاصيل الراتب
+                        </h6>
+                        <div class="info-row">
+                            <span class="info-label">الراتب الأساسي:</span>
+                            <span class="info-value">{{ "{:,.2f}".format(emp.salary) }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">الأجر اليومي:</span>
+                            <span class="info-value">{{ "{:,.2f}".format(emp.daily_rate) }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">أيام الحضور:</span>
+                            <span class="info-value">{{ emp.present_days }} / {{ emp.total_days }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">نسبة الحضور:</span>
+                            <span class="info-value">
+                                {{ emp.attendance_rate }}%
+                                <div class="progress-sm">
+                                    <div class="progress-bar-sm bg-success" style="width: {{ emp.attendance_rate }}%"></div>
+                                </div>
+                            </span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">الراتب الأساسي المحتسب:</span>
+                            <span class="info-value">{{ "{:,.2f}".format(emp.base_pay) }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">أجر الساعات الإضافية:</span>
+                            <span class="info-value text-success">{{ "{:,.2f}".format(emp.overtime_cost) }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">إجمالي الخصومات:</span>
+                            <span class="info-value text-danger">{{ "{:,.2f}".format(emp.total_deductions) }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label fw-bold">صافي الراتب:</span>
+                            <span class="info-value fw-bold text-primary">{{ "{:,.2f}".format(emp.net_salary) }}</span>
+                        </div>
+                    </div>
+
+                    <!-- بطاقة السلف -->
+                    <div class="info-card">
+                        <h6 class="info-title">
+                            <i class="fas fa-hand-holding-usd me-2 text-warning"></i>
+                            السلف والاقساط
+                        </h6>
+                        <div class="info-row">
+                            <span class="info-label">إجمالي السلف:</span>
+                            <span class="info-value">{{ "{:,.2f}".format(emp.total_loans) }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">السلف النشطة:</span>
+                            <span class="info-value">
+                                {{ emp.active_loans_count }}
+                                {% if emp.has_active_loans %}
+                                <span class="performance-indicator indicator-warning"></span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">المتبقي من السلف:</span>
+                            <span class="info-value text-warning">{{ "{:,.2f}".format(emp.remaining_loans) }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">أقساط هذا الشهر:</span>
+                            <span class="info-value">{{ "{:,.2f}".format(emp.monthly_installments) }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">نسبة السلف للراتب:</span>
+                            <span class="info-value">
+                                {{ emp.loan_to_salary_ratio }}%
+                                <div class="progress-sm">
+                                    <div class="progress-bar-sm bg-warning" style="width: {{ emp.loan_to_salary_ratio }}%"></div>
+                                </div>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- بطاقة الجزاءات والساعات الإضافية -->
+                    <div class="info-card">
+                        <h6 class="info-title">
+                            <i class="fas fa-exclamation-triangle me-2 text-danger"></i>
+                            الجزاءات والإضافي
+                        </h6>
+                        <div class="info-row">
+                            <span class="info-label">عدد الجزاءات:</span>
+                            <span class="info-value">{{ emp.penalties_count }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">قيمة الجزاءات:</span>
+                            <span class="info-value text-danger">{{ "{:,.2f}".format(emp.penalties_amount) }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">عدد الساعات الإضافية:</span>
+                            <span class="info-value">{{ emp.overtime_count }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">إجمالي الساعات:</span>
+                            <span class="info-value">{{ emp.overtime_hours }} ساعة</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">قيمة الساعات الإضافية:</span>
+                            <span class="info-value text-success">{{ "{:,.2f}".format(emp.overtime_cost) }}</span>
+                        </div>
+                    </div>
+
+                    <!-- بطاقة معلومات الحضور -->
+                    <div class="info-card">
+                        <h6 class="info-title">
+                            <i class="fas fa-calendar-check me-2 text-info"></i>
+                            تفاصيل الحضور
+                        </h6>
+                        <div class="info-row">
+                            <span class="info-label">أيام الحضور:</span>
+                            <span class="info-value text-success">{{ emp.present_days }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">أيام الغياب:</span>
+                            <span class="info-value text-danger">{{ emp.absent_days }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">أيام التأخير:</span>
+                            <span class="info-value text-warning">{{ emp.late_days }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- معلومات المواقع والأماكن -->
+                {% if emp.assigned_places or emp.supervised_areas or emp.monitored_locations %}
+                <div class="info-card mt-3">
+                    <h6 class="info-title">
+                        <i class="fas fa-map-marked-alt me-2 text-primary"></i>
+                        المواقع والأماكن
+                    </h6>
+
+                    {% if emp.supervised_areas %}
+                    <div class="mb-3">
+                        <strong>المناطق التي يشرف عليها:</strong>
+                        <div class="mt-2">
+                            {% for area in emp.supervised_areas %}
+                            <span class="location-badge">
+                                <i class="fas fa-map"></i> {{ area.name }}
+                                               ({{ area.company }}) - {{ area.locations_count }} موقع
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if emp.monitored_locations %}
+                    <div class="mb-3">
+                        <strong>المواقع التي يراقبها:</strong>
+                        <div class="mt-2">
+                            {% for location in emp.monitored_locations %}
+                            <div class="location-badge" style="display: inline-block; margin-bottom: 5px;">
+                                <i class="fas fa-map-pin"></i> {{ location.name }}
+                                ({{ location.area }}) - {{ location.places_count }} مكان
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if emp.assigned_places %}
+                    <div>
+                        <strong>الأماكن التي يعمل بها:</strong>
+                        <div class="mt-2">
+                            {% for place in emp.assigned_places %}
+                            <div class="place-item">
+                                <span>
+                                    <i class="fas fa-door-open me-2 text-primary"></i>
+                                    {{ place.name }}
+                                </span>
+                                <span class="text-muted small">
+                                    {{ place.location }} - {{ place.area }} - {{ place.company }}
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- أزرار الإجراءات -->
+                <div class="mt-3 d-flex justify-content-end gap-2 no-print">
+                    <a href="{{ url_for('view_employee', id=emp.id) }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                        <i class="fas fa-eye me-1"></i>عرض التفاصيل
+                    </a>
+                    <a href="{{ url_for('edit_employee', employee_id=emp.id) }}" class="btn btn-sm btn-outline-warning">
+                        <i class="fas fa-edit me-1"></i>تعديل
+                    </a>
+                    <button class="btn btn-sm btn-outline-success" onclick="generatePayslip({{ emp.id }})">
+                        <i class="fas fa-file-pdf me-1"></i>كشف راتب
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info text-center py-5">
+            <i class="fas fa-info-circle fa-3x mb-3"></i>
+            <h4>لا توجد بيانات للعرض</h4>
+            <p>لم يتم العثور على موظفين مطابقين لمعايير البحث</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+// متغيرات عامة
+let expandedState = {};
+
+// تهيئة الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ صفحة البيانات الشاملة تم تحميلها');
+
+    // استعادة حالة الفتح من localStorage إذا وجدت
+    const savedState = localStorage.getItem('expandedEmployees');
+    if (savedState) {
+        try {
+            expandedState = JSON.parse(savedState);
+            // تطبيق الحالة المحفوظة
+            Object.keys(expandedState).forEach(id => {
+                if (expandedState[id]) {
+                    const content = document.getElementById(`content-${id}`);
+                    const icon = document.getElementById(`icon-${id}`);
+                    if (content && icon) {
+                        content.style.display = 'block';
+                        icon.classList.remove('fa-chevron-down');
+                        icon.classList.add('fa-chevron-up');
+                    }
+                }
+            });
+        } catch (e) {
+            console.warn('خطأ في استعادة الحالة:', e);
+        }
+    }
+});
+
+// دالة فتح/إغلاق بطاقة الموظف
+function toggleEmployee(id) {
+    const content = document.getElementById(`content-${id}`);
+    const icon = document.getElementById(`icon-${id}`);
+
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+        expandedState[id] = true;
+    } else {
+        content.style.display = 'none';
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+        expandedState[id] = false;
+    }
+
+    // حفظ الحالة في localStorage
+    localStorage.setItem('expandedEmployees', JSON.stringify(expandedState));
+}
+
+// فتح جميع بطاقات الموظفين
+function expandAll() {
+    document.querySelectorAll('[id^="content-"]').forEach(el => {
+        el.style.display = 'block';
+    });
+    document.querySelectorAll('[id^="icon-"]').forEach(icon => {
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+    });
+
+    // تحديث الحالة
+    document.querySelectorAll('[id^="content-"]').forEach(el => {
+        const id = el.id.replace('content-', '');
+        expandedState[id] = true;
+    });
+    localStorage.setItem('expandedEmployees', JSON.stringify(expandedState));
+}
+
+// إغلاق جميع بطاقات الموظفين
+function collapseAll() {
+    document.querySelectorAll('[id^="content-"]').forEach(el => {
+        el.style.display = 'none';
+    });
+    document.querySelectorAll('[id^="icon-"]').forEach(icon => {
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+    });
+
+    // تحديث الحالة
+    document.querySelectorAll('[id^="content-"]').forEach(el => {
+        const id = el.id.replace('content-', '');
+        expandedState[id] = false;
+    });
+    localStorage.setItem('expandedEmployees', JSON.stringify(expandedState));
+}
+
+// تصدير إلى Excel
+function exportToExcel() {
+    const rows = [];
+
+    {% for emp in employees %}
+    rows.push({
+        'الكود': '{{ emp.code or "" }}',
+        'الموظف': '{{ emp.name }}',
+        'الوظيفة': '{{ emp.position }}',
+        'الشركة': '{{ emp.company }}',
+        'رقم الجوال': '{{ emp.phone }}',
+        'الحالة': '{{ "نشط" if emp.is_active else "غير نشط" }}',
+        'الراتب الأساسي': {{ emp.salary }},
+        'أيام الحضور': {{ emp.present_days }},
+        'أيام الغياب': {{ emp.absent_days }},
+        'أيام التأخير': {{ emp.late_days }},
+        'نسبة الحضور': {{ emp.attendance_rate }},
+        'ساعات إضافية': {{ emp.overtime_hours }},
+        'قيمة إضافية': {{ emp.overtime_cost }},
+        'إجمالي السلف': {{ emp.total_loans }},
+        'متبقي السلف': {{ emp.remaining_loans }},
+        'أقساط الشهر': {{ emp.monthly_installments }},
+        'الجزاءات': {{ emp.penalties_amount }},
+        'الراتب الأساسي المحتسب': {{ emp.base_pay }},
+        'إجمالي الخصومات': {{ emp.total_deductions }},
+        'صافي الراتب': {{ emp.net_salary }}
+    });
+    {% endfor %}
+
+    fetch('/export-to-excel', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            rows: rows,
+            report_name: 'البيانات_الشاملة_للموظفين_{{ selected_year }}_{{ selected_month }}',
+            columns: [
+                { field: 'الكود', label: 'الكود' },
+                { field: 'الموظف', label: 'الموظف' },
+                { field: 'الوظيفة', label: 'الوظيفة' },
+                { field: 'الشركة', label: 'الشركة' },
+                { field: 'رقم الجوال', label: 'رقم الجوال' },
+                { field: 'الحالة', label: 'الحالة' },
+                { field: 'الراتب الأساسي', label: 'الراتب الأساسي' },
+                { field: 'أيام الحضور', label: 'أيام الحضور' },
+                { field: 'أيام الغياب', label: 'أيام الغياب' },
+                { field: 'أيام التأخير', label: 'أيام التأخير' },
+                { field: 'نسبة الحضور', label: 'نسبة الحضور' },
+                { field: 'ساعات إضافية', label: 'ساعات إضافية' },
+                { field: 'قيمة إضافية', label: 'قيمة إضافية' },
+                { field: 'إجمالي السلف', label: 'إجمالي السلف' },
+                { field: 'متبقي السلف', label: 'متبقي السلف' },
+                { field: 'أقساط الشهر', label: 'أقساط الشهر' },
+                { field: 'الجزاءات', label: 'الجزاءات' },
+                { field: 'الراتب الأساسي المحتسب', label: 'الراتب الأساسي المحتسب' },
+                { field: 'إجمالي الخصومات', label: 'إجمالي الخصومات' },
+                { field: 'صافي الراتب', label: 'صافي الراتب' }
+            ]
+        })
+    })
+    .then(response => response.blob())
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'البيانات_الشاملة_للموظفين.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    })
+    .catch(error => {
+        console.error('خطأ في التصدير:', error);
+        alert('حدث خطأ أثناء تصدير الملف');
+    });
+}
+
+// إنشاء كشف راتب
+function generatePayslip(employeeId) {
+    // البحث عن بيانات الموظف
+    {% for emp in employees %}
+    if (employeeId === {{ emp.id }}) {
+        const emp = {{ emp|tojson }};
+
+        // إنشاء نافذة منبثقة لكشف الراتب
+        const payslipWindow = window.open('', '_blank', 'width=800,height=600');
+
+        payslipWindow.document.write(`
+            <!DOCTYPE html>
+            <html dir="rtl">
+            <head>
+                <meta charset="UTF-8">
+                <title>كشف راتب - ${emp.name}</title>
+                <style>
+                    body {
+                        font-family: 'Cairo', sans-serif;
+                        padding: 30px;
+                        background: #f8f9fc;
+                    }
+                    .payslip {
+                        max-width: 700px;
+                        margin: 0 auto;
+                        background: white;
+                        padding: 30px;
+                        border-radius: 15px;
+                        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1);
+                    }
+                    .header {
+                        text-align: center;
+                        margin-bottom: 30px;
+                        padding-bottom: 20px;
+                        border-bottom: 2px solid #4e73df;
+                    }
+                    .header h2 {
+                        color: #4e73df;
+                        margin: 0;
+                    }
+                    .header h3 {
+                        color: #2c3e50;
+                        margin: 10px 0 0;
+                    }
+                    .info-section {
+                        display: grid;
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 20px;
+                        margin-bottom: 30px;
+                        padding: 20px;
+                        background: #f8f9fc;
+                        border-radius: 10px;
+                    }
+                    .info-item {
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 5px 0;
+                        border-bottom: 1px dashed #e3e6f0;
+                    }
+                    .info-label {
+                        color: #6c757d;
+                        font-weight: 600;
+                    }
+                    .info-value {
+                        font-weight: 600;
+                        color: #2c3e50;
+                    }
+                    .table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin: 20px 0;
+                    }
+                    .table th {
+                        background: #4e73df;
+                        color: white;
+                        padding: 10px;
+                        font-size: 0.9rem;
+                    }
+                    .table td {
+                        padding: 10px;
+                        border-bottom: 1px solid #e3e6f0;
+                    }
+                    .table tr:last-child td {
+                        border-bottom: none;
+                    }
+                    .total-row {
+                        background: #f8f9fc;
+                        font-weight: bold;
+                    }
+                    .total-row td {
+                        border-top: 2px solid #4e73df;
+                    }
+                    .footer {
+                        margin-top: 30px;
+                        padding-top: 20px;
+                        border-top: 2px solid #e3e6f0;
+                        display: flex;
+                        justify-content: space-between;
+                        color: #6c757d;
+                    }
+                    .amount-positive { color: #1cc88a; }
+                    .amount-negative { color: #e74a3b; }
+                    @media print {
+                        body { background: white; }
+                        .payslip { box-shadow: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="payslip">
+                    <div class="header">
+                        <h2>شركة أرض الجوهرة للنظافة</h2>
+                        <h3>كشف راتب موظف</h3>
+                        <p>شهر {{ month_name }} {{ selected_year }}</p>
+                    </div>
+
+                    <div class="info-section">
+                        <div>
+                            <div class="info-item">
+                                <span class="info-label">اسم الموظف:</span>
+                                <span class="info-value">${emp.name}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">الوظيفة:</span>
+                                <span class="info-value">${emp.position}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">الشركة:</span>
+                                <span class="info-value">${emp.company}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="info-item">
+                                <span class="info-label">الكود:</span>
+                                <span class="info-value">${emp.code || '---'}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">تاريخ التعيين:</span>
+                                <span class="info-value">${emp.hire_date || '---'}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">الحالة:</span>
+                                <span class="info-value">${emp.is_active ? 'نشط' : 'غير نشط'}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>البيان</th>
+                                <th>المبلغ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>الراتب الأساسي</td>
+                                <td>${emp.salary.toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td>عدد أيام العمل</td>
+                                <td>${emp.present_days} يوم</td>
+                            </tr>
+                            <tr>
+                                <td>الراتب الأساسي المحتسب</td>
+                                <td>${emp.base_pay.toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td>قيمة الساعات الإضافية</td>
+                                <td class="amount-positive">+ ${emp.overtime_cost.toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td>خصم أقساط السلف</td>
+                                <td class="amount-negative">- ${emp.monthly_installments.toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td>خصم الجزاءات</td>
+                                <td class="amount-negative">- ${emp.penalties_amount.toFixed(2)}</td>
+                            </tr>
+                            <tr class="total-row">
+                                <td><strong>صافي الراتب</strong></td>
+                                <td><strong>${emp.net_salary.toFixed(2)}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="footer">
+                        <div>تاريخ الطباعة: ${new Date().toLocaleDateString('ar-SA')}</div>
+                        <div>توقيع الموظف: ________________</div>
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button onclick="window.print()" style="padding: 10px 30px; background: #4e73df; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        <i class="fas fa-print"></i> طباعة
+                    </button>
+                </div>
+            </body>
+            </html>
+        `);
+
+        payslipWindow.document.close();
+        break;
+    }
+    {% endfor %}
+}
+
+// البحث الفوري (اختياري)
+function quickSearch() {
+    const searchTerm = document.getElementById('quickSearch').value.toLowerCase();
+    const cards = document.querySelectorAll('.employee-card');
+
+    cards.forEach(card => {
+        const name = card.querySelector('.employee-name').innerText.toLowerCase();
+        const company = card.querySelector('.employee-subtitle').innerText.toLowerCase();
+
+        if (name.includes(searchTerm) || company.includes(searchTerm)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+</script>
+
+<style>
+.text-gradient-primary {
+    background: linear-gradient(135deg, #4e73df, #224abe);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* تحسينات للجوال */
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .employee-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .employee-header .d-flex:last-child {
+        margin-top: 10px;
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .employee-stats {
+        justify-content: space-around;
+    }
+
+    .stat-item {
+        min-width: 60px;
+    }
+}
+
+/* تحسينات للطباعة */
+@media print {
+    .employee-content {
+        display: block !important;
+    }
+
+    .employee-card {
+        page-break-inside: avoid;
+    }
+}
+</style>
+{% endblock %}

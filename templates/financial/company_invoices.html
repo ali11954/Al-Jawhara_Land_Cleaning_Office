@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block title %}فواتير الشركات{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary">
+            <i class="fas fa-file-invoice me-2"></i>
+            فواتير الشركات
+        </h2>
+        <div>
+            <button class="btn btn-success" onclick="showAddInvoiceModal()">
+                <i class="fas fa-plus me-1"></i>إضافة فاتورة جديدة
+            </button>
+            <a href="{{ url_for('reports_index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right me-1"></i>العودة
+            </a>
+        </div>
+    </div>
+
+    <!-- إحصائيات سريعة -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5>إجمالي الفواتير</h5>
+                    <h3>{{ "{:,.2f}".format(total_invoiced) }} ريال</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5>إجمالي المحصل</h5>
+                    <h3>{{ "{:,.2f}".format(total_collected) }} ريال</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5>المتبقي</h5>
+                    <h3>{{ "{:,.2f}".format(total_pending) }} ريال</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- فلترة -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter me-2"></i>فلترة الفواتير
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">الشركة</label>
+                    <select name="company_id" class="form-select">
+                        <option value="">جميع الشركات</option>
+                        {% for company in companies %}
+                        <option value="{{ company.id }}" {% if company.id == selected_company %}selected{% endif %}>
+                            {{ company.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">السنة</label>
+                    <select name="year" class="form-select">
+                        <option value="">الكل</option>
+                        {% for y in years %}
+                        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">الشهر</label>
+                    <select name="month" class="form-select">
+                        <option value="">الكل</option>
+                        <option value="1" {% if selected_month == 1 %}selected{% endif %}>يناير</option>
+                        <option value="2" {% if selected_month == 2 %}selected{% endif %}>فبراير</option>
+                        <option value="3" {% if selected_month == 3 %}selected{% endif %}>مارس</option>
+                        <option value="4" {% if selected_month == 4 %}selected{% endif %}>أبريل</option>
+                        <option value="5" {% if selected_month == 5 %}selected{% endif %}>مايو</option>
+                        <option value="6" {% if selected_month == 6 %}selected{% endif %}>يونيو</option>
+                        <option value="7" {% if selected_month == 7 %}selected{% endif %}>يوليو</option>
+                        <option value="8" {% if selected_month == 8 %}selected{% endif %}>أغسطس</option>
+                        <option value="9" {% if selected_month == 9 %}selected{% endif %}>سبتمبر</option>
+                        <option value="10" {% if selected_month == 10 %}selected{% endif %}>أكتوبر</option>
+                        <option value="11" {% if selected_month == 11 %}selected{% endif %}>نوفمبر</option>
+                        <option value="12" {% if selected_month == 12 %}selected{% endif %}>ديسمبر</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الحالة</label>
+                    <select name="status" class="form-select">
+                        <option value="">الكل</option>
+                        <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>معلق</option>
+                        <option value="paid" {% if selected_status == 'paid' %}selected{% endif %}>مدفوع</option>
+                        <option value="partial" {% if selected_status == 'partial' %}selected{% endif %}>مدفوع جزئياً</option>
+                        <option value="overdue" {% if selected_status == 'overdue' %}selected{% endif %}>متأخر</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i>بحث
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- جدول الفواتير -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list me-2"></i>قائمة الفواتير
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>الشركة</th>
+                            <th>الشهر</th>
+                            <th>السنة</th>
+                            <th>قيمة العقد</th>
+                            <th>خدمات إضافية</th>
+                            <th>خصومات</th>
+                            <th>الإجمالي</th>
+                            <th>المدفوع</th>
+                            <th>المتبقي</th>
+                            <th>الحالة</th>
+                            <th>تاريخ الدفع</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for invoice in invoices %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ invoice.company.name }}</td>
+                            <td>
+                                {% if invoice.month == 1 %}يناير{% elif invoice.month == 2 %}فبراير{% elif invoice.month == 3 %}مارس{% elif invoice.month == 4 %}أبريل{% elif invoice.month == 5 %}مايو{% elif invoice.month == 6 %}يونيو{% elif invoice.month == 7 %}يوليو{% elif invoice.month == 8 %}أغسطس{% elif invoice.month == 9 %}سبتمبر{% elif invoice.month == 10 %}أكتوبر{% elif invoice.month == 11 %}نوفمبر{% elif invoice.month == 12 %}ديسمبر{% endif %}
+                            </td>
+                            <td>{{ invoice.year }}</td>
+                            <td>{{ "{:,.2f}".format(invoice.contract_amount) }}</td>
+                            <td>{{ "{:,.2f}".format(invoice.additional_services + invoice.extra_work) }}</td>
+                            <td class="text-danger">{{ "{:,.2f}".format(invoice.discount + invoice.penalty_deduction + invoice.late_payment_penalty) }}</td>
+                            <td class="fw-bold">{{ "{:,.2f}".format(invoice.total_amount) }}</td>
+                            <td class="text-success">{{ "{:,.2f}".format(invoice.paid_amount) }}</td>
+                            <td class="text-danger">{{ "{:,.2f}".format(invoice.remaining_amount) }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if invoice.status == 'paid' else 'warning' if invoice.status == 'partial' else 'danger' }}">
+                                    {{ invoice.status }}
+                                </span>
+                            </td>
+                            <td>{{ invoice.payment_date|arabic_date if invoice.payment_date else '-' }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="viewInvoice({{ invoice.id }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="13" class="text-center text-muted">
+                                <i class="fas fa-info-circle fa-2x mb-2"></i>
+                                <p>لا توجد فواتير</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- مودال إضافة فاتورة -->
+<div class="modal fade" id="addInvoiceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    إضافة فاتورة جديدة
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="invoiceForm" method="POST" action="{{ url_for('add_invoice') }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">الشركة <span class="text-danger">*</span></label>
+                            <select name="company_id" class="form-select" required>
+                                <option value="">اختر الشركة</option>
+                                {% for company in companies %}
+                                <option value="{{ company.id }}">{{ company.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">السنة <span class="text-danger">*</span></label>
+                            <select name="year" class="form-select" required>
+                                {% for y in years %}
+                                <option value="{{ y }}">{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">الشهر <span class="text-danger">*</span></label>
+                            <select name="month" class="form-select" required>
+                                <option value="1">يناير</option>
+                                <option value="2">فبراير</option>
+                                <option value="3">مارس</option>
+                                <option value="4">أبريل</option>
+                                <option value="5">مايو</option>
+                                <option value="6">يونيو</option>
+                                <option value="7">يوليو</option>
+                                <option value="8">أغسطس</option>
+                                <option value="9">سبتمبر</option>
+                                <option value="10">أكتوبر</option>
+                                <option value="11">نوفمبر</option>
+                                <option value="12">ديسمبر</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h6 class="text-primary mt-3 mb-3">بنود الفاتورة</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">قيمة العقد</label>
+                            <input type="number" name="contract_amount" class="form-control" step="0.01" value="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">خدمات إضافية</label>
+                            <input type="number" name="additional_services" class="form-control" step="0.01" value="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">أعمال إضافية</label>
+                            <input type="number" name="extra_work" class="form-control" step="0.01" value="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">مواد مستهلكة</label>
+                            <input type="number" name="materials_amount" class="form-control" step="0.01" value="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">تأجير معدات</label>
+                            <input type="number" name="equipment_rent" class="form-control" step="0.01" value="0">
+                        </div>
+                    </div>
+
+                    <h6 class="text-danger mt-3 mb-3">الخصومات</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">خصم عام</label>
+                            <input type="number" name="discount" class="form-control" step="0.01" value="0">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">غرامات تأخير</label>
+                            <input type="number" name="penalty_deduction" class="form-control" step="0.01" value="0">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">غرامة تأخر السداد</label>
+                            <input type="number" name="late_payment_penalty" class="form-control" step="0.01" value="0">
+                        </div>
+                    </div>
+
+                    <h6 class="text-success mt-3 mb-3">الدفع</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">المبلغ المدفوع</label>
+                            <input type="number" name="paid_amount" class="form-control" step="0.01" value="0">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">تاريخ الدفع</label>
+                            <input type="date" name="payment_date" class="form-control">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">طريقة الدفع</label>
+                            <select name="payment_method" class="form-select">
+                                <option value="">اختر</option>
+                                <option value="cash">نقدي</option>
+                                <option value="bank_transfer">تحويل بنكي</option>
+                                <option value="check">شيك</option>
+                            </select>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">مرجع الدفع</label>
+                            <input type="text" name="payment_reference" class="form-control">
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">ملاحظات</label>
+                            <textarea name="notes" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>حفظ الفاتورة
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function showAddInvoiceModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addInvoiceModal'));
+    modal.show();
+}
+
+function viewInvoice(invoiceId) {
+    alert('سيتم إضافة صفحة عرض الفاتورة قريباً');
+}
+</script>
+{% endblock %}

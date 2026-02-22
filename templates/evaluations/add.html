@@ -60,7 +60,7 @@
                     </h6>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('add_evaluation') }}">
+                    <form method="POST" action="{{ url_for('add_evaluation') }}" id="employeeForm">
                         <!-- التاريخ -->
                         <div class="row mb-3">
                             <div class="col-md-6">
@@ -70,8 +70,7 @@
                             </div>
                         </div>
 
-                        <!-- الهيكل التنظيمي - للمالك فقط -->
-                        {% if current_user.role == 'owner' %}
+                        <!-- الهيكل التنظيمي -->
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label for="emp_company_id" class="form-label">الشركة <span class="text-danger">*</span></label>
@@ -84,7 +83,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label for="emp_area_id" class="form-label">المنطقة</label>
-                                <select class="form-select" id="emp_area_id" name="area_id" onchange="loadEmpLocations()" disabled>
+                                <select class="form-select" id="emp_area_id" name="area_id" onchange="loadEmpLocations()">
                                     <option value="">اختر المنطقة...</option>
                                 </select>
                             </div>
@@ -93,23 +92,17 @@
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label for="emp_location_id" class="form-label">الموقع</label>
-                                <select class="form-select" id="emp_location_id" name="location_id" onchange="loadEmpPlaces()" disabled>
+                                <select class="form-select" id="emp_location_id" name="location_id" onchange="loadEmpPlaces()">
                                     <option value="">اختر الموقع...</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label for="emp_place_id" class="form-label">المكان <span class="text-danger">*</span></label>
-                                <select class="form-select" id="emp_place_id" name="place_id" required disabled>
+                                <label for="emp_place_id" class="form-label">المكان</label>
+                                <select class="form-select" id="emp_place_id" name="place_id">
                                     <option value="">اختر المكان...</option>
                                 </select>
                             </div>
                         </div>
-                        {% else %}
-                        <!-- للمشرف: حقل مخفي للشركة -->
-                        <input type="hidden" id="emp_company_id" name="company_id" value="{{ current_user.employee_profile.company_id if current_user.employee_profile else '' }}">
-                        <input type="hidden" id="emp_area_id" name="area_id">
-                        <input type="hidden" id="emp_location_id" name="location_id">
-                        {% endif %}
 
                         <!-- الموظف المقيّم -->
                         <div class="row mb-3">
@@ -229,7 +222,7 @@
                     </h6>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('add_supervisor_evaluation') }}">
+                    <form method="POST" action="{{ url_for('add_supervisor_evaluation') }}" id="supervisorForm">
                         <!-- التاريخ -->
                         <div class="row mb-3">
                             <div class="col-md-6">
@@ -465,13 +458,16 @@ async function loadEmpAreas() {
     locationSelect.innerHTML = '<option value="">اختر الموقع...</option>';
     placeSelect.innerHTML = '<option value="">اختر المكان...</option>';
 
-    locationSelect.disabled = true;
-    placeSelect.disabled = true;
-
     if (!companyId) {
-        areaSelect.disabled = true;
+        areaSelect.disabled = false;
+        locationSelect.disabled = true;
+        placeSelect.disabled = true;
         return;
     }
+
+    areaSelect.disabled = false;
+    locationSelect.disabled = true;
+    placeSelect.disabled = true;
 
     try {
         const response = await fetch(`/api/areas/${companyId}`);
@@ -482,7 +478,6 @@ async function loadEmpAreas() {
             data.data.forEach(area => {
                 areaSelect.innerHTML += `<option value="${area.id}">${area.name}</option>`;
             });
-            areaSelect.disabled = false;
         } else {
             showAlert('❌ ' + data.message, 'error');
         }
@@ -499,12 +494,15 @@ async function loadEmpLocations() {
 
     locationSelect.innerHTML = '<option value="">اختر الموقع...</option>';
     placeSelect.innerHTML = '<option value="">اختر المكان...</option>';
-    placeSelect.disabled = true;
 
     if (!areaId) {
         locationSelect.disabled = true;
+        placeSelect.disabled = true;
         return;
     }
+
+    locationSelect.disabled = false;
+    placeSelect.disabled = true;
 
     try {
         const response = await fetch(`/api/locations/${areaId}`);
@@ -515,7 +513,6 @@ async function loadEmpLocations() {
             data.data.forEach(location => {
                 locationSelect.innerHTML += `<option value="${location.id}">${location.name}</option>`;
             });
-            locationSelect.disabled = false;
         } else {
             showAlert('❌ ' + data.message, 'error');
         }
@@ -536,6 +533,8 @@ async function loadEmpPlaces() {
         return;
     }
 
+    placeSelect.disabled = false;
+
     try {
         const response = await fetch(`/api/places/${locationId}`);
         const data = await response.json();
@@ -545,7 +544,6 @@ async function loadEmpPlaces() {
             data.data.forEach(place => {
                 placeSelect.innerHTML += `<option value="${place.id}">${place.name}</option>`;
             });
-            placeSelect.disabled = false;
         } else {
             showAlert('❌ ' + data.message, 'error');
         }
@@ -611,9 +609,86 @@ if (typeEmployee && typeSupervisor) {
 }
 {% endif %}
 
-// تهيئة الصفحة
+// التحقق من النموذج عند الإرسال
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('✅ صفحة إضافة التقييم جاهزة');
+    const employeeFormElement = document.getElementById('employeeForm');
+
+    if (employeeFormElement) {
+        employeeFormElement.addEventListener('submit', function(e) {
+            // التحقق من الحقول المطلوبة فقط
+            const requiredFields = [
+                'emp_date',
+                'emp_company_id',
+                'emp_evaluated_employee_id',
+                'emp_cleanliness',
+                'emp_organization',
+                'emp_equipment_condition',
+                'emp_time',
+                'emp_safety_measures'
+            ];
+
+            let isValid = true;
+            let firstInvalidField = null;
+
+            requiredFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field && !field.value) {
+                    field.classList.add('is-invalid');
+                    isValid = false;
+                    if (!firstInvalidField) {
+                        firstInvalidField = field;
+                    }
+                } else if (field) {
+                    field.classList.remove('is-invalid');
+                }
+            });
+
+            if (!isValid) {
+                e.preventDefault();
+
+                if (firstInvalidField) {
+                    const label = firstInvalidField.previousElementSibling;
+                    const fieldName = label ? label.innerText.replace('*', '').trim() : 'حقل';
+                    showAlert(`❌ يرجى ملء الحقل المطلوب: ${fieldName}`, 'error');
+                } else {
+                    showAlert('❌ يرجى ملء جميع الحقول المطلوبة', 'error');
+                }
+            }
+        });
+    }
+
+    // التحقق من نموذج المشرفين
+    const supervisorFormElement = document.getElementById('supervisorForm');
+    if (supervisorFormElement) {
+        supervisorFormElement.addEventListener('submit', function(e) {
+            const requiredFields = this.querySelectorAll('[required]');
+            let isValid = true;
+            let firstInvalidField = null;
+
+            requiredFields.forEach(field => {
+                if (!field.value) {
+                    field.classList.add('is-invalid');
+                    isValid = false;
+                    if (!firstInvalidField) {
+                        firstInvalidField = field;
+                    }
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+
+            if (!isValid) {
+                e.preventDefault();
+                if (firstInvalidField) {
+                    const label = firstInvalidField.previousElementSibling;
+                    const fieldName = label ? label.innerText.replace('*', '').trim() : 'حقل';
+                    showAlert(`❌ يرجى ملء الحقل المطلوب: ${fieldName}`, 'error');
+                } else {
+                    showAlert('❌ يرجى ملء جميع الحقول المطلوبة', 'error');
+                }
+            }
+        });
+    }
 
     // إذا كان المستخدم مشرف، نعرض شركته تلقائياً
     {% if current_user.role == 'supervisor' and current_user.employee_profile %}
@@ -624,26 +699,9 @@ document.addEventListener('DOMContentLoaded', function() {
     {% endif %}
 });
 
-// التحقق من النموذج
-document.querySelectorAll('form').forEach(form => {
-    form.addEventListener('submit', function(e) {
-        const requiredFields = this.querySelectorAll('[required]');
-        let isValid = true;
-
-        requiredFields.forEach(field => {
-            if (!field.value) {
-                field.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                field.classList.remove('is-invalid');
-            }
-        });
-
-        if (!isValid) {
-            e.preventDefault();
-            showAlert('❌ يرجى ملء جميع الحقول المطلوبة', 'error');
-        }
-    });
+// تهيئة الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ صفحة إضافة التقييم جاهزة');
 });
 </script>
 
@@ -659,8 +717,8 @@ document.querySelectorAll('form').forEach(form => {
 }
 
 .is-invalid {
-    border-color: #dc3545;
-    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
 }
 
 .alert {
@@ -681,6 +739,30 @@ document.querySelectorAll('form').forEach(form => {
 #supervisorEvaluationForm .form-select,
 #supervisorEvaluationForm textarea {
     margin-bottom: 0.5rem;
+}
+
+/* تحسين مظهر الحقول */
+select:disabled {
+    background-color: #e9ecef;
+    opacity: 0.8;
+    cursor: not-allowed;
+}
+
+.card {
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.2) !important;
+}
+
+.btn {
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }
 </style>
 {% endblock %}

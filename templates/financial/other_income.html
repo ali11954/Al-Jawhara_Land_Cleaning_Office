@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}الإيرادات الأخرى{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-success">
+            <i class="fas fa-plus-circle me-2"></i>
+            الإيرادات الأخرى
+        </h2>
+        <div>
+            <button class="btn btn-primary" onclick="showAddIncomeModal()">
+                <i class="fas fa-plus me-1"></i>إضافة إيراد جديد
+            </button>
+            <a href="{{ url_for('reports_index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right me-1"></i>العودة
+            </a>
+        </div>
+    </div>
+
+    <!-- إحصائيات -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5>إجمالي الإيرادات</h5>
+                    <h3>{{ "{:,.2f}".format(total_amount) }} ريال</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5>عدد الإيرادات</h5>
+                    <h3>{{ incomes|length }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- فلترة -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter me-2"></i>فلترة الإيرادات
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">السنة</label>
+                    <select name="year" class="form-select">
+                        <option value="">الكل</option>
+                        {% for y in years %}
+                        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الشهر</label>
+                    <select name="month" class="form-select">
+                        <option value="">الكل</option>
+                        <option value="1" {% if selected_month == 1 %}selected{% endif %}>يناير</option>
+                        <option value="2" {% if selected_month == 2 %}selected{% endif %}>فبراير</option>
+                        <option value="3" {% if selected_month == 3 %}selected{% endif %}>مارس</option>
+                        <option value="4" {% if selected_month == 4 %}selected{% endif %}>أبريل</option>
+                        <option value="5" {% if selected_month == 5 %}selected{% endif %}>مايو</option>
+                        <option value="6" {% if selected_month == 6 %}selected{% endif %}>يونيو</option>
+                        <option value="7" {% if selected_month == 7 %}selected{% endif %}>يوليو</option>
+                        <option value="8" {% if selected_month == 8 %}selected{% endif %}>أغسطس</option>
+                        <option value="9" {% if selected_month == 9 %}selected{% endif %}>سبتمبر</option>
+                        <option value="10" {% if selected_month == 10 %}selected{% endif %}>أكتوبر</option>
+                        <option value="11" {% if selected_month == 11 %}selected{% endif %}>نوفمبر</option>
+                        <option value="12" {% if selected_month == 12 %}selected{% endif %}>ديسمبر</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">النوع</label>
+                    <select name="type" class="form-select">
+                        <option value="">الكل</option>
+                        {% for type in income_types %}
+                        <option value="{{ type.value }}" {% if type.value == selected_type %}selected{% endif %}>
+                            {{ type.label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i>بحث
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- جدول الإيرادات -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list me-2"></i>قائمة الإيرادات
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>التاريخ</th>
+                            <th>النوع</th>
+                            <th>الشركة</th>
+                            <th>الوصف</th>
+                            <th>المبلغ</th>
+                            <th>المرجع</th>
+                            <th>متكرر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for income in incomes %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ income.income_date|arabic_date }}</td>
+                            <td>{{ income.income_type_ar or income.income_type }}</td>
+                            <td>{{ income.company.name if income.company else 'عام' }}</td>
+                            <td>{{ income.description or '-' }}</td>
+                            <td class="text-success fw-bold">{{ "{:,.2f}".format(income.amount) }} ريال</td>
+                            <td>{{ income.reference or '-' }}</td>
+                            <td>
+                                {% if income.is_recurring %}
+                                <span class="badge bg-success">نعم ({{ income.recurring_period }})</span>
+                                {% else %}
+                                <span class="badge bg-secondary">لا</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted">
+                                <i class="fas fa-info-circle fa-2x mb-2"></i>
+                                <p>لا توجد إيرادات</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- مودال إضافة إيراد -->
+<div class="modal fade" id="addIncomeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    إضافة إيراد جديد
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">التاريخ <span class="text-danger">*</span></label>
+                       <input type="date" name="income_date" class="form-control" value="{{ today }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">السنة</label>
+                        <select name="year" class="form-select">
+                            {% for y in years %}
+                            <option value="{{ y }}" {% if y == today.year %}selected{% endif %}>{{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">الشهر</label>
+                        <select name="month" class="form-select">
+                            <option value="1">يناير</option>
+                            <option value="2">فبراير</option>
+                            <option value="3">مارس</option>
+                            <option value="4">أبريل</option>
+                            <option value="5">مايو</option>
+                            <option value="6">يونيو</option>
+                            <option value="7">يوليو</option>
+                            <option value="8">أغسطس</option>
+                            <option value="9">سبتمبر</option>
+                            <option value="10">أكتوبر</option>
+                            <option value="11">نوفمبر</option>
+                            <option value="12">ديسمبر</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">الشركة</label>
+                        <select name="company_id" class="form-select">
+                            <option value="">عام (بدون شركة)</option>
+                            {% for company in companies %}
+                            <option value="{{ company.id }}">{{ company.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">نوع الإيراد <span class="text-danger">*</span></label>
+                        <select name="income_type" class="form-select" required>
+                            {% for type in income_types %}
+                            <option value="{{ type.value }}">{{ type.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">الاسم بالعربية</label>
+                        <input type="text" name="income_type_ar" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">المبلغ <span class="text-danger">*</span></label>
+                        <input type="number" name="amount" class="form-control" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">الوصف</label>
+                        <textarea name="description" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">المرجع</label>
+                        <input type="text" name="reference" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" name="is_recurring" class="form-check-input" id="isRecurring">
+                            <label class="form-check-label" for="isRecurring">إيراد متكرر</label>
+                        </div>
+                    </div>
+                    <div class="mb-3" id="recurringPeriodDiv" style="display: none;">
+                        <label class="form-label">فترة التكرار</label>
+                        <select name="recurring_period" class="form-select">
+                            <option value="monthly">شهري</option>
+                            <option value="quarterly">ربع سنوي</option>
+                            <option value="yearly">سنوي</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save me-1"></i>حفظ الإيراد
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function showAddIncomeModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addIncomeModal'));
+    modal.show();
+}
+
+document.getElementById('isRecurring').addEventListener('change', function() {
+    document.getElementById('recurringPeriodDiv').style.display = this.checked ? 'block' : 'none';
+});
+</script>
+{% endblock %}

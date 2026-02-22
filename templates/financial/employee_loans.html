@@ -1,0 +1,1118 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة السلف والاقتراض{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --loan-primary: #4e73df;
+        --loan-success: #1cc88a;
+        --loan-warning: #f6c23e;
+        --loan-danger: #e74a3b;
+        --loan-info: #36b9cc;
+    }
+
+    .loan-card {
+        border-radius: 15px;
+        border: none;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        transition: transform 0.3s ease;
+    }
+
+    .loan-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .loan-stat-card {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        border-radius: 15px;
+        padding: 1.5rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .loan-stat-card::after {
+        content: '\f51e';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        position: absolute;
+        bottom: -10px;
+        right: -10px;
+        font-size: 5rem;
+        opacity: 0.2;
+        color: white;
+    }
+
+    .loan-progress {
+        height: 8px;
+        border-radius: 4px;
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .loan-progress-bar {
+        border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+
+    .loan-badge {
+        padding: 0.35rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .loan-badge.active {
+        background-color: rgba(246, 194, 62, 0.2);
+        color: #f6c23e;
+        border: 1px solid #f6c23e;
+    }
+
+    .loan-badge.paid {
+        background-color: rgba(28, 200, 138, 0.2);
+        color: #1cc88a;
+        border: 1px solid #1cc88a;
+    }
+
+    .loan-table {
+        border-radius: 15px;
+        overflow: hidden;
+    }
+
+    .loan-table thead th {
+        background-color: #f8f9fc;
+        border-bottom: 2px solid #e3e6f0;
+        font-weight: 600;
+        color: #4e73df;
+    }
+
+    .installment-timeline {
+        position: relative;
+        padding: 1rem 0;
+    }
+
+    .installment-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        border-radius: 10px;
+        background-color: #f8f9fc;
+        margin-bottom: 0.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .installment-item:hover {
+        background-color: #e8f0fe;
+        transform: translateX(-5px);
+    }
+
+    .installment-date {
+        min-width: 100px;
+        color: #6c757d;
+        font-size: 0.85rem;
+    }
+
+    .installment-amount {
+        font-weight: 600;
+        color: #1cc88a;
+        margin: 0 1rem;
+    }
+
+    .filter-card {
+        background: white;
+        border-radius: 15px;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+    }
+
+    .btn-loan {
+        border-radius: 25px;
+        padding: 0.5rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+
+    .btn-loan:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-slide-in {
+        animation: slideIn 0.5s ease forwards;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- شريط العنوان -->
+    <div class="d-flex justify-content-between align-items-center mb-4 animate-slide-in">
+        <div>
+            <h2 class="text-gradient-primary mb-1">
+                <i class="fas fa-hand-holding-usd me-2"></i>
+                إدارة السلف والاقتراض
+            </h2>
+            <p class="text-muted mb-0">إضافة ومتابعة السلف المقدمة للموظفين مع نظام تقسيط ذكي</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-primary btn-loan" onclick="showAddLoanModal()">
+                <i class="fas fa-plus-circle me-1"></i>
+                إضافة سلفة جديدة
+            </button>
+            <button class="btn btn-success btn-loan" onclick="exportLoansReport()">
+                <i class="fas fa-file-excel me-1"></i>
+                تصدير تقرير
+            </button>
+        </div>
+    </div>
+
+    <!-- بطاقات الإحصائيات -->
+    <div class="row mb-4 animate-slide-in" style="animation-delay: 0.1s">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="loan-stat-card" style="background: linear-gradient(135deg, #4e73df, #224abe);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-white-50 mb-2">إجمالي السلف</h6>
+                        <h2 class="text-white mb-0">{{ "{:,.2f}".format(total_loans) }} ر.س</h2>
+                        <small class="text-white-50">{{ active_loans }} سلفة نشطة</small>
+                    </div>
+                    <i class="fas fa-hand-holding-usd fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="loan-stat-card" style="background: linear-gradient(135deg, #1cc88a, #169b6b);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-white-50 mb-2">المبلغ المسدد</h6>
+                        <h2 class="text-white mb-0">{{ "{:,.2f}".format(total_paid) }} ر.س</h2>
+                        <small class="text-white-50">{{ paid_loans }} سلفة مسددة</small>
+                    </div>
+                    <i class="fas fa-check-circle fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="loan-stat-card" style="background: linear-gradient(135deg, #f6c23e, #dda20a);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-white-50 mb-2">المبلغ المتبقي</h6>
+                        <h2 class="text-white mb-0">{{ "{:,.2f}".format(total_remaining) }} ر.س</h2>
+                        <small class="text-white-50">نسبة التحصيل {{ ((total_paid/total_loans)*100)|round|int if total_loans > 0 else 0 }}%</small>
+                    </div>
+                    <i class="fas fa-clock fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="loan-stat-card" style="background: linear-gradient(135deg, #36b9cc, #258391);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-white-50 mb-2">متوسط السلفة</h6>
+                        <h2 class="text-white mb-0">{{ "{:,.2f}".format(total_loans/active_loans if active_loans > 0 else 0) }} ر.س</h2>
+                        <small class="text-white-50">لكل موظف</small>
+                    </div>
+                    <i class="fas fa-chart-line fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- فلترة البحث -->
+    <div class="filter-card mb-4 animate-slide-in" style="animation-delay: 0.2s">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('loans_list') }}" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-user me-1 text-primary"></i>الموظف
+                    </label>
+                    <select name="employee_id" class="form-select">
+                        <option value="">جميع الموظفين</option>
+                        {% for emp in employees %}
+                        <option value="{{ emp.id }}" {% if emp.id == selected_employee %}selected{% endif %}>
+                            {{ emp.full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-tag me-1 text-primary"></i>الحالة
+                    </label>
+                    <select name="status" class="form-select">
+                        <option value="">الكل</option>
+                        <option value="active" {% if selected_status == 'active' %}selected{% endif %}>نشط</option>
+                        <option value="paid" {% if selected_status == 'paid' %}selected{% endif %}>مسدد</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-calendar me-1 text-primary"></i>من تاريخ
+                    </label>
+                    <input type="date" name="from_date" class="form-control" value="{{ from_date }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-calendar me-1 text-primary"></i>إلى تاريخ
+                    </label>
+                    <input type="date" name="to_date" class="form-control" value="{{ to_date }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i>بحث
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- جدول السلف -->
+    <div class="card loan-table animate-slide-in" style="animation-delay: 0.3s">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list me-2"></i>قائمة السلف
+                <span class="badge bg-primary ms-2">{{ loans|length }}</span>
+            </h6>
+            <div>
+                <button class="btn btn-sm btn-outline-primary" onclick="selectAllLoans()">
+                    <i class="fas fa-check-double me-1"></i>تحديد الكل
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="deselectAllLoans()">
+                    <i class="fas fa-times me-1"></i>إلغاء التحديد
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th width="50">
+                                <input type="checkbox" id="selectAll" onclick="toggleAllCheckboxes()">
+                            </th>
+                            <th>الموظف</th>
+                            <th>تاريخ السلفة</th>
+                            <th>المبلغ</th>
+                            <th>عدد الأقساط</th>
+                            <th>القسط الشهري</th>
+                            <th>المسدد</th>
+                            <th>المتبقي</th>
+                            <th>نسبة السداد</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for loan in loans %}
+                        <tr id="loan-row-{{ loan.id }}" class="{% if loan.status == 'paid' %}table-success{% endif %}">
+                            <td>
+                                <input type="checkbox" class="loan-checkbox" value="{{ loan.id }}"
+                                       data-employee="{{ loan.employee_id }}"
+                                       data-amount="{{ loan.remaining }}">
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle me-2" style="background-color: #4e73df;">
+                                        {{ loan.employee.full_name[:1] if loan.employee else '?' }}
+                                    </div>
+                                    <div>
+                                        <strong>{{ loan.employee.full_name if loan.employee else 'غير معروف' }}</strong>
+                                        <small class="d-block text-muted">{{ loan.employee.position if loan.employee else '' }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ loan.loan_date.strftime('%Y-%m-%d') }}</td>
+                            <td class="fw-bold">{{ "{:,.2f}".format(loan.amount) }}</td>
+                            <td class="text-center">{{ loan.installments }}</td>
+                            <td class="text-info">{{ "{:,.2f}".format(loan.monthly_installment) }}</td>
+                            <td class="text-success">{{ "{:,.2f}".format(loan.paid_amount) }}</td>
+                            <td class="text-danger">{{ "{:,.2f}".format(loan.remaining) }}</td>
+                            <td>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-success"
+                                         style="width: {{ (loan.paid_amount/loan.amount*100)|round|int if loan.amount > 0 else 0 }}%">
+                                    </div>
+                                </div>
+                                <small class="d-block text-center mt-1">
+                                    {{ (loan.paid_amount/loan.amount*100)|round|int if loan.amount > 0 else 0 }}%
+                                </small>
+                            </td>
+                            <td>
+                                {% if loan.status == 'active' %}
+                                <span class="loan-badge active">
+                                    <i class="fas fa-clock me-1"></i>نشط
+                                </span>
+                                {% else %}
+                                <span class="loan-badge paid">
+                                    <i class="fas fa-check-circle me-1"></i>مسدد
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-info" onclick="viewLoanDetails({{ loan.id }})" title="عرض التفاصيل">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    {% if loan.status == 'active' %}
+                                    <button class="btn btn-success" onclick="payInstallment({{ loan.id }})" title="تسديد قسط">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                    </button>
+                                    {% endif %}
+                                    <button class="btn btn-danger" onclick="deleteLoan({{ loan.id }})" title="حذف">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="11" class="text-center py-5">
+                                <i class="fas fa-hand-holding-usd fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">لا توجد سلف مسجلة</h5>
+                                <p class="text-muted">قم بإضافة سلفة جديدة باستخدام الزر أعلاه</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% if loans %}
+        <div class="card-footer bg-white py-3">
+            <div class="row">
+                <div class="col-md-6">
+                    <button class="btn btn-warning" onclick="transferSelectedLoans()" id="transferBtn" disabled>
+                        <i class="fas fa-exchange-alt me-1"></i>
+                        ترحيل المحدد إلى المرتبات (<span id="selectedCount">0</span>)
+                    </button>
+                </div>
+                <div class="col-md-6 text-end">
+                    <strong>إجمالي المتبقي: </strong>
+                    <span class="text-danger fw-bold">{{ "{:,.2f}".format(total_remaining) }} ر.س</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- نافذة إضافة سلفة جديدة -->
+<div class="modal fade" id="addLoanModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    إضافة سلفة جديدة
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addLoanForm" onsubmit="saveLoan(event)">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">الموظف <span class="text-danger">*</span></label>
+                            <select name="employee_id" class="form-select" required>
+                                <option value="">اختر الموظف</option>
+                                {% for emp in employees %}
+                                <option value="{{ emp.id }}">{{ emp.full_name }} - {{ emp.position }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">تاريخ السلفة <span class="text-danger">*</span></label>
+                            <input type="date" name="loan_date" class="form-control"
+                                   value="{{ today.strftime('%Y-%m-%d') }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">المبلغ <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="number" name="amount" class="form-control"
+                                       min="1" step="0.01" required oninput="calculateInstallment()">
+                                <span class="input-group-text">ر.س</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">عدد الأقساط <span class="text-danger">*</span></label>
+                            <input type="number" name="installments" class="form-control"
+                                   min="1" value="1" required oninput="calculateInstallment()">
+                        </div>
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span><i class="fas fa-calculator me-2"></i>القسط الشهري:</span>
+                                    <span class="fw-bold" id="monthlyInstallmentDisplay">0.00 ر.س</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">سبب السلفة</label>
+                            <input type="text" name="reason" class="form-control" placeholder="مثال: ظروف عائلية">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">الموافقة</label>
+                            <select name="approved_by" class="form-select">
+                                <option value="">اختر الموافق</option>
+                                <option value="{{ current_user.id }}">أنا ({{ current_user.username }})</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">وصف تفصيلي</label>
+                            <textarea name="description" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>حفظ السلفة
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة تسديد قسط -->
+<div class="modal fade" id="payInstallmentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-money-bill-wave me-2"></i>
+                    تسديد قسط
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="payInstallmentForm" onsubmit="payInstallment(event)">
+                <div class="modal-body">
+                    <input type="hidden" name="loan_id" id="payLoanId">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">المبلغ المتبقي</label>
+                        <div class="alert alert-warning" id="remainingAmount"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">مبلغ القسط <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="number" name="amount" id="payAmount" class="form-control"
+                                   min="1" step="0.01" required>
+                            <span class="input-group-text">ر.س</span>
+                        </div>
+                        <small class="text-muted">القسط الشهري الموصى به: <span id="suggestedAmount"></span></small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">طريقة الدفع</label>
+                        <select name="payment_method" class="form-select">
+                            <option value="payroll">خصم من الراتب</option>
+                            <option value="cash">نقداً</option>
+                            <option value="bank_transfer">تحويل بنكي</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">تأكيد الدفع</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة تفاصيل السلفة -->
+<div class="modal fade" id="loanDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2"></i>
+                    تفاصيل السلفة
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="loanDetailsContent">
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+// متغيرات عامة
+let selectedLoans = [];
+
+// التحقق من تحميل المكتبات
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ الصفحة تم تحميلها');
+
+    // التحقق من SweetAlert2
+    if (typeof Swal === 'undefined') {
+        console.error('❌ SweetAlert2 لم يتم تحميله');
+        // تحميل SweetAlert2 يدوياً إذا لم يكن موجوداً
+        loadSweetAlert();
+    } else {
+        console.log('✅ SweetAlert2 تم تحميله');
+    }
+
+    // التحقق من Bootstrap
+    if (typeof bootstrap === 'undefined') {
+        console.error('❌ Bootstrap JS لم يتم تحميله');
+    } else {
+        console.log('✅ Bootstrap JS تم تحميله');
+    }
+
+    // تهيئة الصفحة
+    updateSelectedCount();
+    calculateInstallment();
+
+    // ربط حدث التغيير على checkbox
+    document.querySelectorAll('.loan-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateSelectedCount);
+    });
+
+    document.getElementById('selectAll')?.addEventListener('change', function() {
+        document.querySelectorAll('.loan-checkbox:not(:disabled)').forEach(cb => {
+            cb.checked = this.checked;
+        });
+        updateSelectedCount();
+    });
+});
+
+// دالة لتحميل SweetAlert2 إذا لم يكن موجوداً
+function loadSweetAlert() {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
+    document.head.appendChild(script);
+}
+
+// حساب القسط الشهري
+function calculateInstallment() {
+    const amountInput = document.querySelector('[name="amount"]');
+    const installmentsInput = document.querySelector('[name="installments"]');
+
+    if (!amountInput || !installmentsInput) return;
+
+    const amount = parseFloat(amountInput.value) || 0;
+    const installments = parseInt(installmentsInput.value) || 1;
+
+    if (amount > 0 && installments > 0) {
+        const monthly = (amount / installments).toFixed(2);
+        document.getElementById('monthlyInstallmentDisplay').innerText =
+            Number(monthly).toLocaleString('ar-SA') + ' ر.س';
+    } else {
+        document.getElementById('monthlyInstallmentDisplay').innerText = '0.00 ر.س';
+    }
+}
+
+// عرض نافذة إضافة سلفة
+function showAddLoanModal() {
+    const modalElement = document.getElementById('addLoanModal');
+    if (modalElement) {
+        new bootstrap.Modal(modalElement).show();
+    } else {
+        console.error('❌ عنصر modal غير موجود');
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'خطأ',
+                text: 'حدث خطأ في فتح النافذة'
+            });
+        }
+    }
+}
+
+// حفظ سلفة جديدة
+function saveLoan(event) {
+    event.preventDefault();
+    const form = document.getElementById('addLoanForm');
+    if (!form) return;
+
+    const formData = new FormData(form);
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري الحفظ...';
+
+    fetch('/loans/add', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم بنجاح!',
+                    text: data.message,
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            } else {
+                alert('تم بنجاح: ' + data.message);
+            }
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: data.message
+                });
+            } else {
+                alert('خطأ: ' + data.message);
+            }
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>حفظ السلفة';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'خطأ',
+                text: 'حدث خطأ في الاتصال'
+            });
+        } else {
+            alert('حدث خطأ في الاتصال');
+        }
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>حفظ السلفة';
+    });
+}
+
+// عرض تفاصيل السلفة
+function viewLoanDetails(loanId) {
+    const modalElement = document.getElementById('loanDetailsModal');
+    if (!modalElement) return;
+
+    const modal = new bootstrap.Modal(modalElement);
+    const contentDiv = document.getElementById('loanDetailsContent');
+
+    contentDiv.innerHTML = `
+        <div class="text-center py-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">جاري التحميل...</span>
+            </div>
+        </div>
+    `;
+
+    modal.show();
+
+    fetch(`/loans/${loanId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const loan = data.data;
+            let html = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title text-primary">معلومات السلفة</h6>
+                                <table class="table table-sm">
+                                    <tr>
+                                        <th>الموظف:</th>
+                                        <td>${loan.employee_name}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>التاريخ:</th>
+                                        <td>${loan.loan_date}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>المبلغ:</th>
+                                        <td class="fw-bold">${loan.amount.toLocaleString()} ر.س</td>
+                                    </tr>
+                                    <tr>
+                                        <th>عدد الأقساط:</th>
+                                        <td>${loan.installments}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>القسط الشهري:</th>
+                                        <td class="text-info">${loan.monthly_installment.toLocaleString()} ر.س</td>
+                                    </tr>
+                                    <tr>
+                                        <th>المسدد:</th>
+                                        <td class="text-success">${loan.paid_amount.toLocaleString()} ر.س</td>
+                                    </tr>
+                                    <tr>
+                                        <th>المتبقي:</th>
+                                        <td class="text-danger">${loan.remaining.toLocaleString()} ر.س</td>
+                                    </tr>
+                                    <tr>
+                                        <th>الحالة:</th>
+                                        <td>
+                                            <span class="loan-badge ${loan.status === 'active' ? 'active' : 'paid'}">
+                                                ${loan.status_ar}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title text-primary">تفاصيل إضافية</h6>
+                                <p><strong>السبب:</strong> ${loan.reason || 'لا يوجد'}</p>
+                                <p><strong>الوصف:</strong> ${loan.description || 'لا يوجد'}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (loan.installments_list && loan.installments_list.length > 0) {
+                html += `
+                    <h6 class="text-primary mt-3">سجل الأقساط المسددة</h6>
+                    <div class="installment-timeline">
+                `;
+
+                loan.installments_list.forEach(inst => {
+                    html += `
+                        <div class="installment-item">
+                            <div class="installment-date">
+                                <i class="fas fa-calendar-alt me-1"></i>${inst.payment_date}
+                            </div>
+                            <div class="installment-amount">
+                                ${inst.amount.toLocaleString()} ر.س
+                            </div>
+                            <div class="installment-method ms-auto">
+                                <span class="badge bg-info">${inst.payment_method}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+            } else {
+                html += `<p class="text-muted text-center mt-3">لا توجد أقساط مسددة بعد</p>`;
+            }
+
+            contentDiv.innerHTML = html;
+        } else {
+            contentDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    ${data.message}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        contentDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                حدث خطأ في تحميل البيانات
+            </div>
+        `;
+    });
+}
+
+// فتح نافذة تسديد قسط
+function payInstallment(loanId) {
+    // هذه دالة مؤقتة - سيتم تفعيلها لاحقاً
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'info',
+            title: 'قريباً',
+            text: 'سيتم تفعيل هذه الميزة قريباً'
+        });
+    } else {
+        alert('سيتم تفعيل هذه الميزة قريباً');
+    }
+}
+
+// حذف سلفة
+function deleteLoan(loanId) {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: 'تأكيد الحذف',
+            text: 'هل أنت متأكد من حذف هذه السلفة؟',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'نعم، احذف',
+            cancelButtonText: 'إلغاء'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performDelete(loanId);
+            }
+        });
+    } else {
+        if (confirm('هل أنت متأكد من حذف هذه السلفة؟')) {
+            performDelete(loanId);
+        }
+    }
+}
+
+function performDelete(loanId) {
+    fetch(`/loans/delete/${loanId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم الحذف',
+                    text: data.message,
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            } else {
+                alert('تم الحذف بنجاح');
+            }
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: data.message
+                });
+            } else {
+                alert('خطأ: ' + data.message);
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'خطأ',
+                text: 'حدث خطأ في الاتصال'
+            });
+        } else {
+            alert('حدث خطأ في الاتصال');
+        }
+    });
+}
+
+// دوال تحديد السلف
+function updateSelectedCount() {
+    selectedLoans = [];
+    let totalAmount = 0;
+
+    document.querySelectorAll('.loan-checkbox:checked').forEach(cb => {
+        selectedLoans.push(parseInt(cb.value));
+        totalAmount += parseFloat(cb.dataset.amount || 0);
+    });
+
+    const count = selectedLoans.length;
+    const btn = document.getElementById('transferBtn');
+    const countSpan = document.getElementById('selectedCount');
+
+    if (btn) {
+        btn.disabled = count === 0;
+        if (countSpan) {
+            countSpan.innerText = count;
+        }
+    }
+}
+
+function selectAllLoans() {
+    document.getElementById('selectAll').checked = true;
+    document.querySelectorAll('.loan-checkbox:not(:disabled)').forEach(cb => {
+        cb.checked = true;
+    });
+    updateSelectedCount();
+}
+
+function deselectAllLoans() {
+    document.getElementById('selectAll').checked = false;
+    document.querySelectorAll('.loan-checkbox').forEach(cb => {
+        cb.checked = false;
+    });
+    updateSelectedCount();
+}
+
+// ترحيل السلف المحددة
+function transferSelectedLoans() {
+    if (selectedLoans.length === 0) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'تنبيه',
+                text: 'لم يتم تحديد أي سلف للترحيل'
+            });
+        } else {
+            alert('لم يتم تحديد أي سلف للترحيل');
+        }
+        return;
+    }
+
+    const confirmMessage = `هل أنت متأكد من ترحيل ${selectedLoans.length} سلفة إلى كشف المرتبات؟`;
+
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: 'تأكيد الترحيل',
+            html: `
+                <div class="text-end">
+                    <p>هل أنت متأكد من ترحيل <strong>${selectedLoans.length}</strong> سلفة إلى كشف المرتبات؟</p>
+                    <p class="text-warning mb-0">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        سيتم خصم الأقساط الشهرية من رواتب الموظفين
+                    </p>
+                </div>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#f6c23e',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'نعم، رحل',
+            cancelButtonText: 'إلغاء',
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                Swal.showLoading();
+                return fetch('/loans/transfer-to-payroll', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        loan_ids: selectedLoans,
+                        transfer_all: false,
+                        month: {{ today.month }},
+                        year: {{ today.year }}
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw new Error(err.message); });
+                    }
+                    return response.json();
+                })
+                .catch(error => {
+                    Swal.showValidationMessage(`خطأ في الاتصال: ${error}`);
+                });
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                const data = result.value;
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'تم الترحيل بنجاح!',
+                        html: `
+                            <div class="text-end">
+                                <p class="mb-1">✅ تم ترحيل ${data.transferred_count} سلفة</p>
+                                <p class="mb-1">💰 إجمالي الخصم: ${data.total_deducted.toLocaleString()} ر.س</p>
+                                ${data.errors && data.errors.length > 0 ?
+                                    `<p class="text-danger mt-2">⚠️ ${data.errors.length} خطأ</p>` : ''}
+                            </div>
+                        `,
+                        confirmButtonColor: '#1cc88a'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ في الترحيل',
+                        text: data.message
+                    });
+                }
+            }
+        });
+    } else {
+        if (confirm(confirmMessage)) {
+            alert('سيتم تفعيل الترحيل قريباً');
+        }
+    }
+}
+
+// تصدير تقرير السلف
+function exportLoansReport() {
+    alert('سيتم تفعيل هذه الميزة قريباً');
+}
+</script>
+
+<style>
+.text-gradient-primary {
+    background: linear-gradient(135deg, #4e73df, #224abe);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #4e73df, #224abe);
+}
+
+.avatar-circle {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.opacity-50 {
+    opacity: 0.5;
+}
+
+.table-success {
+    background-color: rgba(28, 200, 138, 0.1) !important;
+}
+
+.progress {
+    background-color: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    border-radius: 10px;
+    transition: width 0.5s ease;
+}
+
+.btn-group .btn {
+    border-radius: 20px !important;
+    margin: 0 2px;
+}
+
+.modal-content {
+    border-radius: 15px;
+    border: none;
+}
+
+.modal-header {
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+}
+</style>
+
+<!-- SweetAlert2 للمزيد من الجمالية -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+{% endblock %}

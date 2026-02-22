@@ -14,94 +14,101 @@
             <a href="{{ url_for('attendance_index') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-right"></i> العودة
             </a>
-            <a href="{{ url_for('prepare_attendance') }}" class="btn btn-success">
+            <a href="{{ url_for('prepare_attendance_enhanced') }}" class="btn btn-success">
                 <i class="fas fa-clipboard-check"></i> نظام التحضير
+            </a>
+            <a href="{{ url_for('penalties_list') }}" class="btn btn-warning">
+                <i class="fas fa-exclamation-triangle"></i> إدارة الجزاءات
             </a>
         </div>
     </div>
 
-    <!-- بطاقة إضافة الحضور -->
-    <div class="card shadow">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">بيانات الحضور</h6>
-        </div>
-        <div class="card-body">
-            <form id="attendanceForm" method="POST">
-                <div class="row g-3">
-                    <!-- اختيار الموظف -->
-                    <div class="col-md-6">
-                        <label for="employee_id" class="form-label">الموظف <span class="text-danger">*</span></label>
-                        <select class="form-control" id="employee_id" name="employee_id" required>
-                            <option value="">-- اختر الموظف --</option>
-                            {% for employee in employees %}
-                            <option value="{{ employee.id }}">{{ employee.full_name }} - {{ employee.position }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- اختيار التاريخ -->
-                    <div class="col-md-6">
-                        <label for="date" class="form-label">التاريخ <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" id="date" name="date"
-                               value="{{ default_date }}" required>
-                    </div>
-
-                    <!-- حالة الحضور -->
-                    <div class="col-md-4">
-                        <label for="status" class="form-label">الحالة <span class="text-danger">*</span></label>
-                        <select class="form-control" id="status" name="status" required>
-                            <option value="">-- اختر الحالة --</option>
-                            <option value="present">حاضر</option>
-                            <option value="absent">غائب</option>
-                            <option value="late">متأخر</option>
-                        </select>
-                    </div>
-
-                    <!-- نوع الوردية -->
-                    <div class="col-md-4">
-                        <label for="shift_type" class="form-label">نوع الوردية <span class="text-danger">*</span></label>
-                        <select class="form-control" id="shift_type" name="shift_type" required>
-                            <option value="">-- اختر الوردية --</option>
-                            <option value="morning">صباحية</option>
-                            <option value="evening">مسائية</option>
-                        </select>
-                    </div>
-
-                    <!-- الوقت (اختياري) -->
-                    <div class="col-md-4">
-                        <label class="form-label">الوقت (اختياري)</label>
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <input type="time" class="form-control" id="check_in" name="check_in"
-                                       placeholder="الحضور">
-                            </div>
-                            <div class="col-6">
-                                <input type="time" class="form-control" id="check_out" name="check_out"
-                                       placeholder="الانصراف">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- الملاحظات -->
-                    <div class="col-12">
-                        <label for="notes" class="form-label">ملاحظات</label>
-                        <textarea class="form-control" id="notes" name="notes"
-                                  rows="3" placeholder="ملاحظات إضافية..."></textarea>
-                    </div>
-
-                    <!-- أزرار -->
-                    <div class="col-12">
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> حفظ الحضور
-                            </button>
-                            <button type="reset" class="btn btn-outline-secondary">
-                                <i class="fas fa-undo"></i> مسح الكل
-                            </button>
-                        </div>
-                    </div>
+    <div class="row">
+        <!-- بطاقة إضافة الحضور -->
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">بيانات الحضور</h6>
                 </div>
-            </form>
+                <div class="card-body">
+                    <form id="attendanceForm" method="POST">
+                        <div class="row g-3">
+                            <!-- اختيار الموظف -->
+                            <div class="col-md-6">
+                                <label for="employee_id" class="form-label">الموظف <span class="text-danger">*</span></label>
+                                <select class="form-control" id="employee_id" name="employee_id" required>
+                                    <option value="">-- اختر الموظف --</option>
+                                    {% for employee in employees %}
+                                    <option value="{{ employee.id }}">{{ employee.full_name }} - {{ employee.position }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- اختيار التاريخ -->
+                            <div class="col-md-6">
+                                <label for="date" class="form-label">التاريخ <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="date" name="date"
+                                       value="{{ default_date }}" required>
+                            </div>
+
+                            <!-- حالة الحضور -->
+                            <div class="col-md-4">
+                                <label for="status" class="form-label">الحالة <span class="text-danger">*</span></label>
+                                <select class="form-control" id="status" name="status" required>
+                                    <option value="">-- اختر الحالة --</option>
+                                    <option value="present">حاضر</option>
+                                    <option value="absent">غائب</option>
+                                    <option value="late">متأخر</option>
+                                </select>
+                            </div>
+
+                            <!-- نوع الوردية -->
+                            <div class="col-md-4">
+                                <label for="shift_type" class="form-label">نوع الوردية <span class="text-danger">*</span></label>
+                                <select class="form-control" id="shift_type" name="shift_type" required>
+                                    <option value="">-- اختر الوردية --</option>
+                                    <option value="morning">صباحية</option>
+                                    <option value="evening">مسائية</option>
+                                </select>
+                            </div>
+
+                            <!-- الوقت (اختياري) -->
+                            <div class="col-md-4">
+                                <label class="form-label">الوقت (اختياري)</label>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <input type="time" class="form-control" id="check_in" name="check_in"
+                                               placeholder="الحضور">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="time" class="form-control" id="check_out" name="check_out"
+                                               placeholder="الانصراف">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- الملاحظات -->
+                            <div class="col-12">
+                                <label for="notes" class="form-label">ملاحظات</label>
+                                <textarea class="form-control" id="notes" name="notes"
+                                          rows="3" placeholder="ملاحظات إضافية..."></textarea>
+                            </div>
+
+                            <!-- أزرار -->
+                            <div class="col-12">
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> حفظ الحضور
+                                    </button>
+                                    <button type="reset" class="btn btn-outline-secondary">
+                                        <i class="fas fa-undo"></i> مسح الكل
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -109,6 +116,7 @@
 
 {% block scripts %}
 <script>
+// معالجة نموذج الحضور
 document.getElementById('attendanceForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
@@ -121,20 +129,23 @@ document.getElementById('attendanceForm').addEventListener('submit', function(e)
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showAlert('success', data.message);
+            showAlert('success', '✅ تم حفظ الحضور بنجاح!');
+
+            // تفريغ الحقول بعد الحفظ الناجح
             setTimeout(() => {
-                window.location.href = '{{ url_for("attendance_index") }}';
+                this.reset();
             }, 2000);
         } else {
-            showAlert('error', data.message);
+            showAlert('error', '❌ ' + data.message);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showAlert('error', 'حدث خطأ أثناء الحفظ');
+        showAlert('error', '❌ حدث خطأ أثناء الحفظ');
     });
 });
 
+// دالة عرض التنبيهات
 function showAlert(type, message) {
     const alertClass = {
         'success': 'alert-success',
@@ -148,21 +159,36 @@ function showAlert(type, message) {
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
 
-    document.querySelector('.card-body').appendChild(alertDiv);
+    // إضافة التنبيه إلى أعلى الصفحة
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
 
     setTimeout(() => {
         alertDiv.remove();
     }, 5000);
 }
 
-// إظهار/إخفاء حقول الوقت حسب الحالة
+// إظهار/إخفاء حقول الوقت حسب حالة الحضور
 document.getElementById('status').addEventListener('change', function() {
-    const timeFields = document.querySelector('.row.g-2').parentElement;
-    if (this.value === 'present') {
-        timeFields.style.opacity = '1';
+    const checkIn = document.getElementById('check_in');
+    const checkOut = document.getElementById('check_out');
+
+    if (this.value === 'present' || this.value === 'late') {
+        checkIn.disabled = false;
+        checkOut.disabled = false;
     } else {
-        timeFields.style.opacity = '0.5';
+        checkIn.disabled = true;
+        checkOut.disabled = true;
+        checkIn.value = '';
+        checkOut.value = '';
     }
+});
+
+// تهيئة الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    // تعطيل حقول الوقت في البداية
+    document.getElementById('check_in').disabled = true;
+    document.getElementById('check_out').disabled = true;
 });
 </script>
 
@@ -170,6 +196,23 @@ document.getElementById('status').addEventListener('change', function() {
 .form-label {
     font-weight: 600;
     margin-bottom: 0.5rem;
+    color: #2c3e50;
+}
+
+/* تحسينات للهواتف المحمولة */
+@media (max-width: 768px) {
+    .col-md-12 {
+        margin-bottom: 1rem;
+    }
+
+    .d-flex.gap-2 {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
 }
 </style>
 {% endblock %}

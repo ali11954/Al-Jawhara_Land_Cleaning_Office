@@ -1,0 +1,541 @@
+{% extends "base.html" %}
+
+{% block title %}مركز التحضير{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header محسن يتناسب مع الهيدر -->
+    <div class="hero-section bg-gradient-dark text-white rounded-4 p-5 mb-5 text-center position-relative overflow-hidden">
+        <div class="hero-pattern"></div>
+        <div class="position-relative">
+            <div class="hero-icon-wrapper mb-4">
+                <i class="fas fa-tools fa-4x text-warning"></i>
+            </div>
+            <h1 class="display-4 fw-bold mb-3">
+                مركز التحضير
+            </h1>
+            <p class="lead fs-4 mb-0">
+                جميع أدوات إدارة الحضور والتحضير في مكان واحد
+            </p>
+            <div class="hero-stats mt-4">
+                <div class="row justify-content-center g-3">
+                    <div class="col-auto">
+                        <span class="badge bg-warning bg-opacity-25 text-white px-3 py-2">
+                            <i class="fas fa-users me-2"></i>تحضير متقدم
+                        </span>
+                    </div>
+                    <div class="col-auto">
+                        <span class="badge bg-info bg-opacity-25 text-white px-3 py-2">
+                            <i class="fas fa-robot me-2"></i>ترحيل ذكي
+                        </span>
+                    </div>
+                    <div class="col-auto">
+                        <span class="badge bg-success bg-opacity-25 text-white px-3 py-2">
+                            <i class="fas fa-chart-line me-2"></i>إحصائيات فورية
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards Grid محسنة -->
+    <div class="row g-4">
+        <!-- بطاقة إضافة حضور فردي -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 border-0 shadow-sm hover-lift card-gradient-1">
+                <div class="card-body text-center p-4">
+                    <div class="icon-circle bg-success-gradient mb-4 mx-auto">
+                        <i class="fas fa-plus-circle fa-3x text-white"></i>
+                    </div>
+                    <h3 class="fw-bold mb-3">إضافة حضور فردي</h3>
+                    <p class="text-muted mb-4">
+                        إضافة سجل حضور لموظف واحد بشكل منفصل مع إمكانية إضافة جزاء
+                    </p>
+                    <div class="feature-badges mb-4">
+                        <span class="badge bg-light text-dark me-1"><i class="fas fa-check-circle text-success me-1"></i>سريع</span>
+                        <span class="badge bg-light text-dark me-1"><i class="fas fa-user-plus text-primary me-1"></i>فردي</span>
+                    </div>
+                    <div class="d-grid">
+                        <a href="{{ url_for('add_attendance') }}" class="btn btn-success btn-lg btn-hover">
+                            <span>الدخول إلى النظام</span>
+                            <i class="fas fa-arrow-left ms-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- بطاقة نظام التحضير الأساسي -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 border-0 shadow-sm hover-lift card-gradient-2">
+                <div class="card-body text-center p-4">
+                    <div class="icon-circle bg-info-gradient mb-4 mx-auto">
+                        <i class="fas fa-clipboard-list fa-3x text-white"></i>
+                    </div>
+                    <h3 class="fw-bold mb-3">نظام التحضير الأساسي</h3>
+                    <p class="text-muted mb-4">
+                        نظام التحضير مع فلترة حسب الشركة والمنطقة والموقع
+                    </p>
+                    <div class="feature-badges mb-4">
+                        <span class="badge bg-light text-dark me-1"><i class="fas fa-filter text-info me-1"></i>فلترة</span>
+                        <span class="badge bg-light text-dark me-1"><i class="fas fa-building text-info me-1"></i>شركات</span>
+                    </div>
+                    <div class="d-grid">
+                        <a href="{{ url_for('prepare_attendance_enhanced') }}" class="btn btn-info btn-lg btn-hover">
+                            <span>الدخول إلى النظام</span>
+                            <i class="fas fa-arrow-left ms-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- بطاقة ترحيل فترات عادي -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 border-0 shadow-sm hover-lift card-gradient-3">
+                <div class="card-body text-center p-4">
+                    <div class="icon-circle bg-primary-gradient mb-4 mx-auto">
+                        <i class="fas fa-calendar-alt fa-3x text-white"></i>
+                    </div>
+                    <h3 class="fw-bold mb-3">ترحيل فترات</h3>
+                    <p class="text-muted mb-4">
+                        نسخ أو نقل سجلات الحضور من فترة إلى أخرى
+                    </p>
+                    <div class="feature-badges mb-4">
+                        <span class="badge bg-light text-dark me-1"><i class="fas fa-copy text-primary me-1"></i>نسخ</span>
+                        <span class="badge bg-light text-dark me-1"><i class="fas fa-cut text-primary me-1"></i>نقل</span>
+                    </div>
+                    <div class="d-grid">
+                        <a href="{{ url_for('transfer_attendance_page') }}" class="btn btn-primary btn-lg btn-hover">
+                            <span>الدخول إلى النظام</span>
+                            <i class="fas fa-arrow-left ms-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- بطاقة الترحيل الذكي -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 border-0 shadow-sm hover-lift card-gradient-4">
+                <div class="card-body text-center p-4">
+                    <div class="icon-circle bg-warning-gradient mb-4 mx-auto">
+                        <i class="fas fa-robot fa-3x text-white"></i>
+                    </div>
+                    <h3 class="fw-bold mb-3">الترحيل الذكي</h3>
+                    <p class="text-muted mb-4">
+                        ترحيل ذكي مع تعبئة الغيابات التلقائية واستثناء الإداريين
+                    </p>
+                    <div class="feature-badges mb-4">
+                        <span class="badge bg-light text-dark me-1"><i class="fas fa-brain text-warning me-1"></i>ذكي</span>
+                        <span class="badge bg-light text-dark me-1"><i class="fas fa-eye text-warning me-1"></i>معاينة</span>
+                    </div>
+                    <div class="d-grid">
+                        <a href="{{ url_for('transfer_attendance_smart') }}" class="btn btn-warning btn-lg btn-hover">
+                            <span>الدخول إلى النظام</span>
+                            <i class="fas fa-arrow-left ms-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- بطاقة إدارة الجزاءات -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 border-0 shadow-sm hover-lift card-gradient-5">
+                <div class="card-body text-center p-4">
+                    <div class="icon-circle bg-danger-gradient mb-4 mx-auto">
+                        <i class="fas fa-exclamation-triangle fa-3x text-white"></i>
+                    </div>
+                    <h3 class="fw-bold mb-3">إدارة الجزاءات</h3>
+                    <p class="text-muted mb-4">
+                        إضافة ومتابعة الجزاءات وربطها بكشوف المرتبات
+                    </p>
+                    <div class="feature-badges mb-4">
+                        <span class="badge bg-light text-dark me-1"><i class="fas fa-money-bill text-danger me-1"></i>مرتبات</span>
+                        <span class="badge bg-light text-dark me-1"><i class="fas fa-gavel text-danger me-1"></i>جزاءات</span>
+                    </div>
+                    <div class="d-grid">
+                        <a href="{{ url_for('penalties_list') }}" class="btn btn-danger btn-lg btn-hover">
+                            <span>الدخول إلى النظام</span>
+                            <i class="fas fa-arrow-left ms-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- بطاقة سجل الحضور -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 border-0 shadow-sm hover-lift card-gradient-6">
+                <div class="card-body text-center p-4">
+                    <div class="icon-circle bg-secondary-gradient mb-4 mx-auto">
+                        <i class="fas fa-calendar-check fa-3x text-white"></i>
+                    </div>
+                    <h3 class="fw-bold mb-3">سجل الحضور</h3>
+                    <p class="text-muted mb-4">
+                        عرض وتصفية سجلات الحضور مع إحصائيات يومية
+                    </p>
+                    <div class="feature-badges mb-4">
+                        <span class="badge bg-light text-dark me-1"><i class="fas fa-chart-bar text-secondary me-1"></i>إحصائيات</span>
+                        <span class="badge bg-light text-dark me-1"><i class="fas fa-search text-secondary me-1"></i>تصفية</span>
+                    </div>
+                    <div class="d-grid">
+                        <a href="{{ url_for('attendance_index') }}" class="btn btn-secondary btn-lg btn-hover">
+                            <span>الدخول إلى النظام</span>
+                            <i class="fas fa-arrow-left ms-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ملخص سريع محسن -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm summary-card">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="summary-icon bg-primary-light rounded-circle p-3 ms-3">
+                            <i class="fas fa-info-circle fa-2x text-primary"></i>
+                        </div>
+                        <h4 class="fw-bold mb-0">نظرة سريعة على الأنظمة</h4>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-md-3 col-6">
+                            <div class="summary-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-success bg-opacity-10 p-3 rounded-circle ms-3">
+                                        <i class="fas fa-plus-circle text-success"></i>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted d-block">حضور فردي</small>
+                                        <span class="fw-bold">سجل منفصل</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="summary-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-info bg-opacity-10 p-3 rounded-circle ms-3">
+                                        <i class="fas fa-clipboard-list text-info"></i>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted d-block">نظام التحضير</small>
+                                        <span class="fw-bold">فلترة متقدمة</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="summary-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-warning bg-opacity-10 p-3 rounded-circle ms-3">
+                                        <i class="fas fa-robot text-warning"></i>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted d-block">الترحيل الذكي</small>
+                                        <span class="fw-bold">تعبئة تلقائية</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="summary-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-danger bg-opacity-10 p-3 rounded-circle ms-3">
+                                        <i class="fas fa-exclamation-triangle text-danger"></i>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted d-block">الجزاءات</small>
+                                        <span class="fw-bold">ربط مع الرواتب</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* تحسينات الهيرو - متناسقة مع الهيدر */
+    .bg-gradient-dark {
+        background: linear-gradient(135deg, #0a1c3a 0%, #1a2f4f 100%);
+        position: relative;
+    }
+
+    .hero-pattern {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: radial-gradient(circle at 30% 50%, rgba(255,255,255,0.05) 0%, transparent 50%);
+        opacity: 0.5;
+    }
+
+    .hero-icon-wrapper {
+        width: 100px;
+        height: 100px;
+        background: rgba(255, 215, 0, 0.15);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+
+    /* تدرجات البطاقات - متناسقة مع الهيدر */
+    .card-gradient-1 {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border-bottom: 4px solid #28a745 !important;
+    }
+    .card-gradient-2 {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border-bottom: 4px solid #17a2b8 !important;
+    }
+    .card-gradient-3 {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border-bottom: 4px solid #0a1c3a !important;
+    }
+    .card-gradient-4 {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border-bottom: 4px solid #ffc107 !important;
+    }
+    .card-gradient-5 {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border-bottom: 4px solid #dc3545 !important;
+    }
+    .card-gradient-6 {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border-bottom: 4px solid #6c757d !important;
+    }
+
+    /* تحسين الأيقونات الدائرية */
+    .icon-circle {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .bg-success-gradient {
+        background: linear-gradient(135deg, #28a745, #20c997);
+    }
+    .bg-info-gradient {
+        background: linear-gradient(135deg, #17a2b8, #0dcaf0);
+    }
+    .bg-primary-gradient {
+        background: linear-gradient(135deg, #0a1c3a, #1a2f4f);
+    }
+    .bg-warning-gradient {
+        background: linear-gradient(135deg, #ffc107, #fd7e14);
+    }
+    .bg-danger-gradient {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+    }
+    .bg-secondary-gradient {
+        background: linear-gradient(135deg, #6c757d, #495057);
+    }
+
+    .card:hover .icon-circle {
+        transform: scale(1.1) rotate(5deg);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+
+    /* تحسين تأثير hover للبطاقات */
+    .hover-lift {
+        transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+    }
+
+    .hover-lift:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 30px rgba(10, 28, 58, 0.15) !important;
+    }
+
+    /* تحسين الأزرار */
+    .btn-hover {
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        border-radius: 50px;
+        padding: 0.75rem 1.5rem;
+    }
+
+    .btn-hover::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.2);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+
+    .btn-hover:hover::before {
+        width: 300px;
+        height: 300px;
+    }
+
+    .btn-hover i {
+        transition: transform 0.3s ease;
+    }
+
+    .btn-hover:hover i {
+        transform: translateX(-5px);
+    }
+
+    /* تحسين شارات المميزات */
+    .feature-badges .badge {
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+    .feature-badges .badge:hover {
+        transform: scale(1.05);
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+
+    /* تحسين بطاقة الملخص */
+    .summary-card {
+        border-radius: 20px !important;
+        background: linear-gradient(135deg, #ffffff, #f8fafc);
+    }
+
+    .summary-icon {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .summary-item {
+        padding: 1rem;
+        border-radius: 15px;
+        transition: all 0.2s ease;
+        background: white;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .summary-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+
+    /* تحسينات عامة */
+    .btn-lg {
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+    .card {
+        border-radius: 20px !important;
+        overflow: hidden;
+    }
+
+    .bg-primary-light {
+        background-color: rgba(10, 28, 58, 0.1);
+    }
+
+    .bg-opacity-10 {
+        --bs-bg-opacity: 0.1;
+    }
+
+    .rounded-circle {
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* تحسين للشاشات الصغيرة */
+    @media (max-width: 768px) {
+        .hero-section {
+            padding: 2rem !important;
+        }
+
+        .hero-icon-wrapper {
+            width: 70px;
+            height: 70px;
+        }
+
+        .hero-icon-wrapper i {
+            font-size: 2rem;
+        }
+
+        .display-4 {
+            font-size: 2rem;
+        }
+
+        .lead {
+            font-size: 1rem !important;
+        }
+
+        .icon-circle {
+            width: 70px;
+            height: 70px;
+        }
+
+        .icon-circle i {
+            font-size: 2rem;
+        }
+
+        .summary-item {
+            padding: 0.75rem;
+        }
+
+        .summary-item .rounded-circle {
+            width: 40px;
+            height: 40px;
+        }
+
+        .summary-item .rounded-circle i {
+            font-size: 1rem;
+        }
+    }
+
+    /* تحسينات إضافية للحركة */
+    @keyframes shimmer {
+        0% { background-position: -1000px 0; }
+        100% { background-position: 1000px 0; }
+    }
+
+    .card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s;
+    }
+
+    .card:hover::after {
+        left: 100%;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,724 @@
+{% extends "base.html" %}
+
+{% block title %}ترحيل فترات الحضور{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- رأس الصفحة -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800">
+            <i class="fas fa-exchange-alt text-primary"></i>
+            ترحيل فترات الحضور الذكي
+        </h1>
+        <div>
+            <a href="{{ url_for('attendance_index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة
+            </a>
+        </div>
+    </div>
+
+    <!-- بطاقة المعلومات -->
+    <div class="alert alert-info">
+        <div class="d-flex align-items-center">
+            <div class="me-3">
+                <i class="fas fa-info-circle fa-2x"></i>
+            </div>
+            <div>
+                <strong>ترحيل ذكي:</strong> عند ترحيل الفترة، سيتم اعتبار جميع الموظفين النشطين (غير الإداريين) الذين ليس لديهم سجلات حضور في الفترة الجديدة كـ <span class="badge bg-danger">غياب</span> تلقائياً.
+                <br>
+                <small class="text-muted">الموظفون الإداريون (owner, supervisor, monitor) مستثنون من التعبئة التلقائية.</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- بطاقة الترحيل -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        الفترة المصدر
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form id="sourceForm">
+                        <div class="mb-3">
+                            <label class="form-label">تاريخ البداية</label>
+                            <input type="date" class="form-control" id="source_start" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">تاريخ النهاية</label>
+                            <input type="date" class="form-control" id="source_end" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">الفلترة</label>
+                            <select class="form-control" id="source_filter">
+                                <option value="all">جميع الموظفين</option>
+                                <option value="company">شركة محددة</option>
+                                <option value="area">منطقة محددة</option>
+                                <option value="location">موقع محدد</option>
+                            </select>
+                        </div>
+                        <div class="mb-3 d-none" id="source_company_div">
+                            <label class="form-label">الشركة</label>
+                            <select class="form-control" id="source_company">
+                                <option value="">اختر الشركة</option>
+                                {% for company in companies %}
+                                <option value="{{ company.id }}">{{ company.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3 d-none" id="source_area_div">
+                            <label class="form-label">المنطقة</label>
+                            <select class="form-control" id="source_area">
+                                <option value="">اختر المنطقة</option>
+                                {% for area in areas %}
+                                <option value="{{ area.id }}">{{ area.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3 d-none" id="source_location_div">
+                            <label class="form-label">الموقع</label>
+                            <select class="form-control" id="source_location">
+                                <option value="">اختر الموقع</option>
+                                {% for location in locations %}
+                                <option value="{{ location.id }}">{{ location.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="loadSourceData()">
+                            <i class="fas fa-search me-2"></i>
+                            عرض بيانات المصدر
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 bg-success text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-calendar-check me-2"></i>
+                        الفترة الهدف
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form id="targetForm">
+                        <div class="mb-3">
+                            <label class="form-label">تاريخ البداية</label>
+                            <input type="date" class="form-control" id="target_start" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">تاريخ النهاية</label>
+                            <input type="date" class="form-control" id="target_end" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">خيارات الترحيل</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="copy_mode" checked>
+                                <label class="form-check-label">
+                                    <i class="fas fa-copy me-1 text-info"></i>
+                                    نسخ (الاحتفاظ ببيانات المصدر)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="fill_absences" checked>
+                                <label class="form-check-label">
+                                    <i class="fas fa-user-clock me-1 text-warning"></i>
+                                    تعبئة الغيابات تلقائياً للموظفين غير المحضرين
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="exclude_management" checked>
+                                <label class="form-check-label">
+                                    <i class="fas fa-user-tie me-1 text-success"></i>
+                                    استثناء الموظفين الإداريين من التعبئة التلقائية
+                                </label>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-success" onclick="previewTransfer()">
+                            <i class="fas fa-eye me-2"></i>
+                            معاينة الترحيل
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نتائج المعاينة -->
+    <div class="card shadow mb-4" id="previewSection" style="display: none;">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-chart-pie me-2"></i>
+                معاينة الترحيل
+            </h6>
+        </div>
+        <div class="card-body">
+            <!-- إحصائيات -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h5 class="mb-0" id="preview_total">0</h5>
+                            <small class="text-muted">إجمالي السجلات</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h5 class="mb-0" id="preview_attendance">0</h5>
+                            <small class="text-muted">سجلات موجودة</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h5 class="mb-0" id="preview_new">0</h5>
+                            <small class="text-muted">سجلات جديدة</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h5 class="mb-0" id="preview_absences">0</h5>
+                            <small class="text-muted">غيابات تلقائية</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- جدول المعاينة -->
+            <div class="table-responsive">
+                <table class="table table-bordered" id="previewTable">
+                    <thead>
+                        <tr>
+                            <th>الموظف</th>
+                            <th>الوظيفة</th>
+                            <th>الشركة</th>
+                            <th>التاريخ</th>
+                            <th>الإجراء</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="previewBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- زر التنفيذ -->
+            <div class="text-center mt-4">
+                <button class="btn btn-lg btn-success" onclick="executeTransfer()">
+                    <i class="fas fa-exchange-alt me-2"></i>
+                    تنفيذ الترحيل الذكي
+                </button>
+                <button class="btn btn-lg btn-secondary" onclick="cancelPreview()">
+                    <i class="fas fa-times me-2"></i>
+                    إلغاء
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let previewData = null;
+let currentFilter = 'all';
+
+// إظهار/إخفاء حقول الفلترة
+document.getElementById('source_filter').addEventListener('change', function() {
+    const filter = this.value;
+    currentFilter = filter;
+    document.getElementById('source_company_div').classList.add('d-none');
+    document.getElementById('source_area_div').classList.add('d-none');
+    document.getElementById('source_location_div').classList.add('d-none');
+
+    if (filter === 'company') {
+        document.getElementById('source_company_div').classList.remove('d-none');
+        loadCompanies();
+    } else if (filter === 'area') {
+        document.getElementById('source_area_div').classList.remove('d-none');
+        loadAreas();
+    } else if (filter === 'location') {
+        document.getElementById('source_location_div').classList.remove('d-none');
+        loadLocations();
+    }
+});
+
+// تحميل قائمة الشركات
+function loadCompanies() {
+    fetch('/api/companies')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const select = document.getElementById('source_company');
+                select.innerHTML = '<option value="">اختر الشركة</option>';
+                data.data.forEach(company => {
+                    select.innerHTML += `<option value="${company.id}">${company.name}</option>`;
+                });
+            }
+        })
+        .catch(error => console.error('Error loading companies:', error));
+}
+
+// تحميل قائمة المناطق
+function loadAreas() {
+    fetch('/api/areas/all')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const select = document.getElementById('source_area');
+                select.innerHTML = '<option value="">اختر المنطقة</option>';
+                data.data.forEach(area => {
+                    select.innerHTML += `<option value="${area.id}">${area.name} (${area.company_name})</option>`;
+                });
+            }
+        })
+        .catch(error => console.error('Error loading areas:', error));
+}
+
+// تحميل قائمة المواقع
+function loadLocations() {
+    fetch('/api/locations/all')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const select = document.getElementById('source_location');
+                select.innerHTML = '<option value="">اختر الموقع</option>';
+                data.data.forEach(location => {
+                    select.innerHTML += `<option value="${location.id}">${location.name} (${location.area_name})</option>`;
+                });
+            }
+        })
+        .catch(error => console.error('Error loading locations:', error));
+}
+
+// تحميل بيانات المصدر
+function loadSourceData() {
+    const sourceStart = document.getElementById('source_start').value;
+    const sourceEnd = document.getElementById('source_end').value;
+    const filter = currentFilter;
+
+    let filterId = null;
+    if (filter === 'company') {
+        filterId = document.getElementById('source_company').value;
+    } else if (filter === 'area') {
+        filterId = document.getElementById('source_area').value;
+    } else if (filter === 'location') {
+        filterId = document.getElementById('source_location').value;
+    }
+
+    if (!sourceStart || !sourceEnd) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'تنبيه',
+            text: 'الرجاء إدخال تاريخ البداية والنهاية للمصدر'
+        });
+        return;
+    }
+
+    // إظهار مؤشر التحميل
+    Swal.fire({
+        title: 'جاري التحميل...',
+        html: 'يتم جلب بيانات المصدر',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // جلب بيانات المصدر من API
+    fetch(`/api/attendance/source-data?start=${sourceStart}&end=${sourceEnd}&filter=${filter}&filter_id=${filterId || ''}`)
+        .then(response => response.json())
+        .then(data => {
+            Swal.close();
+
+            if (data.success) {
+                let message = `✅ تم تحميل بيانات المصدر بنجاح\n`;
+                message += `📊 إجمالي السجلات: ${data.total_records}\n`;
+                message += `👥 عدد الموظفين: ${data.employee_count}\n`;
+                message += `📅 أيام الفترة: ${data.total_days}`;
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم التحميل',
+                    text: message,
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: data.message || 'حدث خطأ في تحميل البيانات'
+                });
+            }
+        })
+        .catch(error => {
+            Swal.close();
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'خطأ',
+                text: 'حدث خطأ في الاتصال بالخادم'
+            });
+        });
+}
+
+// معاينة الترحيل
+function previewTransfer() {
+    const sourceStart = document.getElementById('source_start').value;
+    const sourceEnd = document.getElementById('source_end').value;
+    const targetStart = document.getElementById('target_start').value;
+    const targetEnd = document.getElementById('target_end').value;
+    const filter = currentFilter;
+
+    if (!sourceStart || !sourceEnd) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'تنبيه',
+            text: 'الرجاء إدخال تاريخ البداية والنهاية للمصدر'
+        });
+        return;
+    }
+
+    if (!targetStart || !targetEnd) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'تنبيه',
+            text: 'الرجاء إدخال تاريخ البداية والنهاية للهدف'
+        });
+        return;
+    }
+
+    let filterId = null;
+    if (filter === 'company') {
+        filterId = document.getElementById('source_company').value;
+        if (!filterId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'تنبيه',
+                text: 'الرجاء اختيار الشركة'
+            });
+            return;
+        }
+    } else if (filter === 'area') {
+        filterId = document.getElementById('source_area').value;
+        if (!filterId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'تنبيه',
+                text: 'الرجاء اختيار المنطقة'
+            });
+            return;
+        }
+    } else if (filter === 'location') {
+        filterId = document.getElementById('source_location').value;
+        if (!filterId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'تنبيه',
+                text: 'الرجاء اختيار الموقع'
+            });
+            return;
+        }
+    }
+
+    const copyMode = document.getElementById('copy_mode').checked;
+    const fillAbsences = document.getElementById('fill_absences').checked;
+    const excludeManagement = document.getElementById('exclude_management').checked;
+
+    // إظهار مؤشر التحميل
+    Swal.fire({
+        title: 'جاري التحميل...',
+        html: 'يتم تجهيز بيانات المعاينة',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // إرسال طلب المعاينة
+    fetch('/api/attendance/transfer-preview', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            source_start: sourceStart,
+            source_end: sourceEnd,
+            target_start: targetStart,
+            target_end: targetEnd,
+            filter_type: filter,
+            filter_id: filterId,
+            copy_mode: copyMode,
+            fill_absences: fillAbsences,
+            exclude_management: excludeManagement
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        Swal.close();
+
+        if (data.success) {
+            previewData = data;
+
+            // تحديث الإحصائيات
+            document.getElementById('preview_total').textContent = data.stats.total;
+            document.getElementById('preview_attendance').textContent = data.stats.existing;
+            document.getElementById('preview_new').textContent = data.stats.new;
+            document.getElementById('preview_absences').textContent = data.stats.absences;
+
+            // تحديث الجدول
+            const tbody = document.getElementById('previewBody');
+            tbody.innerHTML = '';
+
+            if (data.records.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center">لا توجد سجلات للمعاينة</td></tr>';
+            } else {
+                data.records.forEach(record => {
+                    const row = document.createElement('tr');
+                    row.className = record.row_class || '';
+
+                    let statusBadge = '';
+                    if (record.status === 'present') {
+                        statusBadge = '<span class="badge bg-success">حاضر</span>';
+                    } else if (record.status === 'absent') {
+                        statusBadge = '<span class="badge bg-danger">غائب</span>';
+                    } else if (record.status === 'late') {
+                        statusBadge = '<span class="badge bg-warning">متأخر</span>';
+                    }
+
+                    let actionBadge = '';
+                    if (record.action === 'موجود') {
+                        actionBadge = '<span class="badge bg-info">موجود</span>';
+                    } else if (record.action === 'نسخ') {
+                        actionBadge = '<span class="badge bg-success">نسخ</span>';
+                    } else if (record.action === 'غياب تلقائي') {
+                        actionBadge = '<span class="badge bg-warning">غياب تلقائي</span>';
+                    }
+
+                    row.innerHTML = `
+                        <td>${record.employee_name}</td>
+                        <td>${record.position}</td>
+                        <td>${record.company}</td>
+                        <td>${record.date}</td>
+                        <td>${actionBadge}</td>
+                        <td>${statusBadge}</td>
+                    `;
+
+                    tbody.appendChild(row);
+                });
+            }
+
+            // إظهار قسم المعاينة
+            document.getElementById('previewSection').style.display = 'block';
+            document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth' });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'خطأ',
+                text: data.message || 'حدث خطأ في تحميل المعاينة'
+            });
+        }
+    })
+    .catch(error => {
+        Swal.close();
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'خطأ',
+            text: 'حدث خطأ في الاتصال بالخادم'
+        });
+    });
+}
+
+// تنفيذ الترحيل
+function executeTransfer() {
+    if (!previewData) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'تنبيه',
+            text: 'الرجاء معاينة الترحيل أولاً'
+        });
+        return;
+    }
+
+    const sourceStart = document.getElementById('source_start').value;
+    const sourceEnd = document.getElementById('source_end').value;
+    const targetStart = document.getElementById('target_start').value;
+    const targetEnd = document.getElementById('target_end').value;
+    const filter = currentFilter;
+
+    let filterId = null;
+    if (filter === 'company') {
+        filterId = document.getElementById('source_company').value;
+    } else if (filter === 'area') {
+        filterId = document.getElementById('source_area').value;
+    } else if (filter === 'location') {
+        filterId = document.getElementById('source_location').value;
+    }
+
+    const copyMode = document.getElementById('copy_mode').checked;
+    const fillAbsences = document.getElementById('fill_absences').checked;
+    const excludeManagement = document.getElementById('exclude_management').checked;
+
+    Swal.fire({
+        title: 'تأكيد الترحيل',
+        html: `
+            <div style="text-align: right">
+                <p>هل أنت متأكد من تنفيذ الترحيل؟</p>
+                <p><strong>ملخص الترحيل:</strong></p>
+                <ul style="text-align: right">
+                    <li>إجمالي السجلات: ${previewData.stats.total}</li>
+                    <li>سجلات موجودة: ${previewData.stats.existing}</li>
+                    <li>سجلات جديدة: ${previewData.stats.new}</li>
+                    <li>غيابات تلقائية: ${previewData.stats.absences}</li>
+                </ul>
+                <p><strong>الخيارات:</strong></p>
+                <ul style="text-align: right">
+                    <li>${copyMode ? '📋 نسخ' : '✂️ نقل'} السجلات</li>
+                    <li>${fillAbsences ? '✅ تعبئة الغيابات' : '❌ بدون تعبئة غيابات'}</li>
+                    <li>${excludeManagement ? '✅ استثناء الإداريين' : '❌ شمول الإداريين'}</li>
+                </ul>
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'نعم، تنفيذ',
+        cancelButtonText: 'إلغاء'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // إظهار مؤشر التحميل
+            Swal.fire({
+                title: 'جاري التنفيذ...',
+                html: 'يتم ترحيل البيانات',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            fetch('/api/attendance/transfer-execute', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    source_start: sourceStart,
+                    source_end: sourceEnd,
+                    target_start: targetStart,
+                    target_end: targetEnd,
+                    filter_type: filter,
+                    filter_id: filterId,
+                    copy_mode: copyMode,
+                    fill_absences: fillAbsences,
+                    exclude_management: excludeManagement
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '✅ تم الترحيل بنجاح',
+                        html: data.message.replace(/\n/g, '<br>'),
+                        confirmButtonText: 'حسناً'
+                    });
+
+                    // إخفاء قسم المعاينة
+                    cancelPreview();
+
+                    // إعادة تحميل بيانات المصدر بعد الترحيل
+                    setTimeout(() => {
+                        loadSourceData();
+                    }, 2000);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: data.message
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.close();
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'حدث خطأ في الاتصال بالخادم'
+                });
+            });
+        }
+    });
+}
+
+// إلغاء المعاينة
+function cancelPreview() {
+    document.getElementById('previewSection').style.display = 'none';
+    previewData = null;
+}
+
+// تهيئة التواريخ الافتراضية
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+    const formatDate = (date) => {
+        return date.toISOString().split('T')[0];
+    };
+
+    document.getElementById('source_start').value = formatDate(firstDay);
+    document.getElementById('source_end').value = formatDate(lastDay);
+    document.getElementById('target_start').value = formatDate(firstDay);
+    document.getElementById('target_end').value = formatDate(lastDay);
+
+    // تحميل القوائم الأولية
+    loadCompanies();
+    loadAreas();
+    loadLocations();
+});
+</script>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+.card-header.bg-primary {
+    background: linear-gradient(135deg, #4e73df, #224abe);
+}
+
+.card-header.bg-success {
+    background: linear-gradient(135deg, #1cc88a, #169b6b);
+}
+
+#previewSection {
+    animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.badge {
+    padding: 5px 10px;
+    font-size: 0.85rem;
+}
+
+.table th {
+    background-color: #f8f9fc;
+    font-weight: 600;
+}
+</style>
+{% endblock %}

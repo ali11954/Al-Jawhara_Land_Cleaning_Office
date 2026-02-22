@@ -1,0 +1,422 @@
+{% extends "base.html" %}
+
+{% block title %}تقرير حضور الموظفين - {{ month_name }} {{ selected_year }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- عنوان الصفحة -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-primary mb-1">
+                <i class="fas fa-calendar-check me-2"></i>
+                تقرير حضور الموظفين - {{ month_name }} {{ selected_year }}
+            </h2>
+            <p class="text-muted mb-0">عرض تفصيلي لحضور الموظفين على مستوى الشركات مع تمييز الأيام بالألوان</p>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary" onclick="exportToExcel()">
+                <i class="fas fa-file-excel me-1"></i>تصدير Excel
+            </button>
+            <button class="btn btn-outline-success" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
+        </div>
+    </div>
+
+    <!-- فلترة التقرير -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter me-2"></i>خيارات التقرير
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('report_company_attendance') }}" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">السنة</label>
+                    <select name="year" class="form-select">
+                        {% for year in years %}
+                        <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الشهر</label>
+                    <select name="month" class="form-select">
+                        {% for num, name in months.items() %}
+                        <option value="{{ num }}" {% if num == selected_month %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">الشركة</label>
+                    <select name="company_id" class="form-select">
+                        <option value="">جميع الشركات</option>
+                        {% for company in companies %}
+                        <option value="{{ company.id }}" {% if company.id == selected_company_id %}selected{% endif %}>{{ company.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i>عرض
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- إحصائيات عامة -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                إجمالي الشركات
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ report_data|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-building fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                إجمالي أيام الحضور
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ grand_total_present }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                إجمالي أيام الغياب
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ grand_total_absent }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                نسبة الحضور الإجمالية
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% set total = grand_total_present + grand_total_absent %}
+                                {% if total > 0 %}
+                                    {{ ((grand_total_present / total) * 100)|round(1) }}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-pie fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تقارير الشركات -->
+    {% for company in report_data %}
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-building me-2"></i>{{ company.name }}
+                <span class="badge bg-secondary ms-2">{{ company.total_employees }} موظف</span>
+                <span class="badge bg-success ms-2">حضور: {{ company.total_present }}</span>
+                <span class="badge bg-danger ms-2">غياب: {{ company.total_absent }}</span>
+                <span class="badge bg-info ms-2">نسبة الحضور: {{ company.attendance_rate }}%</span>
+            </h6>
+            <button class="btn btn-sm btn-outline-primary" onclick="toggleCompany('company-{{ company.id }}')">
+                <i class="fas fa-chevron-up" id="icon-{{ company.id }}"></i>
+            </button>
+        </div>
+        <div class="card-body" id="company-{{ company.id }}">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" style="font-size: 0.85rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="min-width: 150px;">الموظف</th>
+                            <th style="min-width: 100px;">الوظيفة</th>
+                            {% for day in month_days %}
+                            <th class="text-center" style="min-width: 35px;">{{ day }}</th>
+                            {% endfor %}
+                            <th class="text-center" style="min-width: 80px;">حضور</th>
+                            <th class="text-center" style="min-width: 80px;">غياب</th>
+                            <th class="text-center" style="min-width: 80px;">نسبة %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for employee in company.employees %}
+                        <tr>
+                            <td>
+                                <i class="fas fa-user-circle text-primary me-1"></i>
+                                {{ employee.name }}
+                            </td>
+                            <td>
+                                {% if employee.position == 'مشرف' %}
+                                <span class="badge bg-primary">{{ employee.position }}</span>
+                                {% elif employee.position == 'مراقب' %}
+                                <span class="badge bg-info">{{ employee.position }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ employee.position }}</span>
+                                {% endif %}
+                            </td>
+
+                            {% for day in month_days %}
+                            <td class="text-center p-1">
+                                {% if employee.daily.get(day) == 'present' %}
+                                <span class="badge bg-success" style="width: 100%;">✔</span>
+                                {% elif employee.daily.get(day) == 'late' %}
+                                <span class="badge bg-warning" style="width: 100%;" title="متأخر">⏰</span>
+                                {% elif employee.daily.get(day) == 'absent' %}
+                                <span class="badge bg-danger" style="width: 100%;">✘</span>
+                                {% else %}
+                                <span class="badge bg-light text-muted" style="width: 100%;">-</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+
+                            <td class="text-center">
+                                <span class="badge bg-success">{{ employee.present_days }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-danger">{{ employee.absent_days }}</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar bg-success"
+                                         style="width: {{ employee.attendance_rate }}%;">
+                                        {{ employee.attendance_rate }}%
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-secondary">
+                        <tr>
+                            <th colspan="2">الإجمالي</th>
+                            {% for day in month_days %}
+                            <th class="text-center">
+                                {% set day_total = 0 %}
+                                {% for emp in company.employees %}
+                                    {% if emp.daily.get(day) in ['present', 'late'] %}
+                                        {% set day_total = day_total + 1 %}
+                                    {% endif %}
+                                {% endfor %}
+                                <span class="badge bg-info">{{ day_total }}</span>
+                            </th>
+                            {% endfor %}
+                            <th class="text-center">{{ company.total_present }}</th>
+                            <th class="text-center">{{ company.total_absent }}</th>
+                            <th class="text-center">{{ company.attendance_rate }}%</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle fa-2x mb-3"></i>
+        <h5>لا توجد بيانات للعرض</h5>
+        <p>لم يتم العثور على أي شركات أو موظفين للفترة المحددة</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- دليل الألوان -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-palette me-2"></i>دليل الألوان
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <span class="badge bg-success p-2">✔</span> حاضر
+            </div>
+            <div class="col-md-3">
+                <span class="badge bg-warning p-2">⏰</span> متأخر
+            </div>
+            <div class="col-md-3">
+                <span class="badge bg-danger p-2">✘</span> غائب
+            </div>
+            <div class="col-md-3">
+                <span class="badge bg-light p-2 text-muted">-</span> يوم عطلة/غير مسجل
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// دالة لطي/فتح الشركة
+function toggleCompany(companyId) {
+    const element = document.getElementById(companyId);
+    const icon = document.getElementById('icon-' + companyId.split('-')[1]);
+
+    if (element.style.display === 'none') {
+        element.style.display = 'block';
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+    } else {
+        element.style.display = 'none';
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+    }
+}
+
+// دالة تصدير إلى Excel
+function exportToExcel() {
+    // جمع كل الجداول في الصفحة
+    const tables = document.querySelectorAll('table');
+    let excelContent = '';
+
+    tables.forEach((table, index) => {
+        excelContent += 'شركة ' + (index + 1) + '\n';
+        const rows = table.querySelectorAll('tr');
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('th, td');
+            const rowData = [];
+            cells.forEach(cell => {
+                // تنظيف البيانات من الرموز
+                let text = cell.innerText.replace('✔', 'حاضر').replace('✘', 'غائب').replace('⏰', 'متأخر').replace('-', '');
+                rowData.push(text.trim());
+            });
+            excelContent += rowData.join('\t') + '\n';
+        });
+        excelContent += '\n';
+    });
+
+    // إنشاء ملف للتحميل
+    const blob = new Blob([excelContent], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'تقرير_الحضور_{{ month_name }}_{{ selected_year }}.xls';
+    a.click();
+}
+
+// دالة الطباعة - إظهار جميع الأقسام قبل الطباعة
+window.onbeforeprint = function() {
+    document.querySelectorAll('[id^="company-"]').forEach(el => {
+        el.style.display = 'block';
+    });
+};
+
+// تحديث أيقونات الأسهم حسب حالة العناصر
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[id^="company-"]').forEach(el => {
+        const id = el.id.split('-')[1];
+        const icon = document.getElementById('icon-' + id);
+        if (el.style.display === 'none') {
+            icon.classList.remove('fa-chevron-up');
+            icon.classList.add('fa-chevron-down');
+        }
+    });
+});
+</script>
+
+<style>
+/* أنماط إضافية للتقرير */
+.border-left-primary {
+    border-left: 4px solid #4e73df;
+}
+.border-left-success {
+    border-left: 4px solid #1cc88a;
+}
+.border-left-danger {
+    border-left: 4px solid #e74a3b;
+}
+.border-left-info {
+    border-left: 4px solid #36b9cc;
+}
+
+.table th {
+    white-space: nowrap;
+    background-color: #f8f9fc;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.badge {
+    font-size: 0.85rem;
+    padding: 5px 8px;
+}
+
+.progress {
+    background-color: #eaecf4;
+    border-radius: 10px;
+}
+
+.progress-bar {
+    border-radius: 10px;
+    font-size: 0.75rem;
+    line-height: 20px;
+}
+
+/* تنسيق للطباعة */
+@media print {
+    .btn, .btn-group, form, .card-header button, .d-flex.justify-content-between {
+        display: none !important;
+    }
+
+    .card {
+        border: 1px solid #ddd !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .table {
+        font-size: 0.7rem !important;
+    }
+
+    .badge {
+        border: 1px solid #000 !important;
+        color: #000 !important;
+        background-color: transparent !important;
+    }
+
+    .bg-success, .bg-danger, .bg-warning, .bg-info {
+        background-color: transparent !important;
+        border: 1px solid #000 !important;
+    }
+}
+</style>
+{% endblock %}

@@ -1,124 +1,572 @@
 <!-- templates/reports/evaluation_details.html -->
 {% extends "base.html" %}
 
-{% block title %}تفاصيل التقييمات حسب المعايير{% endblock %}
+{% block title %}تفاصيل التقييمات حسب المعايير - تحليل متقدم{% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
+    <!-- شريط العنوان مع خيارات متقدمة -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-warning">
-            <i class="fas fa-clipboard-list me-2"></i>
-            تفاصيل التقييمات حسب المعايير
-        </h2>
+        <div>
+            <h2 class="text-gradient-warning mb-1">
+                <i class="fas fa-clipboard-list me-2"></i>
+                تفاصيل التقييمات حسب المعايير - تحليل متقدم
+            </h2>
+            <p class="text-muted mb-0">تحليل أدق لمعايير التقييم مع مؤشرات الأداء والتوصيات</p>
+        </div>
         <div class="btn-group">
-            <button class="btn btn-outline-primary" onclick="exportReport('pdf')">PDF</button>
-            <button class="btn btn-outline-success" onclick="exportReport('excel')">Excel</button>
+            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </button>
+            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-modern btn-info" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
         </div>
     </div>
 
-    <!-- بطاقات المعايير -->
+    <!-- إحصائيات سريعة للمعايير -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card card-stats gradient-primary h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">أعلى معيار</h6>
+                            <h4 class="text-white mb-1">
+                                {% set best_criterion = criteria|sort(attribute='avg', reverse=true)|first %}
+                                {{ best_criterion.name if best_criterion else '---' }}
+                            </h4>
+                            <p class="text-white-50 mb-0">
+                                <i class="fas fa-star me-1"></i>{{ "%.1f"|format(best_criterion.avg) }}/5
+                            </p>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-trophy fa-2x text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card card-stats gradient-danger h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">أدنى معيار</h6>
+                            <h4 class="text-white mb-1">
+                                {% set worst_criterion = criteria|sort(attribute='avg')|first %}
+                                {{ worst_criterion.name if worst_criterion else '---' }}
+                            </h4>
+                            <p class="text-white-50 mb-0">
+                                <i class="fas fa-exclamation-triangle me-1"></i>{{ "%.1f"|format(worst_criterion.avg) }}/5
+                            </p>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-exclamation-circle fa-2x text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card card-stats gradient-success h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">أكبر فجوة</h6>
+                            <h4 class="text-white mb-1">
+                                {% set max_gap = (criteria_max|max) - (criteria_min|min) %}
+                                {{ "%.1f"|format(max_gap) }}/5
+                            </h4>
+                            <p class="text-white-50 mb-0">
+                                <i class="fas fa-arrows-alt-h me-1"></i>بين الأعلى والأدنى
+                            </p>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-chart-line fa-2x text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card card-stats gradient-info h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">المتوسط العام</h6>
+                            <h4 class="text-white mb-1">
+                                {{ "%.1f"|format(criteria_averages|sum / criteria_averages|length) }}/5
+                            </h4>
+                            <p class="text-white-50 mb-0">
+                                <i class="fas fa-calculator me-1"></i>لجميع المعايير
+                            </p>
+                        </div>
+                        <div class="icon-circle bg-white-20">
+                            <i class="fas fa-chart-pie fa-2x text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- بطاقات المعايير المحسنة -->
     <div class="row mb-4">
         {% for criterion in criteria %}
-        <div class="col-md-3 mb-3">
-            <div class="card bg-{{ criterion.color }} text-white h-100">
-                <div class="card-body">
-                    <h5>{{ criterion.name }}</h5>
-                    <h2>{{ "%.1f"|format(criterion.avg) }}/5</h2>
-                    <div class="progress bg-light" style="height: 10px;">
-                        <div class="progress-bar bg-white" style="width: {{ criterion.avg*20 }}%;"></div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card criterion-card h-100">
+                <div class="card-header bg-{{ criterion.color }} text-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">{{ criterion.name }}</h5>
+                        <span class="badge bg-white text-{{ criterion.color }}">{{ "%.1f"|format(criterion.avg) }}/5</span>
                     </div>
-                    <small class="mt-2 d-block">أعلى: {{ criterion.max }} - أدنى: {{ criterion.min }}</small>
+                </div>
+                <div class="card-body">
+                    <!-- شريط التقدم -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>الأداء</span>
+                            <span class="fw-bold">{{ "%.1f"|format(criterion.avg * 20) }}%</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-{{ criterion.color }}" style="width: {{ criterion.avg * 20 }}%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- إحصائيات سريعة -->
+                    <div class="row text-center g-2">
+                        <div class="col-4">
+                            <div class="bg-light rounded p-2">
+                                <small class="text-muted d-block">الأعلى</small>
+                                <span class="fw-bold text-success">{{ "%.1f"|format(criterion.max) }}</span>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="bg-light rounded p-2">
+                                <small class="text-muted d-block">المتوسط</small>
+                                <span class="fw-bold text-primary">{{ "%.1f"|format(criterion.avg) }}</span>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="bg-light rounded p-2">
+                                <small class="text-muted d-block">الأدنى</small>
+                                <span class="fw-bold text-danger">{{ "%.1f"|format(criterion.min) }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- مؤشر إضافي -->
+                    <div class="mt-3">
+                        {% if criterion.avg >= 4.5 %}
+                        <span class="badge bg-success w-100 py-2">مستوى أداء ممتاز</span>
+                        {% elif criterion.avg >= 4 %}
+                        <span class="badge bg-info w-100 py-2">مستوى أداء جيد جداً</span>
+                        {% elif criterion.avg >= 3 %}
+                        <span class="badge bg-primary w-100 py-2">مستوى أداء جيد</span>
+                        {% elif criterion.avg >= 2 %}
+                        <span class="badge bg-warning w-100 py-2">مستوى أداء مقبول</span>
+                        {% else %}
+                        <span class="badge bg-danger w-100 py-2">مستوى أداء ضعيف - يحتاج تحسين</span>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
 
-    <!-- رسم بياني للمقارنة -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <i class="fas fa-chart-bar me-2"></i>مقارنة المعايير
+    <!-- الرسوم البيانية المتقدمة -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-bar me-2"></i>مقارنة المعايير (متوسط - أعلى - أدنى)
+                    </h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="criteriaComparisonChart" style="height: 400px;"></canvas>
+                <div class="card-body p-3">
+                    <div style="position: relative; height: 400px; width: 100%;">
+                        <canvas id="criteriaComparisonChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-pie me-2"></i>توزيع مستويات المعايير
+                    </h6>
+                </div>
+                <div class="card-body p-3">
+                    <div style="position: relative; height: 300px; width: 100%;">
+                        <canvas id="criteriaLevelsChart"></canvas>
+                    </div>
+                    <div class="mt-3">
+                        {% set excellent_count = criteria|selectattr('avg', '>=', 4.5)|list|length %}
+                        {% set good_count = criteria|selectattr('avg', '>=', 4)|selectattr('avg', '<', 4.5)|list|length %}
+                        {% set average_count = criteria|selectattr('avg', '>=', 3)|selectattr('avg', '<', 4)|list|length %}
+                        {% set poor_count = criteria|selectattr('avg', '<', 3)|list|length %}
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><span class="badge bg-success me-2">&nbsp;</span> ممتاز (4.5+)</span>
+                            <span class="fw-bold">{{ excellent_count }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><span class="badge bg-info me-2">&nbsp;</span> جيد جداً (4-4.4)</span>
+                            <span class="fw-bold">{{ good_count }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><span class="badge bg-primary me-2">&nbsp;</span> جيد (3-3.9)</span>
+                            <span class="fw-bold">{{ average_count }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><span class="badge bg-danger me-2">&nbsp;</span> ضعيف (أقل من 3)</span>
+                            <span class="fw-bold">{{ poor_count }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- جدول تفصيلي -->
+    <!-- جدول تفصيلي متقدم -->
     <div class="row">
         <div class="col-12">
             <div class="card shadow">
-                <div class="card-header bg-info text-white">
-                    <i class="fas fa-table me-2"></i>تحليل تفصيلي للتقييمات
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-table me-2"></i>تحليل تفصيلي للتقييمات
+                        </h6>
+                        <div class="input-group" style="width: 250px;">
+                            <span class="input-group-text bg-white border-end-0">
+                                <i class="fas fa-search text-muted"></i>
+                            </span>
+                            <input type="text" class="form-control border-start-0" id="searchCriterion" placeholder="بحث في المعايير...">
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <table class="table table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>المعيار</th>
-                                <th>ممتاز (5)</th>
-                                <th>جيد جداً (4)</th>
-                                <th>جيد (3)</th>
-                                <th>مقبول (2)</th>
-                                <th>ضعيف (1)</th>
-                                <th>المجموع</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for criterion in criteria_details %}
-                            <tr>
-                                <td>{{ criterion.name }}</td>
-                                <td>{{ criterion.excellent }}</td>
-                                <td>{{ criterion.good }}</td>
-                                <td>{{ criterion.average }}</td>
-                                <td>{{ criterion.poor }}</td>
-                                <td>{{ criterion.very_poor }}</td>
-                                <td><strong>{{ criterion.total }}</strong></td>
-                            </tr>
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="criteriaTable">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>المعيار</th>
+                                    <th class="text-center bg-success text-white">ممتاز (5)</th>
+                                    <th class="text-center bg-info text-white">جيد جداً (4)</th>
+                                    <th class="text-center bg-primary text-white">جيد (3)</th>
+                                    <th class="text-center bg-warning text-white">مقبول (2)</th>
+                                    <th class="text-center bg-danger text-white">ضعيف (1)</th>
+                                    <th class="text-center">المجموع</th>
+                                    <th class="text-center">المتوسط</th>
+                                    <th class="text-center">التقييم</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for criterion in criteria_details %}
+                                <tr class="criterion-row">
+                                    <td class="fw-bold">{{ criterion.name }}</td>
+                                    <td class="text-center">{{ criterion.excellent }}</td>
+                                    <td class="text-center">{{ criterion.good }}</td>
+                                    <td class="text-center">{{ criterion.average }}</td>
+                                    <td class="text-center">{{ criterion.poor }}</td>
+                                    <td class="text-center">{{ criterion.very_poor }}</td>
+                                    <td class="text-center"><strong>{{ criterion.total }}</strong></td>
+                                    <td class="text-center">
+                                        {% set avg = (criterion.excellent*5 + criterion.good*4 + criterion.average*3 + criterion.poor*2 + criterion.very_poor*1) / criterion.total if criterion.total > 0 else 0 %}
+                                        <span class="badge bg-{{ 'success' if avg >= 4.5 else 'info' if avg >= 4 else 'primary' if avg >= 3 else 'warning' if avg >= 2 else 'danger' }}">
+                                            {{ "%.1f"|format(avg) }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% set avg = (criterion.excellent*5 + criterion.good*4 + criterion.average*3 + criterion.poor*2 + criterion.very_poor*1) / criterion.total if criterion.total > 0 else 0 %}
+                                        {% if avg >= 4.5 %}
+                                        <span class="badge bg-success">ممتاز</span>
+                                        {% elif avg >= 4 %}
+                                        <span class="badge bg-info">جيد جداً</span>
+                                        {% elif avg >= 3 %}
+                                        <span class="badge bg-primary">جيد</span>
+                                        {% elif avg >= 2 %}
+                                        <span class="badge bg-warning">مقبول</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">ضعيف</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- توصيات ذكية للتحسين -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow bg-light">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-lightbulb me-2"></i>توصيات للتحسين
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% set weak_criteria = criteria|selectattr('avg', '<', 3.5)|list %}
+                        {% if weak_criteria %}
+                            {% for criterion in weak_criteria[:3] %}
+                            <div class="col-md-4 mb-3">
+                                <div class="alert alert-warning h-100 mb-0">
+                                    <div class="d-flex">
+                                        <div class="me-3">
+                                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                                        </div>
+                                        <div>
+                                            <strong>{{ criterion.name }}</strong>
+                                            <p class="small mb-0 mt-2">
+                                                معدل {{ "%.1f"|format(criterion.avg) }}/5 يحتاج إلى تحسين.
+                                                التركيز على رفع هذا المعيار سيرفع الأداء العام.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             {% endfor %}
-                        </tbody>
-                    </table>
+                        {% else %}
+                            <div class="col-12">
+                                <div class="alert alert-success">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    جميع المعايير بمستوى جيد جداً. حافظ على هذا الأداء المتميز!
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-new Chart(document.getElementById('criteriaComparisonChart'), {
-    type: 'bar',
-    data: {
-        labels: {{ criteria_names|tojson }},
-        datasets: [
-            {
-                label: 'المتوسط',
-                data: {{ criteria_averages|tojson }},
-                backgroundColor: '#4e73df'
+// بيانات الرسوم البيانية
+const criteriaNames = {{ criteria_names|tojson if criteria_names else '[]' }};
+const criteriaAverages = {{ criteria_averages|tojson if criteria_averages else '[]' }};
+const criteriaMax = {{ criteria_max|tojson if criteria_max else '[]' }};
+const criteriaMin = {{ criteria_min|tojson if criteria_min else '[]' }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // رسم بياني للمقارنة
+    const comparisonCtx = document.getElementById('criteriaComparisonChart');
+    if (comparisonCtx) {
+        new Chart(comparisonCtx, {
+            type: 'bar',
+            data: {
+                labels: criteriaNames,
+                datasets: [
+                    {
+                        label: 'المتوسط',
+                        data: criteriaAverages,
+                        backgroundColor: 'rgba(78, 115, 223, 0.8)',
+                        borderRadius: 5
+                    },
+                    {
+                        label: 'الأعلى',
+                        data: criteriaMax,
+                        backgroundColor: 'rgba(28, 200, 138, 0.8)',
+                        borderRadius: 5
+                    },
+                    {
+                        label: 'الأدنى',
+                        data: criteriaMin,
+                        backgroundColor: 'rgba(231, 74, 59, 0.8)',
+                        borderRadius: 5
+                    }
+                ]
             },
-            {
-                label: 'الأعلى',
-                data: {{ criteria_max|tojson }},
-                backgroundColor: '#1cc88a'
-            },
-            {
-                label: 'الأدنى',
-                data: {{ criteria_min|tojson }},
-                backgroundColor: '#e74a3b'
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.raw.toFixed(1) + '/5';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 5,
+                        ticks: { stepSize: 1 },
+                        title: {
+                            display: true,
+                            text: 'التقييم (من 5)'
+                        }
+                    }
+                }
             }
-        ]
-    },
-    options: {
-        scales: {
-            y: {
-                max: 5,
-                min: 0
-            }
-        }
+        });
     }
+
+    // رسم بياني دائري لمستويات المعايير
+    const levelsCtx = document.getElementById('criteriaLevelsChart');
+    if (levelsCtx) {
+        const excellent = criteriaAverages.filter(avg => avg >= 4.5).length;
+        const good = criteriaAverages.filter(avg => avg >= 4 && avg < 4.5).length;
+        const average = criteriaAverages.filter(avg => avg >= 3 && avg < 4).length;
+        const poor = criteriaAverages.filter(avg => avg < 3).length;
+
+        new Chart(levelsCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['ممتاز (4.5+)', 'جيد جداً (4-4.4)', 'جيد (3-3.9)', 'ضعيف (<3)'],
+                datasets: [{
+                    data: [excellent, good, average, poor],
+                    backgroundColor: ['#1cc88a', '#4e73df', '#36b9cc', '#e74a3b'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.raw + ' معيار';
+                            }
+                        }
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+    }
+
+    // تفعيل البحث في الجدول
+    setupSearch();
 });
+
+function setupSearch() {
+    const searchInput = document.getElementById('searchCriterion');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('.criterion-row');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+    }
+}
+
+function exportReport(type) {
+    if (type === 'pdf') {
+        alert('سيتم تفعيل تصدير PDF قريباً');
+    } else if (type === 'excel') {
+        alert('سيتم تفعيل تصدير Excel قريباً');
+    }
+}
 </script>
+
+<style>
+.text-gradient-warning {
+    background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.card-stats {
+    border: none;
+    border-radius: 15px;
+    transition: transform 0.3s;
+}
+.card-stats:hover {
+    transform: translateY(-5px);
+}
+
+.gradient-primary { background: linear-gradient(135deg, #4e73df, #224abe); }
+.gradient-success { background: linear-gradient(135deg, #1cc88a, #169b6b); }
+.gradient-info { background: linear-gradient(135deg, #36b9cc, #1f8f9f); }
+.gradient-danger { background: linear-gradient(135deg, #e74a3b, #be2617); }
+
+.icon-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bg-white-20 {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.text-white-50 {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.criterion-card {
+    border: none;
+    border-radius: 15px;
+    overflow: hidden;
+    transition: all 0.3s;
+}
+.criterion-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+}
+
+.btn-modern {
+    border-radius: 25px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+.btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.progress {
+    border-radius: 10px;
+    background-color: #e9ecef;
+}
+.progress-bar {
+    border-radius: 10px;
+}
+
+/* إصلاح مشكلة ارتفاع الرسوم البيانية */
+canvas {
+    max-height: 100%;
+    max-width: 100%;
+}
+
+@media print {
+    .btn-group, .btn-modern, .input-group {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #ddd !important;
+        break-inside: avoid;
+    }
+}
+</style>
 {% endblock %}

@@ -1,0 +1,1062 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة الجزاءات{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --penalty-primary: #e74a3b;
+        --penalty-success: #1cc88a;
+        --penalty-warning: #f6c23e;
+        --penalty-info: #36b9cc;
+        --penalty-dark: #5a5c69;
+    }
+
+    /* Header Styles */
+    .penalty-header {
+        background: linear-gradient(135deg, #e74a3b 0%, #c92112 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        box-shadow: 0 0.5rem 1rem rgba(231, 74, 59, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .penalty-header::after {
+        content: '\f071';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        position: absolute;
+        bottom: -20px;
+        left: -20px;
+        font-size: 8rem;
+        opacity: 0.1;
+        color: white;
+        transform: rotate(15deg);
+    }
+
+    /* Stats Cards */
+    .stat-card {
+        border-radius: 15px;
+        padding: 1.5rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: 0 0.15rem 1.75rem rgba(58, 59, 69, 0.15);
+        height: 100%;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.2);
+    }
+
+    .stat-card.total { background: linear-gradient(135deg, #4e73df, #224abe); }
+    .stat-card.transferred { background: linear-gradient(135deg, #1cc88a, #169b6b); }
+    .stat-card.pending { background: linear-gradient(135deg, #f6c23e, #dda20a); }
+    .stat-card.average { background: linear-gradient(135deg, #36b9cc, #258391); }
+
+    .stat-card::after {
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        position: absolute;
+        bottom: -10px;
+        right: -10px;
+        font-size: 4rem;
+        opacity: 0.2;
+        color: white;
+    }
+
+    .stat-card.total::after { content: '\f0e0'; }
+    .stat-card.transferred::after { content: '\f00c'; }
+    .stat-card.pending::after { content: '\f017'; }
+    .stat-card.average::after { content: '\f201'; }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0.5rem 0;
+    }
+
+    /* Form Card */
+    .add-penalty-card {
+        background: white;
+        border-radius: 15px;
+        border: none;
+        box-shadow: 0 0.15rem 1.75rem rgba(58, 59, 69, 0.1);
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+
+    .add-penalty-header {
+        background: linear-gradient(135deg, #e74a3b, #c92112);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-bottom: none;
+    }
+
+    .add-penalty-header h5 {
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .add-penalty-body {
+        padding: 1.5rem;
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: white;
+        border-radius: 15px;
+        border: none;
+        box-shadow: 0 0.15rem 1.75rem rgba(58, 59, 69, 0.1);
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+
+    .filter-header {
+        background: linear-gradient(135deg, #4e73df, #224abe);
+        color: white;
+        padding: 1rem 1.5rem;
+    }
+
+    .filter-body {
+        padding: 1.5rem;
+    }
+
+    /* Table Card */
+    .table-card {
+        background: white;
+        border-radius: 15px;
+        border: none;
+        box-shadow: 0 0.15rem 1.75rem rgba(58, 59, 69, 0.1);
+        overflow: hidden;
+    }
+
+    .table-header {
+        background: linear-gradient(135deg, #4e73df, #224abe);
+        color: white;
+        padding: 1rem 1.5rem;
+    }
+
+    .table-responsive {
+        padding: 0 1.5rem 1.5rem 1.5rem;
+    }
+
+    .penalty-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 0.5rem;
+    }
+
+    .penalty-table thead th {
+        background-color: #f8f9fc;
+        color: #4e73df;
+        font-weight: 600;
+        padding: 1rem;
+        border: none;
+        border-radius: 10px;
+    }
+
+    .penalty-table tbody tr {
+        background: white;
+        box-shadow: 0 0.15rem 0.5rem rgba(0, 0, 0, 0.05);
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .penalty-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    }
+
+    .penalty-table tbody td {
+        padding: 1rem;
+        border: none;
+        vertical-align: middle;
+    }
+
+    .penalty-table tbody td:first-child {
+        border-radius: 10px 0 0 10px;
+    }
+
+    .penalty-table tbody td:last-child {
+        border-radius: 0 10px 10px 0;
+    }
+
+    .employee-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .employee-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #e74a3b, #c92112);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1rem;
+    }
+
+    .badge-status {
+        padding: 0.35rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        display: inline-block;
+    }
+
+    .badge-transferred {
+        background-color: rgba(28, 200, 138, 0.15);
+        color: #1cc88a;
+        border: 1px solid #1cc88a;
+    }
+
+    .badge-pending {
+        background-color: rgba(246, 194, 62, 0.15);
+        color: #f6c23e;
+        border: 1px solid #f6c23e;
+    }
+
+    .btn-action {
+        width: 35px;
+        height: 35px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        margin: 0 2px;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-2px);
+    }
+
+    .btn-transfer {
+        background-color: rgba(246, 194, 62, 0.1);
+        color: #f6c23e;
+        border: 1px solid #f6c23e;
+    }
+
+    .btn-transfer:hover {
+        background-color: #f6c23e;
+        color: white;
+    }
+
+    .btn-delete {
+        background-color: rgba(231, 74, 59, 0.1);
+        color: #e74a3b;
+        border: 1px solid #e74a3b;
+    }
+
+    .btn-delete:hover {
+        background-color: #e74a3b;
+        color: white;
+    }
+
+    .amount-cell {
+        font-weight: 700;
+        color: #e74a3b;
+        font-size: 1.1rem;
+    }
+
+    .table-success {
+        background-color: rgba(28, 200, 138, 0.05) !important;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #4e73df;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control, .form-select {
+        border-radius: 10px;
+        border: 1px solid #d1d3e2;
+        padding: 0.6rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    }
+
+    .btn-submit {
+        background: linear-gradient(135deg, #e74a3b, #c92112);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1rem rgba(231, 74, 59, 0.3);
+    }
+
+    .btn-reset {
+        background: linear-gradient(135deg, #858796, #6c757d);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-reset:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1rem rgba(108, 117, 125, 0.3);
+    }
+
+    /* Quick Stats Row */
+    .quick-stats {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 2rem;
+    }
+
+    .quick-stat-item {
+        flex: 1;
+        min-width: 150px;
+        background: white;
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: center;
+        box-shadow: 0 0.15rem 0.5rem rgba(0,0,0,0.05);
+        border-right: 4px solid var(--penalty-primary);
+    }
+
+    .quick-stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--penalty-primary);
+    }
+
+    .quick-stat-label {
+        color: #858796;
+        font-size: 0.85rem;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-slide-in {
+        animation: slideIn 0.5s ease forwards;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- رأس الصفحة -->
+    <div class="penalty-header animate-slide-in">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="text-white mb-2">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    إدارة الجزاءات
+                </h2>
+                <p class="text-white-50 mb-0">
+                    إضافة ومتابعة الجزاءات وربطها بكشوف المرتبات
+                </p>
+            </div>
+            <div>
+                <span class="badge bg-white text-danger p-2">
+                    <i class="fas fa-calendar me-1"></i>
+                    {{ today.strftime('%Y-%m-%d') }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- إحصائيات سريعة -->
+    <div class="quick-stats animate-slide-in" style="animation-delay: 0.1s">
+        <div class="quick-stat-item">
+            <div class="quick-stat-value">{{ total_count }}</div>
+            <div class="quick-stat-label">إجمالي الجزاءات</div>
+        </div>
+        <div class="quick-stat-item" style="border-right-color: #1cc88a;">
+            <div class="quick-stat-value" style="color: #1cc88a;">{{ transferred_count }}</div>
+            <div class="quick-stat-label">تم الترحيل</div>
+        </div>
+        <div class="quick-stat-item" style="border-right-color: #f6c23e;">
+            <div class="quick-stat-value" style="color: #f6c23e;">{{ pending_count }}</div>
+            <div class="quick-stat-label">غير مرحل</div>
+        </div>
+        <div class="quick-stat-item" style="border-right-color: #4e73df;">
+            <div class="quick-stat-value">{{ "{:,.2f}".format(total_amount) }}</div>
+            <div class="quick-stat-label">إجمالي المبلغ</div>
+        </div>
+    </div>
+
+    <!-- بطاقات الإحصائيات الرئيسية -->
+    <div class="row mb-4 animate-slide-in" style="animation-delay: 0.2s">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card total">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-white-50 mb-2">إجمالي الجزاءات</h6>
+                        <div class="stat-number">{{ "{:,.2f}".format(total_amount) }}</div>
+                        <small class="text-white-50">عدد الجزاءات: {{ total_count }}</small>
+                    </div>
+                    <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
+                </div>
+                <div class="mt-3">
+                    <div class="progress" style="height: 6px; background-color: rgba(255,255,255,0.3);">
+                        <div class="progress-bar bg-white" style="width: {{ (transferred_amount/total_amount*100)|round|int if total_amount > 0 else 0 }}%"></div>
+                    </div>
+                    <small class="text-white-50 mt-2 d-block">
+                        نسبة الترحيل: {{ (transferred_amount/total_amount*100)|round|int if total_amount > 0 else 0 }}%
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card transferred">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-white-50 mb-2">الجزاءات المرحلة</h6>
+                        <div class="stat-number">{{ "{:,.2f}".format(transferred_amount) }}</div>
+                        <small class="text-white-50">عدد: {{ transferred_count }}</small>
+                    </div>
+                    <i class="fas fa-check-circle fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card pending">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-white-50 mb-2">الجزاءات غير المرحلة</h6>
+                        <div class="stat-number">{{ "{:,.2f}".format(pending_amount) }}</div>
+                        <small class="text-white-50">عدد: {{ pending_count }}</small>
+                    </div>
+                    <i class="fas fa-clock fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card average">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-white-50 mb-2">متوسط الجزاء</h6>
+                        <div class="stat-number">
+                            {% if total_count > 0 %}
+                                {{ "{:,.2f}".format(total_amount / total_count) }}
+                            {% else %}
+                                0.00
+                            {% endif %}
+                        </div>
+                        <small class="text-white-50">ريال لكل جزاء</small>
+                    </div>
+                    <i class="fas fa-chart-line fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- قسم إضافة جزاء جديد -->
+    <div class="add-penalty-card animate-slide-in" style="animation-delay: 0.3s">
+        <div class="add-penalty-header">
+            <h5 class="mb-0">
+                <i class="fas fa-plus-circle me-2"></i>
+                إضافة جزاء جديد
+            </h5>
+        </div>
+        <div class="add-penalty-body">
+            <form id="addPenaltyForm" method="POST" action="{{ url_for('add_penalty') }}">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            <i class="fas fa-user me-1"></i>
+                            الموظف <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" name="employee_id" required>
+                            <option value="">-- اختر الموظف --</option>
+                            {% for emp in employees %}
+                            <option value="{{ emp.id }}">
+                                {{ emp.full_name }} -
+                                {% if emp.position == 'supervisor' %}مشرف
+                                {% elif emp.position == 'monitor' %}مراقب
+                                {% else %}عامل
+                                {% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">
+                            <i class="fas fa-calendar me-1"></i>
+                            التاريخ <span class="text-danger">*</span>
+                        </label>
+                        <input type="date" class="form-control" name="penalty_date"
+                               value="{{ today.strftime('%Y-%m-%d') }}" required>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">
+                            <i class="fas fa-money-bill me-1"></i>
+                            المبلغ <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" name="amount"
+                                   step="0.01" min="0" required placeholder="0.00">
+                            <span class="input-group-text">ر.س</span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            <i class="fas fa-tag me-1"></i>
+                            السبب <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" name="reason" required>
+                            <option value="">اختر السبب</option>
+                            <option value="تأخير">تأخير عن العمل</option>
+                            <option value="غياب">غياب بدون إذن</option>
+                            <option value="سوء سلوك">سوء سلوك</option>
+                            <option value="إهمال">إهمال في العمل</option>
+                            <option value="مخالفة">مخالفة تعليمات</option>
+                            <option value="عدم التزام">عدم التزام بالدوام</option>
+                            <option value="تأخير متكرر">تأخير متكرر</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-8">
+                        <label class="form-label">
+                            <i class="fas fa-align-left me-1"></i>
+                            وصف تفصيلي (اختياري)
+                        </label>
+                        <textarea class="form-control" name="description" rows="2"
+                                  placeholder="تفاصيل إضافية عن الجزاء..."></textarea>
+                    </div>
+
+                    <div class="col-md-4 d-flex align-items-end">
+                        <div class="d-flex gap-2 w-100">
+                            <button type="submit" class="btn btn-submit flex-grow-1">
+                                <i class="fas fa-save me-2"></i>
+                                حفظ الجزاء
+                            </button>
+                            <button type="reset" class="btn btn-reset">
+                                <i class="fas fa-undo"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- فلترة -->
+    <div class="filter-card animate-slide-in" style="animation-delay: 0.4s">
+        <div class="filter-header">
+            <h5 class="mb-0">
+                <i class="fas fa-filter me-2"></i>
+                فلترة الجزاءات
+            </h5>
+        </div>
+        <div class="filter-body">
+            <form method="GET" action="{{ url_for('penalties_list') }}" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">الموظف</label>
+                    <select name="employee_id" class="form-select">
+                        <option value="">جميع الموظفين</option>
+                        {% for emp in employees %}
+                        <option value="{{ emp.id }}" {% if emp.id == selected_employee %}selected{% endif %}>
+                            {{ emp.full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">السنة</label>
+                    <select name="year" class="form-select">
+                        <option value="">الكل</option>
+                        {% for y in years %}
+                        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">الشهر</label>
+                    <select name="month" class="form-select">
+                        <option value="">الكل</option>
+                        <option value="1" {% if selected_month == 1 %}selected{% endif %}>يناير</option>
+                        <option value="2" {% if selected_month == 2 %}selected{% endif %}>فبراير</option>
+                        <option value="3" {% if selected_month == 3 %}selected{% endif %}>مارس</option>
+                        <option value="4" {% if selected_month == 4 %}selected{% endif %}>أبريل</option>
+                        <option value="5" {% if selected_month == 5 %}selected{% endif %}>مايو</option>
+                        <option value="6" {% if selected_month == 6 %}selected{% endif %}>يونيو</option>
+                        <option value="7" {% if selected_month == 7 %}selected{% endif %}>يوليو</option>
+                        <option value="8" {% if selected_month == 8 %}selected{% endif %}>أغسطس</option>
+                        <option value="9" {% if selected_month == 9 %}selected{% endif %}>سبتمبر</option>
+                        <option value="10" {% if selected_month == 10 %}selected{% endif %}>أكتوبر</option>
+                        <option value="11" {% if selected_month == 11 %}selected{% endif %}>نوفمبر</option>
+                        <option value="12" {% if selected_month == 12 %}selected{% endif %}>ديسمبر</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الحالة</label>
+                    <select name="status" class="form-select">
+                        <option value="">الكل</option>
+                        <option value="deducted" {% if selected_status == 'deducted' %}selected{% endif %}>مرحل</option>
+                        <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>غير مرحل</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i>بحث
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- جدول الجزاءات -->
+    <div class="table-card animate-slide-in" style="animation-delay: 0.5s">
+        <div class="table-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>
+                قائمة الجزاءات
+            </h5>
+            <div class="d-flex gap-2">
+                <button class="btn btn-light btn-sm" onclick="selectAll()">
+                    <i class="fas fa-check-double me-1"></i>
+                    تحديد الكل
+                </button>
+                <button class="btn btn-light btn-sm" onclick="deselectAll()">
+                    <i class="fas fa-times me-1"></i>
+                    إلغاء التحديد
+                </button>
+                <button class="btn btn-warning btn-sm" onclick="transferSelected()" id="transferSelectedBtn" disabled>
+                    <i class="fas fa-exchange-alt me-1"></i>
+                    ترحيل المحدد
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="transferAll()">
+                    <i class="fas fa-forward me-1"></i>
+                    ترحيل الكل
+                </button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="penalty-table">
+                <thead>
+                    <tr>
+                        <th width="40">
+                            <input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll()">
+                        </th>
+                        <th>الموظف</th>
+                        <th>تاريخ الجزاء</th>
+                        <th>الشهر</th>
+                        <th>السنة</th>
+                        <th>المبلغ</th>
+                        <th>السبب</th>
+                        <th>الوصف</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for penalty in penalties %}
+                    <tr class="{% if penalty.is_deducted %}table-success{% endif %}" id="row-{{ penalty.id }}">
+                        <td>
+                            {% if not penalty.is_deducted %}
+                            <input type="checkbox" class="penalty-checkbox" value="{{ penalty.id }}"
+                                   data-amount="{{ penalty.amount }}">
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="employee-info">
+                                <div class="employee-avatar">
+                                    {{ penalty.employee.full_name[:1] if penalty.employee else '?' }}
+                                </div>
+                                <div>
+                                    <strong>{{ penalty.employee.full_name if penalty.employee else 'موظف محذوف' }}</strong>
+                                    <small class="d-block text-muted">
+                                        {% if penalty.employee.position == 'supervisor' %}مشرف
+                                        {% elif penalty.employee.position == 'monitor' %}مراقب
+                                        {% else %}عامل
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ penalty.penalty_date.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            {% if penalty.month == 1 %}يناير
+                            {% elif penalty.month == 2 %}فبراير
+                            {% elif penalty.month == 3 %}مارس
+                            {% elif penalty.month == 4 %}أبريل
+                            {% elif penalty.month == 5 %}مايو
+                            {% elif penalty.month == 6 %}يونيو
+                            {% elif penalty.month == 7 %}يوليو
+                            {% elif penalty.month == 8 %}أغسطس
+                            {% elif penalty.month == 9 %}سبتمبر
+                            {% elif penalty.month == 10 %}أكتوبر
+                            {% elif penalty.month == 11 %}نوفمبر
+                            {% elif penalty.month == 12 %}ديسمبر
+                            {% endif %}
+                        </td>
+                        <td>{{ penalty.year }}</td>
+                        <td class="amount-cell">{{ "{:,.2f}".format(penalty.amount) }} ر.س</td>
+                        <td>{{ penalty.reason }}</td>
+                        <td>
+                            {% if penalty.description %}
+                            <span title="{{ penalty.description }}">
+                                <i class="fas fa-info-circle text-info"></i>
+                                {{ penalty.description[:20] }}{% if penalty.description|length > 20 %}...{% endif %}
+                            </span>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if penalty.is_deducted %}
+                            <span class="badge-status badge-transferred">
+                                <i class="fas fa-check-circle me-1"></i>مرحل
+                            </span>
+                            {% else %}
+                            <span class="badge-status badge-pending">
+                                <i class="fas fa-clock me-1"></i>غير مرحل
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                {% if not penalty.is_deducted %}
+                                <button class="btn-action btn-transfer" onclick="transferSingle({{ penalty.id }})"
+                                        title="ترحيل الجزاء">
+                                    <i class="fas fa-exchange-alt"></i>
+                                </button>
+                                {% endif %}
+                                <button class="btn-action btn-delete" onclick="deletePenalty({{ penalty.id }})"
+                                        title="حذف الجزاء">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="10" class="text-center py-5">
+                            <i class="fas fa-exclamation-circle fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">لا توجد جزاءات</h5>
+                            <p class="text-muted">قم بإضافة جزاء جديد باستخدام النموذج أعلاه</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة تأكيد الترحيل -->
+<div class="modal fade" id="transferModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title text-white">
+                    <i class="fas fa-exchange-alt me-2"></i>
+                    تأكيد ترحيل الجزاءات
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>هل أنت متأكد من ترحيل <span id="transferCount" class="fw-bold">0</span> جزاء إلى كشف المرتبات؟</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    سيتم خصم قيمة الجزاءات من رواتب الموظفين للشهر الحالي.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">ملاحظات (اختياري)</label>
+                    <textarea class="form-control" id="transferNotes" rows="2"
+                              placeholder="أي ملاحظات إضافية..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-warning" onclick="confirmTransfer()">تأكيد الترحيل</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// متغيرات عامة
+let selectedPenalties = new Set();
+let transferModal;
+
+// تهيئة الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    transferModal = new bootstrap.Modal(document.getElementById('transferModal'));
+
+    // تحديث حالة زر الترحيل
+    updateTransferButton();
+
+    // إضافة مستمعات للأحداث
+    document.querySelectorAll('.penalty-checkbox').forEach(cb => {
+        cb.addEventListener('change', function() {
+            const id = parseInt(this.value);
+            if (this.checked) {
+                selectedPenalties.add(id);
+            } else {
+                selectedPenalties.delete(id);
+            }
+            updateTransferButton();
+        });
+    });
+
+    // معالجة نموذج إضافة الجزاء
+    document.getElementById('addPenaltyForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        fetch('{{ url_for("add_penalty") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم بنجاح',
+                    text: data.message,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: data.message
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'خطأ',
+                text: 'حدث خطأ في الاتصال بالخادم'
+            });
+        });
+    });
+});
+
+// تحديث حالة زر الترحيل
+function updateTransferButton() {
+    const btn = document.getElementById('transferSelectedBtn');
+    const count = selectedPenalties.size;
+    btn.disabled = count === 0;
+    btn.innerHTML = `<i class="fas fa-exchange-alt me-1"></i>ترحيل المحدد (${count})`;
+}
+
+// تحديد الكل
+function selectAll() {
+    document.querySelectorAll('.penalty-checkbox:not(:disabled)').forEach(cb => {
+        cb.checked = true;
+        selectedPenalties.add(parseInt(cb.value));
+    });
+    updateTransferButton();
+}
+
+// إلغاء التحديد
+function deselectAll() {
+    document.querySelectorAll('.penalty-checkbox').forEach(cb => {
+        cb.checked = false;
+    });
+    selectedPenalties.clear();
+    updateTransferButton();
+}
+
+// تبديل تحديد الكل
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAllCheckbox').checked;
+    if (selectAll) {
+        selectAll();
+    } else {
+        deselectAll();
+    }
+}
+
+// ترحيل المحدد
+function transferSelected() {
+    if (selectedPenalties.size === 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'تنبيه',
+            text: 'الرجاء تحديد جزاءات للترحيل'
+        });
+        return;
+    }
+
+    document.getElementById('transferCount').innerText = selectedPenalties.size;
+    transferModal.show();
+}
+
+// ترحيل الكل
+function transferAll() {
+    selectedPenalties.clear();
+    document.querySelectorAll('.penalty-checkbox:not(:disabled)').forEach(cb => {
+        selectedPenalties.add(parseInt(cb.value));
+    });
+
+    if (selectedPenalties.size === 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'تنبيه',
+            text: 'لا توجد جزاءات غير مرحّلة'
+        });
+        return;
+    }
+
+    document.getElementById('transferCount').innerText = selectedPenalties.size;
+    transferModal.show();
+}
+
+// ترحيل جزاء واحد
+function transferSingle(id) {
+    selectedPenalties.clear();
+    selectedPenalties.add(id);
+    document.getElementById('transferCount').innerText = '1';
+    transferModal.show();
+}
+
+// تأكيد الترحيل
+function confirmTransfer() {
+    const btn = document.querySelector('.btn-warning');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري الترحيل...';
+
+    const notes = document.getElementById('transferNotes').value;
+
+    fetch('/penalties/bulk-transfer', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            penalty_ids: Array.from(selectedPenalties),
+            notes: notes
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'تم الترحيل',
+                text: data.message,
+                timer: 2000,
+                showConfirmButton: false
+            });
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'خطأ',
+                text: data.message
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'خطأ',
+            text: 'حدث خطأ في الاتصال بالخادم'
+        });
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        transferModal.hide();
+    });
+}
+
+// حذف جزاء
+function deletePenalty(penaltyId) {
+    Swal.fire({
+        title: 'تأكيد الحذف',
+        text: 'هل أنت متأكد من حذف هذا الجزاء؟',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e74a3b',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'نعم، احذف',
+        cancelButtonText: 'إلغاء'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/penalties/delete/${penaltyId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'تم الحذف',
+                        text: 'تم حذف الجزاء بنجاح',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: data.message
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'حدث خطأ في الاتصال بالخادم'
+                });
+            });
+        }
+    });
+}
+</script>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+{% endblock %}

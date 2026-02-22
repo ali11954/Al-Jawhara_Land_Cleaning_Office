@@ -35,9 +35,9 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h5 class="text-white text-uppercase mb-1">الحضور اليوم</h5>
-                            <span class="h2 font-weight-bold text-white mb-0">{{ present_today }}</span>
+                            <span class="h2 font-weight-bold text-white mb-0">{{ present_today|default(0) }}</span>
                             <p class="mt-2 text-white-50 mb-0">
-                                <i class="fas fa-percentage me-1"></i> {{ attendance_rate_today }}%
+                                <i class="fas fa-percentage me-1"></i> {{ attendance_rate_today|default(0) }}%
                             </p>
                         </div>
                         <div class="icon-circle bg-white-20">
@@ -46,7 +46,7 @@
                     </div>
                     <div class="progress progress-white mt-3" style="height: 5px;">
                         <div class="progress-bar bg-white" role="progressbar"
-                             style="width: {{ attendance_rate_today }}%;"></div>
+                             style="width: {{ attendance_rate_today|default(0) }}%;"></div>
                     </div>
                 </div>
             </div>
@@ -58,9 +58,9 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h5 class="text-white text-uppercase mb-1">الغياب اليوم</h5>
-                            <span class="h2 font-weight-bold text-white mb-0">{{ absent_today }}</span>
+                            <span class="h2 font-weight-bold text-white mb-0">{{ absent_today|default(0) }}</span>
                             <p class="mt-2 text-white-50 mb-0">
-                                <i class="fas fa-exclamation-triangle me-1"></i> {{ absence_rate_today }}%
+                                <i class="fas fa-exclamation-triangle me-1"></i> {{ absence_rate_today|default(0) }}%
                             </p>
                         </div>
                         <div class="icon-circle bg-white-20">
@@ -77,9 +77,9 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h5 class="text-white text-uppercase mb-1">التأخير اليوم</h5>
-                            <span class="h2 font-weight-bold text-white mb-0">{{ late_today }}</span>
+                            <span class="h2 font-weight-bold text-white mb-0">{{ late_today|default(0) }}</span>
                             <p class="mt-2 text-white-50 mb-0">
-                                <i class="fas fa-clock me-1"></i> متوسط {{ avg_late_minutes }} دقيقة
+                                <i class="fas fa-clock me-1"></i> متوسط {{ avg_late_minutes|default(0) }} دقيقة
                             </p>
                         </div>
                         <div class="icon-circle bg-white-20">
@@ -96,9 +96,9 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h5 class="text-white text-uppercase mb-1">الموظفين النشطين</h5>
-                            <span class="h2 font-weight-bold text-white mb-0">{{ active_employees }}</span>
+                            <span class="h2 font-weight-bold text-white mb-0">{{ active_employees|default(0) }}</span>
                             <p class="mt-2 text-white-50 mb-0">
-                                <i class="fas fa-chart-line me-1"></i> من أصل {{ total_employees }}
+                                <i class="fas fa-chart-line me-1"></i> من أصل {{ total_employees|default(0) }}
                             </p>
                         </div>
                         <div class="icon-circle bg-white-20">
@@ -121,7 +121,7 @@
             <form method="GET" class="row g-3" id="filterForm">
                 <div class="col-md-3">
                     <label class="form-label">التاريخ</label>
-                    <input type="date" name="date" class="form-control" value="{{ selected_date }}" id="datePicker">
+                    <input type="date" name="date" class="form-control" value="{{ selected_date|default(today) }}" id="datePicker">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">الشركة</label>
@@ -149,9 +149,9 @@
                     <label class="form-label">الحالة</label>
                     <select name="status" class="form-select" id="statusFilter">
                         <option value="">الكل</option>
-                        <option value="present">حاضر</option>
-                        <option value="absent">غائب</option>
-                        <option value="late">متأخر</option>
+                        <option value="present" {% if selected_status == 'present' %}selected{% endif %}>حاضر</option>
+                        <option value="absent" {% if selected_status == 'absent' %}selected{% endif %}>غائب</option>
+                        <option value="late" {% if selected_status == 'late' %}selected{% endif %}>متأخر</option>
                     </select>
                 </div>
                 <div class="col-12">
@@ -199,15 +199,15 @@
                     <div class="mt-3">
                         <div class="d-flex justify-content-between mb-2">
                             <span><span class="badge bg-success me-2">&nbsp;</span> حاضر</span>
-                            <span class="fw-bold">{{ present_today }}</span>
+                            <span class="fw-bold">{{ present_today|default(0) }}</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span><span class="badge bg-danger me-2">&nbsp;</span> غائب</span>
-                            <span class="fw-bold">{{ absent_today }}</span>
+                            <span class="fw-bold">{{ absent_today|default(0) }}</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span><span class="badge bg-warning me-2">&nbsp;</span> متأخر</span>
-                            <span class="fw-bold">{{ late_today }}</span>
+                            <span class="fw-bold">{{ late_today|default(0) }}</span>
                         </div>
                     </div>
                 </div>
@@ -257,18 +257,18 @@
                             <td>{{ loop.index }}</td>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <div class="avatar-sm me-2" style="background-color: {{ record.employee.color }}">
+                                    <div class="avatar-sm me-2" style="background-color: {{ record.employee.color|default('#4e73df') }}">
                                         {{ record.employee.full_name[:1] }}
                                     </div>
                                     <div>
                                         <div class="fw-bold">{{ record.employee.full_name }}</div>
-                                        <small class="text-muted">{{ record.employee.position_ar }}</small>
+                                        <small class="text-muted">{{ record.employee.position_ar|default(record.employee.position) }}</small>
                                     </div>
                                 </div>
                             </td>
-                            <td>{{ record.employee.department|default('غير محدد') }}</td>
-                            <td>{{ record.employee.company_name|default('غير محدد') }}</td>
-                            <td>{{ record.date|arabic_date }}</td>
+                            <td>{{ record.employee.department|default(record.employee.position|default('غير محدد')) }}</td>
+                            <td>{{ record.employee.company_name|default(record.employee.company.name if record.employee.company else 'غير محدد') }}</td>
+                            <td>{{ record.date|date('Y-m-d') }}</td>
                             <td>
                                 {% if record.check_in %}
                                 <span class="badge bg-light text-dark">{{ record.check_in|time }}</span>
@@ -290,6 +290,8 @@
                                 <span class="badge bg-danger">غائب</span>
                                 {% elif record.status == 'late' %}
                                 <span class="badge bg-warning">متأخر</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ record.status }}</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -299,7 +301,7 @@
                                 -
                                 {% endif %}
                             </td>
-                            <td>{{ record.notes|truncate(30) or '-' }}</td>
+                            <td>{{ record.notes|truncate(30) if record.notes else '-' }}</td>
                             <td>
                                 <button class="btn btn-sm btn-outline-primary" onclick="viewAttendanceDetails({{ record.id }})">
                                     <i class="fas fa-eye"></i>
@@ -311,7 +313,10 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="11" class="text-center text-muted">لا توجد سجلات حضور</td>
+                            <td colspan="11" class="text-center text-muted py-4">
+                                <i class="fas fa-info-circle fa-2x mb-2"></i><br>
+                                لا توجد سجلات حضور للفترة المحددة
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -324,32 +329,48 @@
 <!-- ApexCharts -->
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
-const attendanceData = {{ attendance_chart_data|tojson }};
+// بيانات الرسم البياني مع قيم افتراضية
+const attendanceData = {{ attendance_chart_data|tojson if attendance_chart_data else {
+    'dates': [],
+    'daily_present': [],
+    'daily_absent': [],
+    'daily_late': []
+} }};
+
 let trendChart;
 
 document.addEventListener('DOMContentLoaded', function() {
     initCharts();
     initSearch();
+    initFilters();
 });
 
 function initCharts() {
+    // التحقق من وجود بيانات للرسم البياني
+    if (!attendanceData.dates || attendanceData.dates.length === 0) {
+        document.getElementById('attendanceTrendChart').innerHTML =
+            '<div class="text-center text-muted py-5">لا توجد بيانات كافية للرسم البياني</div>';
+        return;
+    }
+
     // رسم بياني للاتجاهات
     const trendOptions = {
         series: [{
             name: 'الحضور',
-            data: attendanceData.daily_present
+            data: attendanceData.daily_present || []
         }, {
             name: 'الغياب',
-            data: attendanceData.daily_absent
+            data: attendanceData.daily_absent || []
         }, {
             name: 'التأخير',
-            data: attendanceData.daily_late
+            data: attendanceData.daily_late || []
         }],
         chart: {
             type: 'area',
             height: 300,
             toolbar: { show: false },
-            fontFamily: 'Cairo, sans-serif'
+            fontFamily: 'Cairo, sans-serif',
+            zoom: { enabled: false }
         },
         colors: ['#1cc88a', '#e74a3b', '#f6c23e'],
         dataLabels: { enabled: false },
@@ -363,15 +384,25 @@ function initCharts() {
             }
         },
         xaxis: {
-            categories: attendanceData.dates,
-            labels: { style: { fontFamily: 'Cairo, sans-serif' } }
+            categories: attendanceData.dates || [],
+            labels: {
+                style: { fontFamily: 'Cairo, sans-serif' },
+                rotate: -45,
+                trim: true
+            }
         },
         yaxis: {
-            labels: { style: { fontFamily: 'Cairo, sans-serif' } }
+            labels: { style: { fontFamily: 'Cairo, sans-serif' } },
+            min: 0
         },
         legend: {
             position: 'top',
-            fontFamily: 'Cairo, sans-serif'
+            fontFamily: 'Cairo, sans-serif',
+            horizontalAlign: 'center'
+        },
+        tooltip: {
+            theme: 'dark',
+            x: { format: 'dd MMM yyyy' }
         }
     };
 
@@ -380,7 +411,7 @@ function initCharts() {
 
     // رسم بياني دائري
     const pieOptions = {
-        series: [{{ present_today }}, {{ absent_today }}, {{ late_today }}],
+        series: [{{ present_today|default(0) }}, {{ absent_today|default(0) }}, {{ late_today|default(0) }}],
         chart: {
             type: 'pie',
             height: 250,
@@ -389,7 +420,14 @@ function initCharts() {
         labels: ['حاضر', 'غائب', 'متأخر'],
         colors: ['#1cc88a', '#e74a3b', '#f6c23e'],
         legend: { show: false },
-        dataLabels: { enabled: false }
+        dataLabels: { enabled: false },
+        tooltip: {
+            y: {
+                formatter: function(value) {
+                    return value + ' موظف';
+                }
+            }
+        }
     };
 
     const pieChart = new ApexCharts(document.querySelector("#attendancePieChart"), pieOptions);
@@ -397,28 +435,36 @@ function initCharts() {
 }
 
 function initSearch() {
-    document.getElementById('searchAttendance').addEventListener('keyup', function() {
-        const searchTerm = this.value.toLowerCase();
-        const rows = document.querySelectorAll('.attendance-row');
+    const searchInput = document.getElementById('searchAttendance');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('.attendance-row');
 
-        rows.forEach(row => {
-            const text = row.textContent.toLowerCase();
-            row.style.display = text.includes(searchTerm) ? '' : 'none';
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
         });
-    });
+    }
+}
 
-    document.getElementById('statusFilter').addEventListener('change', function() {
-        const status = this.value;
-        const rows = document.querySelectorAll('.attendance-row');
+function initFilters() {
+    const statusFilter = document.getElementById('statusFilter');
+    if (statusFilter) {
+        statusFilter.addEventListener('change', function() {
+            const status = this.value;
+            const rows = document.querySelectorAll('.attendance-row');
 
-        rows.forEach(row => {
-            if (!status || row.dataset.status === status) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
+            rows.forEach(row => {
+                if (!status || row.dataset.status === status) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
         });
-    });
+    }
 }
 
 function resetFilters() {
@@ -439,7 +485,52 @@ function editAttendance(id) {
 
 function changeChartPeriod(period) {
     // تحديث الرسم البياني حسب الفترة
-    alert(`تغيير الفترة إلى: ${period}`);
+    const buttons = document.querySelectorAll('.btn-group .btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+
+    // هنا يمكن إضافة منطق تغيير الفترة
+    console.log(`تغيير الفترة إلى: ${period}`);
+}
+
+function exportReport(type) {
+    if (type === 'excel') {
+        // تصدير إلى Excel
+        const table = document.getElementById('attendanceTable');
+        const rows = [];
+
+        // تجميع البيانات من الجدول
+        const headerRow = [];
+        document.querySelectorAll('#attendanceTable thead th').forEach(th => {
+            headerRow.push(th.textContent.trim());
+        });
+        rows.push(headerRow);
+
+        document.querySelectorAll('#attendanceTable tbody tr').forEach(tr => {
+            const row = [];
+            tr.querySelectorAll('td').forEach((td, index) => {
+                // تخطي أعمدة الإجراءات
+                if (index < 10) {
+                    row.push(td.textContent.trim());
+                }
+            });
+            rows.push(row);
+        });
+
+        // إنشاء ملف CSV
+        let csvContent = rows.map(row => row.join(',')).join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'تقرير_الحضور.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } else if (type === 'pdf') {
+        alert('جاري إنشاء ملف PDF... سيتم تفعيل هذه الميزة قريباً');
+    }
 }
 </script>
 
@@ -454,6 +545,98 @@ function changeChartPeriod(period) {
     color: white;
     font-weight: bold;
     font-size: 1rem;
+}
+
+.text-gradient-info {
+    background: linear-gradient(135deg, #36b9cc, #1f8f9f);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.card-stats {
+    border: none;
+    border-radius: 15px;
+    transition: transform 0.3s;
+}
+
+.card-stats:hover {
+    transform: translateY(-5px);
+}
+
+.gradient-primary {
+    background: linear-gradient(135deg, #4e73df, #224abe);
+}
+
+.gradient-danger {
+    background: linear-gradient(135deg, #e74a3b, #be2617);
+}
+
+.gradient-warning {
+    background: linear-gradient(135deg, #f6c23e, #dda20a);
+}
+
+.gradient-success {
+    background: linear-gradient(135deg, #1cc88a, #13855c);
+}
+
+.icon-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bg-white-20 {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.progress-white {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}
+
+.progress-white .progress-bar {
+    border-radius: 10px;
+}
+
+.btn-modern {
+    border-radius: 25px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.table th {
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+}
+
+@media print {
+    .btn-group, .card-header button, form {
+        display: none !important;
+    }
+
+    .card {
+        border: 1px solid #ddd !important;
+        break-inside: avoid;
+    }
 }
 </style>
 {% endblock %}
