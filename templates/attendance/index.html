@@ -26,6 +26,62 @@
         </div>
     </div>
 
+    <!-- ✅ بطاقات الإحصائيات في الأعلى (منقولة) -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card bg-primary text-white h-100 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small">إجمالي السجلات</div>
+                            <div class="fs-3 fw-bold">{{ total_records }}</div>
+                        </div>
+                        <i class="fas fa-calendar-check fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card bg-success text-white h-100 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small">الحضور</div>
+                            <div class="fs-3 fw-bold">{{ present_count }}</div>
+                        </div>
+                        <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card bg-warning text-white h-100 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small">المتأخرين</div>
+                            <div class="fs-3 fw-bold">{{ late_count }}</div>
+                        </div>
+                        <i class="fas fa-clock fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card bg-danger text-white h-100 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small">الغياب</div>
+                            <div class="fs-3 fw-bold">{{ absent_count }}</div>
+                        </div>
+                        <i class="fas fa-times-circle fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- فلترة متقدمة بالفترة -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-white py-3">
@@ -125,8 +181,10 @@
                         <span class="badge bg-success me-2">الموظف: {{ selected_employee.full_name }}</span>
                         {% endif %}
 
-                        {% if selected_company_id %}
-                        <span class="badge bg-info me-2">الشركة: {{ selected_company_id }}</span>
+                        {% if selected_company %}
+                        <span class="badge bg-info me-2">الشركة: {{ selected_company.name }}</span>
+                        {% elif selected_company_id %}
+                        <span class="badge bg-info me-2">الشركة: ID {{ selected_company_id }}</span>
                         {% endif %}
 
                         {% if selected_shift_type and selected_shift_type != 'all' %}
@@ -136,62 +194,6 @@
                 </div>
                 {% endif %}
             </form>
-        </div>
-    </div>
-
-    <!-- بطاقات الإحصائيات -->
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-md-3">
-            <div class="card bg-primary text-white h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="small">إجمالي السجلات</div>
-                            <div class="fs-3 fw-bold">{{ total_records }}</div>
-                        </div>
-                        <i class="fas fa-calendar-check fa-2x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="card bg-success text-white h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="small">الحضور</div>
-                            <div class="fs-3 fw-bold">{{ present_count }}</div>
-                        </div>
-                        <i class="fas fa-check-circle fa-2x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="card bg-warning text-white h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="small">المتأخرين</div>
-                            <div class="fs-3 fw-bold">{{ late_count }}</div>
-                        </div>
-                        <i class="fas fa-clock fa-2x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="card bg-danger text-white h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="small">الغياب</div>
-                            <div class="fs-3 fw-bold">{{ absent_count }}</div>
-                        </div>
-                        <i class="fas fa-times-circle fa-2x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -238,8 +240,8 @@
                             <td>{{ loop.index }}</td>
                             <td>
                                 <div class="fw-bold">{{ record.employee.full_name if record.employee else 'غير معروف' }}</div>
-                                {% if record.employee and record.employee.employee_id %}
-                                <small class="text-muted">{{ record.employee.employee_id }}</small>
+                                {% if record.employee and record.employee.code %}
+                                <small class="text-muted">كود: {{ record.employee.code }}</small>
                                 {% endif %}
                             </td>
                             <td>{{ record.employee.position if record.employee else '-' }}</td>
@@ -250,8 +252,10 @@
                             <td>
                                 {% if record.shift_type == 'morning' %}
                                 <span class="badge bg-info">صباحية</span>
-                                {% else %}
+                                {% elif record.shift_type == 'evening' %}
                                 <span class="badge bg-warning">مسائية</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ record.shift_type }}</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -305,13 +309,6 @@
                     </tbody>
                 </table>
             </div>
-
-            <!-- إجمالي السجلات -->
-            <div class="mt-3 text-muted">
-                <i class="fas fa-list me-1"></i>
-                إجمالي السجلات: {{ attendance_records|length }}
-            </div>
-
             {% else %}
             <div class="text-center py-5">
                 <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
@@ -377,7 +374,6 @@ function executeDelete() {
 }
 
 function exportToExcel() {
-    // تحضير معايير البحث الحالية
     const params = new URLSearchParams(window.location.search);
     const dateFrom = params.get('date_from') || '';
     const dateTo = params.get('date_to') || '';
@@ -385,7 +381,6 @@ function exportToExcel() {
     const companyId = params.get('company_id') || '';
     const shiftType = params.get('shift_type') || 'all';
 
-    // توجيه إلى رابط التصدير مع نفس معايير البحث
     window.location.href = `/attendance/export?date_from=${dateFrom}&date_to=${dateTo}&employee_id=${employeeId}&company_id=${companyId}&shift_type=${shiftType}`;
 }
 
@@ -404,9 +399,9 @@ function setDateRange(range) {
             dateTo = new Date(dateFrom);
             break;
         case 'this_week':
-            dateFrom.setDate(today.getDate() - today.getDay() + 1); // الاثنين
+            dateFrom.setDate(today.getDate() - today.getDay() + 1);
             dateTo = new Date(dateFrom);
-            dateTo.setDate(dateFrom.getDate() + 6); // الأحد
+            dateTo.setDate(dateFrom.getDate() + 6);
             break;
         case 'last_week':
             dateFrom.setDate(today.getDate() - today.getDay() - 6);
@@ -426,12 +421,10 @@ function setDateRange(range) {
             break;
     }
 
-    // تنسيق التواريخ
     const formatDate = (date) => {
         return date.toISOString().split('T')[0];
     };
 
-    // تعيين القيم في الحقول
     document.querySelector('input[name="date_from"]').value = formatDate(dateFrom);
     document.querySelector('input[name="date_to"]').value = formatDate(dateTo);
 }
@@ -443,7 +436,7 @@ document.addEventListener('DOMContentLoaded', function() {
             language: {
                 url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json'
             },
-            order: [[4, 'desc']], // ترتيب حسب التاريخ تنازلياً
+            order: [[4, 'desc']],
             pageLength: 25
         });
     }
@@ -476,15 +469,23 @@ document.addEventListener('DOMContentLoaded', function() {
     opacity: 0.5;
 }
 
-/* تحسين مظهر حقول التاريخ */
 input[type="date"] {
     direction: ltr;
     text-align: right;
 }
 
-/* تنسيق البادجات */
 .badge.bg-light {
     border: 1px solid #dee2e6;
+}
+
+/* تحسين مظهر البطاقات */
+.card.bg-primary, .card.bg-success, .card.bg-warning, .card.bg-danger {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card.bg-primary:hover, .card.bg-success:hover, .card.bg-warning:hover, .card.bg-danger:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
 }
 </style>
 {% endblock %}

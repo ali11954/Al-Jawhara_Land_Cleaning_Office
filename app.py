@@ -3511,157 +3511,114 @@ def can_view_employee(user, employee):
         return authorized
 
     return False
+
+
+from sqlalchemy import text
+
+
 @app.route('/attendance')
 @login_required
 def attendance_index():
-    """عرض سجل الحضور مع روابط لواجهات التحضير"""
+    """عرض سجل الحضور مع دعم البحث المتقدم بالفترة"""
     try:
         # الحصول على معاملات الفلترة
-        selected_date = request.args.get('date', date.today().isoformat())
+        date_from = request.args.get('date_from')
+        date_to = request.args.get('date_to')
         employee_id = request.args.get('employee_id', type=int)
         company_id = request.args.get('company_id', type=int)
-        shift_type = request.args.get('shift_type', '')
+        shift_type = request.args.get('shift_type', 'all')
 
-        # التحقق من صحة التاريخ
-        try:
-            selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
-        except ValueError:
-            selected_date = date.today()
-            flash('صيغة التاريخ غير صحيحة، تم استخدام تاريخ اليوم', 'warning')
+        # معالجة التواريخ
+        today_date = date.today()
 
-        # حساب التواريخ للتنقل بين الأيام
-        prev_date = selected_date - timedelta(days=1)
-        next_date = selected_date + timedelta(days=1)
+        if date_from:
+            try:
+                date_from = datetime.strptime(date_from, '%Y-%m-%d').date()
+            except ValueError:
+                date_from = today_date.replace(day=1)
+                flash('صيغة تاريخ البداية غير صحيحة، تم استخدام أول الشهر', 'warning')
+        else:
+            date_from = today_date.replace(day=1)
 
-        # استعلام الحضور مع الفلترة
+        if date_to:
+            try:
+                date_to = datetime.strptime(date_to, '%Y-%m-%d').date()
+            except ValueError:
+                date_to = today_date
+                flash('صيغة تاريخ النهاية غير صحيحة، تم استخدام تاريخ اليوم', 'warning')
+        else:
+            date_to = today_date
+
+        # التأكد من أن تاريخ البداية <= تاريخ النهاية
+        if date_from > date_to:
+            date_from, date_to = date_to, date_from
+            flash('تم تبديل التواريخ لأن تاريخ البداية أكبر من تاريخ النهاية', 'info')
+
+        # ✅ بناء الاستعلام بدون joinedload في order_by
         attendance_query = db.session.query(Attendance).join(
             Employee, Attendance.employee_id == Employee.id
-        ).options(
-            joinedload(Attendance.employee)
+        ).outerjoin(
+            Company, Employee.company_id == Company.id
         ).filter(
-            Attendance.date == selected_date,
-            Employee.is_active == True
+            Attendance.date.between(date_from, date_to)
         )
 
-        # تطبيق الفلترة الإضافية
+        # تطبيق الفلاتر
         if employee_id:
             attendance_query = attendance_query.filter(Attendance.employee_id == employee_id)
-
-        if company_id:
-            attendance_query = attendance_query.filter(Employee.company_id == company_id)
 
         if shift_type and shift_type != 'all':
             attendance_query = attendance_query.filter(Attendance.shift_type == shift_type)
 
-        # تنفيذ الاستعلام
+        # فلتر الشركة
+        if company_id:
+            attendance_query = attendance_query.filter(Employee.company_id == company_id)
+
+        # ✅ الترتيب باستخدام text() SQL للتأكد من صحة الأسماء
         attendance_records = attendance_query.order_by(
-            Employee.full_name.asc(),
-            Attendance.shift_type.asc()
+            Attendance.date.desc(),
+            text('employees.full_name ASC')  # استخدام النص SQL مباشرة
         ).all()
 
-        # إحصائيات الحضور
-        total_employees = Employee.query.filter_by(is_active=True).count()
+        # ✅ إحصائيات الحضور
+        total_records = len(attendance_records)
 
-        # إحصائيات مفصلة
-        present_count = db.session.query(db.func.count(Attendance.id)) \
-            .join(Employee, Attendance.employee_id == Employee.id) \
-            .filter(
-                Attendance.date == selected_date,
-                Attendance.status == 'present',
-                Employee.is_active == True
-            ).scalar() or 0
+        # عدد الحاضرين
+        present_count = sum(1 for r in attendance_records if r.status == 'present')
 
-        absent_count = db.session.query(db.func.count(Attendance.id)) \
-            .join(Employee, Attendance.employee_id == Employee.id) \
-            .filter(
-                Attendance.date == selected_date,
-                Attendance.status == 'absent',
-                Employee.is_active == True
-            ).scalar() or 0
+        # عدد المتأخرين
+        late_count = sum(1 for r in attendance_records if r.status == 'late')
 
-        late_count = db.session.query(db.func.count(Attendance.id)) \
-            .join(Employee, Attendance.employee_id == Employee.id) \
-            .filter(
-                Attendance.date == selected_date,
-                Attendance.status == 'late',
-                Employee.is_active == True
-            ).scalar() or 0
-
-        # تطبيق الفلترة على الإحصائيات إذا لزم الأمر
-        if employee_id:
-            present_count = Attendance.query.filter_by(
-                date=selected_date,
-                employee_id=employee_id,
-                status='present'
-            ).count()
-            absent_count = Attendance.query.filter_by(
-                date=selected_date,
-                employee_id=employee_id,
-                status='absent'
-            ).count()
-            late_count = Attendance.query.filter_by(
-                date=selected_date,
-                employee_id=employee_id,
-                status='late'
-            ).count()
-
-        if company_id:
-            present_count = db.session.query(db.func.count(Attendance.id)) \
-                .join(Employee, Attendance.employee_id == Employee.id) \
-                .filter(
-                    Attendance.date == selected_date,
-                    Attendance.status == 'present',
-                    Employee.company_id == company_id,
-                    Employee.is_active == True
-                ).scalar() or 0
-
-            absent_count = db.session.query(db.func.count(Attendance.id)) \
-                .join(Employee, Attendance.employee_id == Employee.id) \
-                .filter(
-                    Attendance.date == selected_date,
-                    Attendance.status == 'absent',
-                    Employee.company_id == company_id,
-                    Employee.is_active == True
-                ).scalar() or 0
-
-            late_count = db.session.query(db.func.count(Attendance.id)) \
-                .join(Employee, Attendance.employee_id == Employee.id) \
-                .filter(
-                    Attendance.date == selected_date,
-                    Attendance.status == 'late',
-                    Employee.company_id == company_id,
-                    Employee.is_active == True
-                ).scalar() or 0
-
-        # إذا لم يتم تطبيق فلترة، حساب الغياب بناءً على إجمالي الموظفين
-        if not any([employee_id, company_id, shift_type and shift_type != 'all']):
-            absent_count = total_employees - present_count - late_count
+        # عدد الغائبين
+        absent_count = sum(1 for r in attendance_records if r.status == 'absent')
 
         # بيانات الفلترة
         employees_for_filter = Employee.query.filter_by(is_active=True).order_by(Employee.full_name).all()
         companies = Company.query.filter_by(is_active=True).all()
 
-        # الموظف المحدد للفلترة
+        # الموظف المحدد
         selected_employee = Employee.query.get(employee_id) if employee_id else None
 
-        print(f"✅ تم تحميل {len(attendance_records)} سجل حضور للتاريخ {selected_date}")
+        # الشركة المحددة
+        selected_company = Company.query.get(company_id) if company_id else None
+
+        print(f"✅ تم تحميل {total_records} سجل حضور من {date_from} إلى {date_to}")
 
         return render_template('attendance/index.html',
-                               today=date.today(),
-                               selected_date=selected_date,
-                               prev_date=prev_date,
-                               next_date=next_date,
                                attendance_records=attendance_records,
-                               total_employees=total_employees,
+                               total_records=total_records,
                                present_count=present_count,
-                               absent_count=absent_count,
                                late_count=late_count,
+                               absent_count=absent_count,
                                employees=employees_for_filter,
                                companies=companies,
+                               date_from=date_from,
+                               date_to=date_to,
                                selected_employee_id=employee_id,
                                selected_company_id=company_id,
                                selected_shift_type=shift_type,
-                               selected_employee=selected_employee)
+                               selected_employee=selected_employee,
+                               selected_company=selected_company)
 
     except Exception as e:
         app.logger.error(f"Error in attendance_index: {str(e)}")
@@ -3670,18 +3627,21 @@ def attendance_index():
         flash('حدث خطأ في تحميل بيانات الحضور', 'error')
 
         return render_template('attendance/index.html',
-                               today=date.today(),
-                               selected_date=date.today(),
                                attendance_records=[],
-                               total_employees=0,
+                               total_records=0,
                                present_count=0,
-                               absent_count=0,
                                late_count=0,
+                               absent_count=0,
                                employees=[],
                                companies=[],
+                               date_from=date.today().replace(day=1),
+                               date_to=date.today(),
                                selected_employee_id=None,
                                selected_company_id=None,
-                               selected_shift_type='')
+                               selected_shift_type='all',
+                               selected_employee=None,
+                               selected_company=None)
+
 @app.route('/attendance/preparation-hub')
 @login_required
 def preparation_hub():
