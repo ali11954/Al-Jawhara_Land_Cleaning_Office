@@ -1,0 +1,118 @@
+/* static/css/style.css */
+#connection-status {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 8px 16px;
+    text-align: center;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+#connection-status.online {
+    background-color: #d4edda;
+    color: #155724;
+    border-bottom: 1px solid #c3e6cb;
+}
+
+#connection-status.offline {
+    background-color: #f8d7da;
+    color: #721c24;
+    border-bottom: 1px solid #f5c6cb;
+}
+
+#connection-status button {
+    background: white;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    padding: 4px 12px;
+    cursor: pointer;
+}
+
+.sync-indicator {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #4e73df;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 40px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 9998;
+    animation: slideIn 0.3s ease;
+}
+
+.sync-indicator .spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.sync-notification {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 9997;
+    animation: slideDown 0.3s ease;
+}
+
+.sync-notification.success {
+    background: #d4edda;
+    color: #155724;
+    border-right: 4px solid #28a745;
+}
+
+.sync-notification.error {
+    background: #f8d7da;
+    color: #721c24;
+    border-right: 4px solid #dc3545;
+}
+
+.sync-notification.warning {
+    background: #fff3cd;
+    color: #856404;
+    border-right: 4px solid #ffc107;
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* تنسيق شارة عدم الاتصال */
+.offline-badge {
+    display: inline-block;
+    background: #ffc107;
+    color: #856404;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+}

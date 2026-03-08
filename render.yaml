@@ -3,8 +3,29 @@ services:
     name: al-jawhara-cleaning
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: |
+      apt-get update
+      apt-get install -y libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info
+      pip install --upgrade pip
+      pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
       - key: FLASK_ENV
         value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: al-jawhara-db
+          property: connectionString
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: FLASK_APP
+        value: app.py
+
+databases:
+  - name: al-jawhara-db
+    databaseName: aljawhara_db
+    user: aljawhara_user
+    plan: free
+    ipAllowList: [] # يسمح بالوصول من جميع الخدمات
