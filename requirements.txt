@@ -1,4 +1,4 @@
-# المكتبات الحالية (موجودة)
+# المكتبات الحالية
 Flask==2.3.3
 Flask-SQLAlchemy==3.0.5
 Flask-Login==0.6.3
@@ -17,7 +17,11 @@ arabic-reshaper==3.0.0
 python-bidi==0.4.2
 
 # ===== المكتبات للتقارير =====
-# PDFKit بدلاً من WeasyPrint
+# WeasyPrint للتشغيل المحلي
+weasyprint==60.2
+cffi==1.16.0
+
+# PDFKit للإنتاج على Render
 pdfkit==1.0.0
 
 # لتصدير Excel
@@ -25,7 +29,3 @@ pandas==2.1.4
 openpyxl==3.1.2
 xlrd==2.0.1
 XlsxWriter==3.1.9
-
-# يمكنك إزالة weasyprint و cffi
-# weasyprint==60.2
-# cffi==1.16.0

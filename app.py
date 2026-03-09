@@ -296,7 +296,6 @@ def generate_pdf_from_html(html_content, filename_prefix):
     """
     دالة موحدة لإنشاء PDF من محتوى HTML
     """
-    from weasyprint import HTML
     from flask import make_response
     from datetime import datetime
 
@@ -548,6 +547,59 @@ def inject_stats():
     from datetime import datetime
     return dict(stats=stats, now=datetime.now)
 
+
+def export_pdf_with_pdfkit(html_content, filename_prefix):
+    """
+    دالة لإنشاء PDF باستخدام PDFKit مع تحديد المسار الكامل
+    """
+    import pdfkit
+    from flask import make_response
+    from datetime import datetime
+    import os
+
+    try:
+        # المسار الكامل لـ wkhtmltopdf (تأكد من وجوده)
+        path_to_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
+
+        # التحقق من وجود الملف
+        if not os.path.exists(path_to_wkhtmltopdf):
+            app.logger.error(f"الملف غير موجود: {path_to_wkhtmltopdf}")
+            # جرب مساراً آخر
+            path_to_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
+
+        # تكوين PDFKit مع المسار
+        config = pdfkit.configuration(wkhtmltopdf=path_to_wkhtmltopdf)
+
+        # خيارات PDF
+        options = {
+            'page-size': 'A4',
+            'orientation': 'Landscape',
+            'encoding': 'UTF-8',
+            'no-outline': None,
+            'margin-top': '20mm',
+            'margin-right': '15mm',
+            'margin-bottom': '20mm',
+            'margin-left': '15mm',
+            'enable-local-file-access': None
+        }
+
+        # إنشاء PDF مع تحديد المسار
+        pdf = pdfkit.from_string(html_content, False, options=options, configuration=config)
+
+        # تجهيز الاستجابة
+        today = datetime.now()
+        response = make_response(pdf)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers[
+            'Content-Disposition'] = f'attachment; filename={filename_prefix}_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
+        return response
+
+    except Exception as e:
+        app.logger.error(f"PDFKit Error: {str(e)}")
+        # طباعة تفاصيل أكثر للخطأ
+        import traceback
+        traceback.print_exc()
+        return None
 # Authentication routes
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -1292,7 +1344,6 @@ def export_report(export_type, report_name, headers, rows, filename_prefix=None,
         # تصدير PDF
         # ============================================
         elif export_type == 'pdf':
-            from weasyprint import HTML
             from flask import make_response, render_template_string
 
             # إنشاء HTML للتقرير
@@ -3319,7 +3370,6 @@ def export_employees_financial(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from weasyprint import HTML
             from flask import make_response
 
             try:
@@ -3532,7 +3582,6 @@ def export_employees_list(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from weasyprint import HTML
             from flask import make_response
 
             try:
@@ -15290,7 +15339,6 @@ def export_attendance_record(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from weasyprint import HTML
             from flask import make_response
 
             try:
@@ -15394,7 +15442,6 @@ def export_late_employees(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from weasyprint import HTML
             from flask import make_response
 
             try:
@@ -15496,7 +15543,6 @@ def export_employees_efficiency(export_type):
         # بيانات PDF
         elif export_type == 'pdf':
             from flask import render_template
-            from weasyprint import HTML
             from flask import make_response
 
             try:
@@ -15599,7 +15645,6 @@ def export_absence_rates(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from weasyprint import HTML
             from flask import make_response
 
             try:
@@ -15688,7 +15733,6 @@ def export_evaluations_report(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from weasyprint import HTML
             from flask import make_response
 
             try:
@@ -15813,7 +15857,6 @@ def export_daily_evaluations_advanced(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from weasyprint import HTML
             from flask import make_response
 
             try:
@@ -15887,7 +15930,6 @@ def export_employees_performance(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from weasyprint import HTML
             from flask import make_response
 
             try:
@@ -15911,15 +15953,18 @@ def export_employees_performance(export_type):
                     current_user=current_user
                 )
 
-                html = HTML(string=html_content)
-                pdf = html.write_pdf()
-                response = make_response(pdf)
-                response.headers['Content-Type'] = 'application/pdf'
-                response.headers['Content-Disposition'] = f'attachment; filename=performance_report_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
-                return response
+                # ✅ استخدام PDFKit بدلاً من WeasyPrint
+                response = export_pdf_with_pdfkit(html_content, 'performance_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('report_employees_performance', **request.args))
 
             except Exception as pdf_error:
                 app.logger.error(f"PDF Error: {str(pdf_error)}")
+                import traceback
+                traceback.print_exc()
                 flash(f'حدث خطأ في إنشاء PDF: {str(pdf_error)}', 'error')
                 return redirect(url_for('report_employees_performance', **request.args))
 
@@ -15927,7 +15972,6 @@ def export_employees_performance(export_type):
         app.logger.error(f"Error exporting performance: {str(e)}")
         flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
         return redirect(url_for('report_employees_performance', **request.args))
-
 
 # ============================================
 # تصدير تقرير مؤشرات الأداء
@@ -15973,7 +16017,6 @@ def export_kpis_report(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from weasyprint import HTML
             from flask import make_response
 
             try:
@@ -16091,7 +16134,6 @@ def export_top_employees(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from weasyprint import HTML
             from flask import make_response
 
             try:
@@ -16206,7 +16248,6 @@ def export_companies_zones(export_type):
         # تجهيز بيانات PDF
         elif export_type == 'pdf':
             from flask import render_template
-            from weasyprint import HTML
             from flask import make_response
 
             try:
@@ -16292,7 +16333,6 @@ def export_monthly_trends(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from weasyprint import HTML
             from flask import make_response
 
             try:
@@ -16393,7 +16433,6 @@ def export_loans_report(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from weasyprint import HTML
             from flask import make_response
             import time
 
@@ -16524,7 +16563,6 @@ def export_penalties_report(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from weasyprint import HTML
             from flask import make_response
 
             try:
