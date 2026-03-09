@@ -5,10 +5,12 @@ services:
     plan: free
     buildCommand: |
       apt-get update
-      # تثبيت wkhtmltopdf لـ PDFKit
+      # تثبيت wkhtmltopdf وكل التبعيات المطلوبة
       apt-get install -y wkhtmltopdf
-      # المكتبات الإضافية (اختياري)
       apt-get install -y libxrender1 libfontconfig1 libx11-dev libjpeg62 libxtst6
+      # تثبيت تبعيات إضافية لضمان عمل wkhtmltopdf بشكل صحيح
+      apt-get install -y xfonts-75dpi xfonts-base
+      # تحديث pip وتثبيت المتطلبات
       pip install --upgrade pip
       pip install -r requirements.txt
     startCommand: gunicorn app:app
@@ -25,6 +27,8 @@ services:
         value: 3.11.0
       - key: FLASK_APP
         value: app.py
+      - key: FLASK_DEBUG
+        value: 0
 
 databases:
   - name: al-jawhara-db

@@ -547,39 +547,295 @@ def inject_stats():
     from datetime import datetime
     return dict(stats=stats, now=datetime.now)
 
+# ============================================
+# ✅ دالة مركزية لتصدير التقارير إلى Excel و PDF
+# ============================================
 
-# دالة ذكية لتصدير PDF (تعمل محلياً وبعيداً)
+def export_report(export_type, report_name, headers, rows, filename_prefix=None, orientation='landscape'):
+    """
+    دالة مركزية لتصدير التقارير إلى Excel أو PDF
+
+    المعاملات:
+    - export_type: 'excel' أو 'pdf'
+    - report_name: اسم التقرير (للعرض)
+    - headers: قائمة بأسماء الأعمدة
+    - rows: قائمة من القواميس تحتوي على بيانات التقرير
+    - filename_prefix: بادئة اسم الملف (اختياري)
+    - orientation: اتجاه الصفحة للـ PDF ('portrait' أو 'landscape')
+
+    تعيد: كائن Response يحتوي على الملف للتحميل
+    """
+    try:
+        from io import BytesIO
+        from datetime import datetime
+        import pandas as pd
+        from flask import send_file, jsonify, request, make_response
+        from weasyprint import HTML
+        from flask import render_template_string
+
+        # اسم الملف الأساسي
+        if not filename_prefix:
+            filename_prefix = report_name.replace(' ', '_')
+
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"{filename_prefix}_{timestamp}"
+
+        # تحويل البيانات إلى DataFrame
+        df = pd.DataFrame(rows)
+
+        # إعادة تسمية الأعمدة إذا تم تمرير headers
+        if headers and len(headers) == len(df.columns):
+            df.columns = headers
+
+        # ============================================
+        # تصدير Excel
+        # ============================================
+        if export_type == 'excel':
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, sheet_name=report_name[:30], index=False)
+
+                # تنسيق الخلايا
+                worksheet = writer.sheets[report_name[:30]]
+
+                # ضبط عرض الأعمدة تلقائياً
+                for column in worksheet.columns:
+                    max_length = 0
+                    column_letter = column[0].column_letter
+                    for cell in column:
+                        try:
+                            if len(str(cell.value)) > max_length:
+                                max_length = len(str(cell.value))
+                        except:
+                            pass
+                    adjusted_width = min(max_length + 2, 50)
+                    worksheet.column_dimensions[column_letter].width = adjusted_width
+
+            output.seek(0)
+
+            return send_file(
+                output,
+                as_attachment=True,
+                download_name=f"{filename}.xlsx",
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+
+        # ============================================
+        # تصدير PDF
+        # ============================================
+        elif export_type == 'pdf':
+            # إنشاء HTML للتقرير
+            html_template = """
+            <!DOCTYPE html>
+            <html dir="rtl" lang="ar">
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    @page {
+                        size: A4 {{ orientation }};
+                        margin: 1cm;
+                    }
+                    body {
+                        font-family: 'DejaVu Sans', Arial, sans-serif;
+                        font-size: 10px;
+                    }
+                    .header {
+                        text-align: center;
+                        margin-bottom: 20px;
+                        border-bottom: 2px solid #333;
+                        padding-bottom: 10px;
+                    }
+                    .header h1 {
+                        font-size: 18px;
+                        margin: 0 0 5px 0;
+                        color: #333;
+                    }
+                    .header p {
+                        font-size: 12px;
+                        margin: 5px 0;
+                        color: #666;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin: 20px 0;
+                    }
+                    th {
+                        background-color: #2196F3;
+                        color: white;
+                        font-weight: bold;
+                        text-align: center;
+                        padding: 8px;
+                        font-size: 10px;
+                    }
+                    td {
+                        border: 1px solid #ddd;
+                        padding: 6px;
+                        text-align: center;
+                    }
+                    tr:nth-child(even) {
+                        background-color: #f9f9f9;
+                    }
+                    .footer {
+                        margin-top: 30px;
+                        text-align: center;
+                        font-size: 9px;
+                        color: #666;
+                        border-top: 1px solid #ccc;
+                        padding-top: 10px;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>{{ report_name }}</h1>
+                    <p>تاريخ التقرير: {{ today.strftime('%Y-%m-%d %H:%M') }}</p>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            {% for header in headers %}
+                            <th>{{ header }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr>
+                            {% for key in row.keys() %}
+                            <td>{{ row[key] }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <div class="footer">
+                    <p>تم إنشاء هذا التقرير بواسطة نظام إدارة الموارد البشرية - جميع الحقوق محفوظة © {{ today.year }}</p>
+                </div>
+            </body>
+            </html>
+            """
+
+            # تجهيز البيانات للقالب
+            context = {
+                'report_name': report_name,
+                'headers': headers,
+                'rows': rows,
+                'today': datetime.now(),
+                'orientation': orientation
+            }
+
+            # إنشاء HTML
+            html = render_template_string(html_template, **context)
+
+            # إنشاء PDF باستخدام الدالة الذكية
+            try:
+                # محاولة استخدام الدالة الذكية أولاً
+                response = export_pdf(html, filename_prefix)
+                if response:
+                    return response
+                else:
+                    # إذا فشلت، استخدم WeasyPrint مباشرة
+                    pdf = HTML(string=html, base_url=request.base_url).write_pdf()
+                    response = make_response(pdf)
+                    response.headers['Content-Type'] = 'application/pdf'
+                    response.headers['Content-Disposition'] = f'attachment; filename={filename}.pdf'
+                    return response
+            except:
+                # إذا فشل كل شيء، استخدم WeasyPrint مباشرة
+                pdf = HTML(string=html, base_url=request.base_url).write_pdf()
+                response = make_response(pdf)
+                response.headers['Content-Type'] = 'application/pdf'
+                response.headers['Content-Disposition'] = f'attachment; filename={filename}.pdf'
+                return response
+
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'نوع التصدير غير مدعوم'
+            }), 400
+
+    except Exception as e:
+        app.logger.error(f"❌ Error in export_report: {str(e)}")
+        import traceback
+        app.logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'message': f'حدث خطأ في التصدير: {str(e)}'
+        }), 500
+
+# دالة موحدة لتصدير PDF (تعمل في كل مكان)
 def export_pdf(html_content, filename_prefix):
     """
-    دالة ذكية لتصدير PDF:
-    - محلياً: تستخدم WeasyPrint
-    - على السيرفر: تستخدم PDFKit
+    دالة موحدة لتصدير PDF:
+    - محلياً: تستخدم WeasyPrint (الأسهل)
+    - على السيرفر: تستخدم PDFKit مع wkhtmltopdf
     """
     import os
     from flask import make_response
     from datetime import datetime
+    import tempfile
+    import subprocess
 
     # التحقق من البيئة
     is_production = os.environ.get('FLASK_ENV') == 'production'
 
     try:
         if is_production:
-            # على السيرفر: استخدام PDFKit
-            import pdfkit
-            options = {
-                'page-size': 'A4',
-                'orientation': 'Landscape',
-                'encoding': 'UTF-8',
-                'no-outline': None,
-                'margin-top': '20mm',
-                'margin-right': '15mm',
-                'margin-bottom': '20mm',
-                'margin-left': '15mm',
-                'enable-local-file-access': None
-            }
-            pdf = pdfkit.from_string(html_content, False, options=options)
+            # على السيرفر: استخدام wkhtmltopdf مباشرة (الأكثر استقراراً)
+            app.logger.info("📄 استخدام wkhtmltopdf على السيرفر")
+
+            # إنشاء ملف HTML مؤقت
+            with tempfile.NamedTemporaryFile(suffix='.html', mode='w', encoding='utf-8', delete=False) as f:
+                f.write(html_content)
+                temp_html = f.name
+
+            # إنشاء ملف PDF مؤقت
+            temp_pdf = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
+            temp_pdf.close()
+
+            # استخدام wkhtmltopdf مباشرة
+            cmd = [
+                'wkhtmltopdf',
+                '--page-size', 'A4',
+                '--orientation', 'Landscape',
+                '--encoding', 'UTF-8',
+                '--margin-top', '20',
+                '--margin-right', '15',
+                '--margin-bottom', '20',
+                '--margin-left', '15',
+                '--enable-local-file-access',
+                temp_html,
+                temp_pdf.name
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True)
+
+            if result.returncode != 0:
+                app.logger.error(f"wkhtmltopdf error: {result.stderr}")
+                # محاولة استخدام PDFKit كبديل
+                try:
+                    import pdfkit
+                    pdf = pdfkit.from_string(html_content, False)
+                except:
+                    return None
+            else:
+                # قراءة ملف PDF
+                with open(temp_pdf.name, 'rb') as f:
+                    pdf = f.read()
+
+            # حذف الملفات المؤقتة
+            try:
+                os.unlink(temp_html)
+                os.unlink(temp_pdf.name)
+            except:
+                pass
+
         else:
-            # محلياً: استخدام WeasyPrint
+            # محلياً: استخدام WeasyPrint (الأسهل)
+            app.logger.info("📄 استخدام WeasyPrint محلياً")
             from weasyprint import HTML
             html = HTML(string=html_content)
             pdf = html.write_pdf()
@@ -594,6 +850,8 @@ def export_pdf(html_content, filename_prefix):
 
     except Exception as e:
         app.logger.error(f"PDF Generation Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def export_pdf_with_pdfkit(html_content, filename_prefix):
@@ -1317,212 +1575,6 @@ def can_manage_attendance(user, employee_id):
         app.logger.error(f"Error in can_manage_attendance: {str(e)}")
         return False
 
-
-# ============================================
-# ✅ دالة مركزية لتصدير التقارير إلى Excel و PDF
-# ============================================
-
-def export_report(export_type, report_name, headers, rows, filename_prefix=None, orientation='landscape'):
-    """
-    دالة مركزية لتصدير التقارير إلى Excel أو PDF
-
-    المعاملات:
-    - export_type: 'excel' أو 'pdf'
-    - report_name: اسم التقرير (للعرض)
-    - headers: قائمة بأسماء الأعمدة
-    - rows: قائمة من القواميس تحتوي على بيانات التقرير
-    - filename_prefix: بادئة اسم الملف (اختياري)
-    - orientation: اتجاه الصفحة للـ PDF ('portrait' أو 'landscape')
-
-    تعيد: كائن Response يحتوي على الملف للتحميل
-    """
-    try:
-        from io import BytesIO
-        from datetime import datetime
-        import pandas as pd
-
-        # اسم الملف الأساسي
-        if not filename_prefix:
-            filename_prefix = report_name.replace(' ', '_')
-
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"{filename_prefix}_{timestamp}"
-
-        # تحويل البيانات إلى DataFrame
-        df = pd.DataFrame(rows)
-
-        # إعادة تسمية الأعمدة إذا تم تمرير headers
-        if headers and len(headers) == len(df.columns):
-            df.columns = headers
-
-        # ============================================
-        # تصدير Excel
-        # ============================================
-        if export_type == 'excel':
-            output = BytesIO()
-            with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                df.to_excel(writer, sheet_name=report_name[:30], index=False)
-
-                # تنسيق الخلايا
-                worksheet = writer.sheets[report_name[:30]]
-
-                # ضبط عرض الأعمدة تلقائياً
-                for column in worksheet.columns:
-                    max_length = 0
-                    column_letter = column[0].column_letter
-                    for cell in column:
-                        try:
-                            if len(str(cell.value)) > max_length:
-                                max_length = len(str(cell.value))
-                        except:
-                            pass
-                    adjusted_width = min(max_length + 2, 50)
-                    worksheet.column_dimensions[column_letter].width = adjusted_width
-
-            output.seek(0)
-
-            return send_file(
-                output,
-                as_attachment=True,
-                download_name=f"{filename}.xlsx",
-                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            )
-
-        # ============================================
-        # تصدير PDF
-        # ============================================
-        elif export_type == 'pdf':
-            from flask import make_response, render_template_string
-
-            # إنشاء HTML للتقرير
-            html_template = """
-            <!DOCTYPE html>
-            <html dir="rtl" lang="ar">
-            <head>
-                <meta charset="UTF-8">
-                <style>
-                    @page {
-                        size: A4 {{ orientation }};
-                        margin: 1cm;
-                    }
-                    body {
-                        font-family: 'DejaVu Sans', Arial, sans-serif;
-                        font-size: 10px;
-                    }
-                    .header {
-                        text-align: center;
-                        margin-bottom: 20px;
-                        border-bottom: 2px solid #333;
-                        padding-bottom: 10px;
-                    }
-                    .header h1 {
-                        font-size: 18px;
-                        margin: 0 0 5px 0;
-                        color: #333;
-                    }
-                    .header p {
-                        font-size: 12px;
-                        margin: 5px 0;
-                        color: #666;
-                    }
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin: 20px 0;
-                    }
-                    th {
-                        background-color: #2196F3;
-                        color: white;
-                        font-weight: bold;
-                        text-align: center;
-                        padding: 8px;
-                        font-size: 10px;
-                    }
-                    td {
-                        border: 1px solid #ddd;
-                        padding: 6px;
-                        text-align: center;
-                    }
-                    tr:nth-child(even) {
-                        background-color: #f9f9f9;
-                    }
-                    .footer {
-                        margin-top: 30px;
-                        text-align: center;
-                        font-size: 9px;
-                        color: #666;
-                        border-top: 1px solid #ccc;
-                        padding-top: 10px;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <h1>{{ report_name }}</h1>
-                    <p>تاريخ التقرير: {{ today.strftime('%Y-%m-%d %H:%M') }}</p>
-                </div>
-
-                <table>
-                    <thead>
-                        <tr>
-                            {% for header in headers %}
-                            <th>{{ header }}</th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in rows %}
-                        <tr>
-                            {% for key in row.keys() %}
-                            <td>{{ row[key] }}</td>
-                            {% endfor %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-
-                <div class="footer">
-                    <p>تم إنشاء هذا التقرير بواسطة نظام إدارة الموارد البشرية - جميع الحقوق محفوظة © {{ today.year }}</p>
-                </div>
-            </body>
-            </html>
-            """
-
-            # تجهيز البيانات للقالب
-            context = {
-                'report_name': report_name,
-                'headers': headers,
-                'rows': rows,
-                'today': datetime.now(),
-                'orientation': orientation
-            }
-
-            # إنشاء HTML
-            html = render_template_string(html_template, **context)
-
-            # إنشاء PDF
-            pdf = HTML(string=html, base_url=request.base_url).write_pdf()
-
-            response = make_response(pdf)
-            response.headers['Content-Type'] = 'application/pdf'
-            response.headers['Content-Disposition'] = f'attachment; filename={filename}.pdf'
-
-            return response
-
-        else:
-            return jsonify({
-                'success': False,
-                'message': 'نوع التصدير غير مدعوم'
-            }), 400
-
-    except Exception as e:
-        app.logger.error(f"❌ Error in export_report: {str(e)}")
-        import traceback
-        app.logger.error(traceback.format_exc())
-        return jsonify({
-            'success': False,
-            'message': f'حدث خطأ في التصدير: {str(e)}'
-        }), 500
 
 # API Routes for AJAX
 @app.route('/api/companies')
@@ -3418,7 +3470,6 @@ def export_employees_financial(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from flask import make_response
 
             try:
                 # أسماء الأشهر
@@ -3441,13 +3492,20 @@ def export_employees_financial(export_type):
                     current_user=current_user
                 )
 
-                # ✅ الطريقة الجديدة
-                html = HTML(string=html_content)
-                pdf = html.write_pdf()
-                response = make_response(pdf)
-                response.headers['Content-Type'] = 'application/pdf'
-                response.headers['Content-Disposition'] = f'attachment; filename=employees_financial_{year}{month:02d}_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
-                return response
+                # ✅ استخدام الدالة الذكية بدلاً من WeasyPrint مباشرة
+                response = export_pdf(html_content, f'employees_financial_{year}{month:02d}')
+                if response:
+                    return response
+                else:
+                    # إذا فشلت الدالة الذكية، استخدم WeasyPrint مباشرة كخطة احتياطية
+                    from weasyprint import HTML
+                    from flask import make_response
+                    html = HTML(string=html_content)
+                    pdf = html.write_pdf()
+                    response = make_response(pdf)
+                    response.headers['Content-Type'] = 'application/pdf'
+                    response.headers['Content-Disposition'] = f'attachment; filename=employees_financial_{year}{month:02d}_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
+                    return response
 
             except Exception as pdf_error:
                 app.logger.error(f"PDF Error: {str(pdf_error)}")
@@ -3553,7 +3611,6 @@ def employees_list():
                                inactive_employees=0,
                                positions_stats={},
                                user_role=current_user.role)
-
 # ============================================
 # تصدير قائمة الموظفين
 # ============================================
@@ -3630,7 +3687,6 @@ def export_employees_list(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from flask import make_response
 
             try:
                 # تجهيز بيانات الموظفين للقالب
@@ -3667,12 +3723,19 @@ def export_employees_list(export_type):
                     current_user=current_user
                 )
 
-                html = HTML(string=html_content)
-                pdf = html.write_pdf()
-                response = make_response(pdf)
-                response.headers['Content-Type'] = 'application/pdf'
-                response.headers['Content-Disposition'] = f'attachment; filename=employees_list_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
-                return response
+                # ✅ استخدام الدالة الذكية بدلاً من WeasyPrint مباشرة
+                response = export_pdf(html_content, 'employees_list')
+                if response:
+                    return response
+                else:
+                    # إذا فشلت الدالة الذكية، استخدم WeasyPrint مباشرة كخطة احتياطية
+                    from weasyprint import HTML
+                    html = HTML(string=html_content)
+                    pdf = html.write_pdf()
+                    response = make_response(pdf)
+                    response.headers['Content-Type'] = 'application/pdf'
+                    response.headers['Content-Disposition'] = f'attachment; filename=employees_list_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
+                    return response
 
             except Exception as pdf_error:
                 app.logger.error(f"PDF Error: {str(pdf_error)}")
@@ -15323,6 +15386,9 @@ def transfer_execute_smart():
 # ============================================
 # تصدير تقرير الحضور
 # ============================================
+# ============================================
+# تصدير تقرير الحضور
+# ============================================
 @app.route('/reports/attendance-record/export/<export_type>')
 @login_required
 def export_attendance_record(export_type):
@@ -15387,7 +15453,6 @@ def export_attendance_record(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from flask import make_response
 
             try:
                 # تجهيز البيانات للقالب
@@ -15418,12 +15483,13 @@ def export_attendance_record(export_type):
                     current_user=current_user
                 )
 
-                html = HTML(string=html_content)
-                pdf = html.write_pdf()
-                response = make_response(pdf)
-                response.headers['Content-Type'] = 'application/pdf'
-                response.headers['Content-Disposition'] = f'attachment; filename=attendance_report_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
-                return response
+                # ✅ استخدام الدالة الذكية
+                response = export_pdf(html_content, 'attendance_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('report_attendance_record', **request.args))
 
             except Exception as pdf_error:
                 app.logger.error(f"PDF Error: {str(pdf_error)}")
@@ -15435,6 +15501,9 @@ def export_attendance_record(export_type):
         flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
         return redirect(url_for('report_attendance_record', **request.args))
 
+# ============================================
+# تصدير تقرير الموظفين المتأخرين
+# ============================================
 # ============================================
 # تصدير تقرير الموظفين المتأخرين
 # ============================================
@@ -15490,7 +15559,6 @@ def export_late_employees(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from flask import make_response
 
             try:
                 html_content = render_template(
@@ -15499,14 +15567,13 @@ def export_late_employees(export_type):
                     today=today,
                     current_user=current_user
                 )
-                # ✅ الطريقة الجديدة
-                html = HTML(string=html_content)
-                pdf = html.write_pdf()
-
-                response = make_response(pdf)
-                response.headers['Content-Type'] = 'application/pdf'
-                response.headers['Content-Disposition'] = f'attachment; filename=late_employees_report_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
-                return response
+                # ✅ استخدام الدالة الذكية
+                response = export_pdf(html_content, 'late_employees_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('report_late_employees', **request.args))
 
             except Exception as pdf_error:
                 app.logger.error(f"PDF Error: {str(pdf_error)}")
@@ -15518,6 +15585,10 @@ def export_late_employees(export_type):
         flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
         return redirect(url_for('report_late_employees', **request.args))
 
+
+# ============================================
+# تصدير تقرير كفاءة الموظفين
+# ============================================
 # ============================================
 # تصدير تقرير كفاءة الموظفين
 # ============================================
@@ -15591,7 +15662,6 @@ def export_employees_efficiency(export_type):
         # بيانات PDF
         elif export_type == 'pdf':
             from flask import render_template
-            from flask import make_response
 
             try:
                 html_content = render_template(
@@ -15604,16 +15674,13 @@ def export_employees_efficiency(export_type):
                     current_user=current_user
                 )
 
-                # إنشاء PDF
-                # ✅ الطريقة الجديدة
-                html = HTML(string=html_content)
-                pdf = html.write_pdf()
-
-                response = make_response(pdf)
-                response.headers['Content-Type'] = 'application/pdf'
-                response.headers[
-                    'Content-Disposition'] = f'attachment; filename=efficiency_report_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
-                return response
+                # ✅ استخدام الدالة الذكية
+                response = export_pdf(html_content, 'efficiency_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('report_employees_efficiency', **request.args))
 
             except Exception as pdf_error:
                 app.logger.error(f"PDF Error: {str(pdf_error)}")
@@ -15629,6 +15696,9 @@ def export_employees_efficiency(export_type):
         flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
         return redirect(url_for('report_employees_efficiency', **request.args))
 
+# ============================================
+# تصدير تقرير الغياب والتأخير
+# ============================================
 # ============================================
 # تصدير تقرير الغياب والتأخير
 # ============================================
@@ -15693,7 +15763,6 @@ def export_absence_rates(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from flask import make_response
 
             try:
                 html_content = render_template(
@@ -15705,13 +15774,13 @@ def export_absence_rates(export_type):
                     current_user=current_user
                 )
 
-                # الكود الجديد (الصحيح)
-                html = HTML(string=html_content)
-                pdf = html.write_pdf()
-                response = make_response(pdf)
-                response.headers['Content-Type'] = 'application/pdf'
-                response.headers['Content-Disposition'] = f'attachment; filename=absence_report_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
-                return response
+                # ✅ استخدام الدالة الذكية
+                response = export_pdf(html_content, 'absence_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('report_absence_rates', **request.args))
 
             except Exception as pdf_error:
                 app.logger.error(f"PDF Error: {str(pdf_error)}")
@@ -15723,6 +15792,9 @@ def export_absence_rates(export_type):
         flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
         return redirect(url_for('report_absence_rates', **request.args))
 
+# ============================================
+# تصدير تقرير تقييمات الموظفين
+# ============================================
 # ============================================
 # تصدير تقرير تقييمات الموظفين
 # ============================================
@@ -15774,14 +15846,14 @@ def export_evaluations_report(export_type):
                     'ملاحظات': eval.comments or ''
                 })
 
-            headers = ['التاريخ', 'الموظف', 'المقيم', 'المكان', 'النظافة', 'التنظيم', 'المعدات', 'السلامة', 'النتيجة', 'ملاحظات']
+            headers = ['التاريخ', 'الموظف', 'المقيم', 'المكان', 'النظافة', 'التنظيم', 'المعدات', 'السلامة', 'النتيجة',
+                       'ملاحظات']
             report_name = f"تقرير التقييمات {from_date.strftime('%Y-%m-%d')} إلى {to_date.strftime('%Y-%m-%d')}"
             filename_prefix = f"evaluations_report_{from_date.strftime('%Y%m%d')}_to_{to_date.strftime('%Y%m%d')}"
             return export_report(export_type, report_name, headers, rows, filename_prefix, 'landscape')
 
         elif export_type == 'pdf':
             from flask import render_template
-            from flask import make_response
 
             try:
                 # تجهيز البيانات للقالب
@@ -15807,12 +15879,14 @@ def export_evaluations_report(export_type):
                     today=today,
                     current_user=current_user
                 )
-                html = HTML(string=html_content)
-                pdf = html.write_pdf()
-                response = make_response(pdf)
-                response.headers['Content-Type'] = 'application/pdf'
-                response.headers['Content-Disposition'] = f'attachment; filename=evaluations_report_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
-                return response
+
+                # ✅ استخدام الدالة الذكية
+                response = export_pdf(html_content, 'evaluations_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('evaluations_list', **request.args))
 
             except Exception as pdf_error:
                 app.logger.error(f"PDF Error: {str(pdf_error)}")
@@ -15825,6 +15899,9 @@ def export_evaluations_report(export_type):
         return redirect(url_for('evaluations_list', **request.args))
 
 
+# ============================================
+# تصدير تقرير التقييمات اليومية المتقدم
+# ============================================
 # ============================================
 # تصدير تقرير التقييمات اليومية المتقدم
 # ============================================
@@ -15905,7 +15982,6 @@ def export_daily_evaluations_advanced(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from flask import make_response
 
             try:
                 html_content = render_template(
@@ -15917,12 +15993,13 @@ def export_daily_evaluations_advanced(export_type):
                     current_user=current_user
                 )
 
-                html = HTML(string=html_content)
-                pdf = html.write_pdf()
-                response = make_response(pdf)
-                response.headers['Content-Type'] = 'application/pdf'
-                response.headers['Content-Disposition'] = f'attachment; filename=daily_evaluations_{selected_date.strftime("%Y%m%d_%H%M%S")}.pdf'
-                return response
+                # ✅ استخدام الدالة الذكية
+                response = export_pdf(html_content, 'daily_evaluations_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('report_daily_evaluations_advanced', **request.args))
 
             except Exception as pdf_error:
                 app.logger.error(f"PDF Error: {str(pdf_error)}")
@@ -15933,6 +16010,7 @@ def export_daily_evaluations_advanced(export_type):
         app.logger.error(f"Error exporting daily evaluations: {str(e)}")
         flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
         return redirect(url_for('report_daily_evaluations_advanced', **request.args))
+
 
 # ============================================
 # تصدير تقرير أداء الموظفين
@@ -16021,6 +16099,9 @@ def export_employees_performance(export_type):
 # ============================================
 # تصدير تقرير مؤشرات الأداء
 # ============================================
+# ============================================
+# تصدير تقرير مؤشرات الأداء
+# ============================================
 @app.route('/reports/kpis/export/<export_type>')
 @login_required
 def export_kpis_report(export_type):
@@ -16062,7 +16143,6 @@ def export_kpis_report(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from flask import make_response
 
             try:
                 html_content = render_template(
@@ -16075,12 +16155,13 @@ def export_kpis_report(export_type):
                     current_user=current_user
                 )
 
-                html = HTML(string=html_content)
-                pdf = html.write_pdf()
-                response = make_response(pdf)
-                response.headers['Content-Type'] = 'application/pdf'
-                response.headers['Content-Disposition'] = f'attachment; filename=kpis_report_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
-                return response
+                # ✅ استخدام الدالة الذكية
+                response = export_pdf(html_content, 'kpis_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('report_kpis', **request.args))
 
             except Exception as pdf_error:
                 app.logger.error(f"PDF Error: {str(pdf_error)}")
@@ -16092,7 +16173,9 @@ def export_kpis_report(export_type):
         flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
         return redirect(url_for('report_kpis', **request.args))
 
-
+# ============================================
+# تصدير تقرير أفضل الموظفين
+# ============================================
 # ============================================
 # تصدير تقرير أفضل الموظفين
 # ============================================
@@ -16179,7 +16262,6 @@ def export_top_employees(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from flask import make_response
 
             try:
                 html_content = render_template(
@@ -16191,14 +16273,13 @@ def export_top_employees(export_type):
                     current_user=current_user
                 )
 
-                # إنشاء PDF
-                html = HTML(string=html_content)
-                pdf = html.write_pdf()
-                response = make_response(pdf)
-                response.headers['Content-Type'] = 'application/pdf'
-                response.headers[
-                    'Content-Disposition'] = f'attachment; filename=top_employees_report_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
-                return response
+                # ✅ استخدام الدالة الذكية
+                response = export_pdf(html_content, 'top_employees_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('report_top_employees', **request.args))
 
             except Exception as pdf_error:
                 app.logger.error(f"PDF Error: {str(pdf_error)}")
@@ -16213,7 +16294,6 @@ def export_top_employees(export_type):
         traceback.print_exc()
         flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
         return redirect(url_for('report_top_employees', **request.args))
-
 
 # ============================================
 # تصدير تقرير الشركات والمناطق
@@ -16293,7 +16373,6 @@ def export_companies_zones(export_type):
         # تجهيز بيانات PDF
         elif export_type == 'pdf':
             from flask import render_template
-            from flask import make_response
 
             try:
                 html_content = render_template(
@@ -16311,14 +16390,13 @@ def export_companies_zones(export_type):
                     current_user=current_user
                 )
 
-                # إنشاء PDF
-                html = HTML(string=html_content)
-                pdf = html.write_pdf()
-                response = make_response(pdf)
-                response.headers['Content-Type'] = 'application/pdf'
-                response.headers[
-                    'Content-Disposition'] = f'attachment; filename=companies_report_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
-                return response
+                # ✅ استخدام الدالة الذكية
+                response = export_pdf(html_content, 'companies_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('report_companies_zones', **request.args))
 
             except Exception as pdf_error:
                 app.logger.error(f"PDF Error: {str(pdf_error)}")
@@ -16333,7 +16411,6 @@ def export_companies_zones(export_type):
         traceback.print_exc()
         flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
         return redirect(url_for('report_companies_zones', **request.args))
-
 
 # ============================================
 # تصدير تقرير الاتجاهات الشهرية
@@ -16378,7 +16455,6 @@ def export_monthly_trends(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from flask import make_response
 
             try:
                 html_content = render_template(
@@ -16388,12 +16464,13 @@ def export_monthly_trends(export_type):
                     current_user=current_user
                 )
 
-                html = HTML(string=html_content)
-                pdf = html.write_pdf()
-                response = make_response(pdf)
-                response.headers['Content-Type'] = 'application/pdf'
-                response.headers['Content-Disposition'] = f'attachment; filename=monthly_trends_report_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
-                return response
+                # ✅ استخدام الدالة الذكية
+                response = export_pdf(html_content, 'monthly_trends_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('report_monthly_trends', **request.args))
 
             except Exception as pdf_error:
                 app.logger.error(f"PDF Error: {str(pdf_error)}")
@@ -16404,6 +16481,7 @@ def export_monthly_trends(export_type):
         app.logger.error(f"Error exporting monthly trends: {str(e)}")
         flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
         return redirect(url_for('report_monthly_trends', **request.args))
+
 
 # ============================================
 # تصدير تقرير السلف
@@ -16478,8 +16556,6 @@ def export_loans_report(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from flask import make_response
-            import time
 
             try:
                 # استخدام القالب المبسط
@@ -16502,15 +16578,13 @@ def export_loans_report(export_type):
                     selected_status=status
                 )
 
-                # إنشاء PDF مع timeout أطول
-                html = HTML(string=html_content)
-                pdf = html.write_pdf()
-                response = make_response(pdf)
-                response.headers['Content-Type'] = 'application/pdf'
-                response.headers[
-                    'Content-Disposition'] = f'attachment; filename=loans_report_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
-
-                return response
+                # ✅ استخدام الدالة الذكية
+                response = export_pdf(html_content, 'loans_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('loans_list', **request.args))
 
             except Exception as pdf_error:
                 app.logger.error(f"PDF Generation Error: {str(pdf_error)}")
@@ -16521,7 +16595,6 @@ def export_loans_report(export_type):
         app.logger.error(f"Error exporting loans: {str(e)}")
         flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
         return redirect(url_for('loans_list', **request.args))
-
 
 # ============================================
 # تصدير تقرير الجزاءات
@@ -16608,7 +16681,6 @@ def export_penalties_report(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from flask import make_response
 
             try:
                 # استخدام قالب PDF المخصص للجزاءات
@@ -16630,18 +16702,13 @@ def export_penalties_report(export_type):
                 print(f"✅ تم إنشاء HTML بنجاح")
                 print(f"📏 حجم HTML: {len(html_content)} حرف")
 
-                # إنشاء PDF
-                html = HTML(string=html_content)
-                pdf = html.write_pdf()
-                print(f"✅ تم إنشاء PDF بنجاح")
-                print(f"📏 حجم PDF: {len(pdf)} بايت")
-
-                response = make_response(pdf)
-                response.headers['Content-Type'] = 'application/pdf'
-                response.headers[
-                    'Content-Disposition'] = f'attachment; filename=penalties_report_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
-
-                return response
+                # ✅ استخدام الدالة الذكية
+                response = export_pdf(html_content, 'penalties_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('penalties_list', **request.args))
 
             except Exception as pdf_error:
                 print(f"❌ خطأ في إنشاء PDF: {str(pdf_error)}")

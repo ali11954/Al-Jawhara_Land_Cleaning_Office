@@ -1,4 +1,4 @@
-# المكتبات الحالية
+# المكتبات الأساسية
 Flask==2.3.3
 Flask-SQLAlchemy==3.0.5
 Flask-Login==0.6.3
@@ -16,10 +16,11 @@ Babel==2.12.1
 arabic-reshaper==3.0.0
 python-bidi==0.4.2
 
-# ===== المكتبات للتقارير =====
+# ===== مكتبات التقارير =====
 # WeasyPrint للتشغيل المحلي
 weasyprint==60.2
 cffi==1.16.0
+Pillow==10.1.0  # مطلوب لـ WeasyPrint
 
 # PDFKit للإنتاج على Render
 pdfkit==1.0.0
@@ -29,3 +30,6 @@ pandas==2.1.4
 openpyxl==3.1.2
 xlrd==2.0.1
 XlsxWriter==3.1.9
+
+# مكتبات إضافية للدعم
+fonttools==4.47.0  # لدعم الخطوط
