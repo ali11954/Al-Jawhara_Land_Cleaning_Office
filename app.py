@@ -3342,6 +3342,7 @@ def export_employees_financial(export_type):
                     today=today,
                     current_user=current_user
                 )
+
                 # ✅ الطريقة الجديدة
                 html = HTML(string=html_content)
                 pdf = html.write_pdf()
@@ -3569,7 +3570,8 @@ def export_employees_list(export_type):
                     current_user=current_user
                 )
 
-                pdf = HTML(string=html_content).write_pdf()
+                html = HTML(string=html_content)
+                pdf = html.write_pdf()
                 response = make_response(pdf)
                 response.headers['Content-Type'] = 'application/pdf'
                 response.headers['Content-Disposition'] = f'attachment; filename=employees_list_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
@@ -15320,7 +15322,8 @@ def export_attendance_record(export_type):
                     current_user=current_user
                 )
 
-                pdf = HTML(string=html_content).write_pdf()
+                html = HTML(string=html_content)
+                pdf = html.write_pdf()
                 response = make_response(pdf)
                 response.headers['Content-Type'] = 'application/pdf'
                 response.headers['Content-Disposition'] = f'attachment; filename=attendance_report_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
@@ -15609,7 +15612,9 @@ def export_absence_rates(export_type):
                     current_user=current_user
                 )
 
-                pdf = HTML(string=html_content).write_pdf()
+                # الكود الجديد (الصحيح)
+                html = HTML(string=html_content)
+                pdf = html.write_pdf()
                 response = make_response(pdf)
                 response.headers['Content-Type'] = 'application/pdf'
                 response.headers['Content-Disposition'] = f'attachment; filename=absence_report_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
@@ -15710,8 +15715,8 @@ def export_evaluations_report(export_type):
                     today=today,
                     current_user=current_user
                 )
-
-                pdf = HTML(string=html_content).write_pdf()
+                html = HTML(string=html_content)
+                pdf = html.write_pdf()
                 response = make_response(pdf)
                 response.headers['Content-Type'] = 'application/pdf'
                 response.headers['Content-Disposition'] = f'attachment; filename=evaluations_report_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
@@ -15821,7 +15826,8 @@ def export_daily_evaluations_advanced(export_type):
                     current_user=current_user
                 )
 
-                pdf = HTML(string=html_content).write_pdf()
+                html = HTML(string=html_content)
+                pdf = html.write_pdf()
                 response = make_response(pdf)
                 response.headers['Content-Type'] = 'application/pdf'
                 response.headers['Content-Disposition'] = f'attachment; filename=daily_evaluations_{selected_date.strftime("%Y%m%d_%H%M%S")}.pdf'
@@ -15905,7 +15911,8 @@ def export_employees_performance(export_type):
                     current_user=current_user
                 )
 
-                pdf = HTML(string=html_content).write_pdf()
+                html = HTML(string=html_content)
+                pdf = html.write_pdf()
                 response = make_response(pdf)
                 response.headers['Content-Type'] = 'application/pdf'
                 response.headers['Content-Disposition'] = f'attachment; filename=performance_report_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
@@ -15980,7 +15987,8 @@ def export_kpis_report(export_type):
                     current_user=current_user
                 )
 
-                pdf = HTML(string=html_content).write_pdf()
+                html = HTML(string=html_content)
+                pdf = html.write_pdf()
                 response = make_response(pdf)
                 response.headers['Content-Type'] = 'application/pdf'
                 response.headers['Content-Disposition'] = f'attachment; filename=kpis_report_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
@@ -16097,8 +16105,8 @@ def export_top_employees(export_type):
                 )
 
                 # إنشاء PDF
-                pdf = HTML(string=html_content).write_pdf()
-
+                html = HTML(string=html_content)
+                pdf = html.write_pdf()
                 response = make_response(pdf)
                 response.headers['Content-Type'] = 'application/pdf'
                 response.headers[
@@ -16218,8 +16226,8 @@ def export_companies_zones(export_type):
                 )
 
                 # إنشاء PDF
-                pdf = HTML(string=html_content).write_pdf()
-
+                html = HTML(string=html_content)
+                pdf = html.write_pdf()
                 response = make_response(pdf)
                 response.headers['Content-Type'] = 'application/pdf'
                 response.headers[
@@ -16295,7 +16303,8 @@ def export_monthly_trends(export_type):
                     current_user=current_user
                 )
 
-                pdf = HTML(string=html_content).write_pdf()
+                html = HTML(string=html_content)
+                pdf = html.write_pdf()
                 response = make_response(pdf)
                 response.headers['Content-Type'] = 'application/pdf'
                 response.headers['Content-Disposition'] = f'attachment; filename=monthly_trends_report_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
@@ -16410,8 +16419,8 @@ def export_loans_report(export_type):
                 )
 
                 # إنشاء PDF مع timeout أطول
-                pdf = HTML(string=html_content).write_pdf()
-
+                html = HTML(string=html_content)
+                pdf = html.write_pdf()
                 response = make_response(pdf)
                 response.headers['Content-Type'] = 'application/pdf'
                 response.headers[
@@ -16539,8 +16548,8 @@ def export_penalties_report(export_type):
                 print(f"📏 حجم HTML: {len(html_content)} حرف")
 
                 # إنشاء PDF
-                pdf = HTML(string=html_content).write_pdf()
-
+                html = HTML(string=html_content)
+                pdf = html.write_pdf()
                 print(f"✅ تم إنشاء PDF بنجاح")
                 print(f"📏 حجم PDF: {len(pdf)} بايت")
 
