@@ -290,6 +290,32 @@ def register_template_filters(app):
         except Exception:
             return str(value)
 
+
+# دالة مساعدة لإنشاء PDF (موحدة لجميع التقارير)
+def generate_pdf_from_html(html_content, filename_prefix):
+    """
+    دالة موحدة لإنشاء PDF من محتوى HTML
+    """
+    from weasyprint import HTML
+    from flask import make_response
+    from datetime import datetime
+
+    try:
+        # الطريقة الصحيحة لـ WeasyPrint 60.2
+        html = HTML(string=html_content)
+        pdf = html.write_pdf()
+
+        today = datetime.now()
+        response = make_response(pdf)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers[
+            'Content-Disposition'] = f'attachment; filename={filename_prefix}_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
+        return response
+
+    except Exception as e:
+        app.logger.error(f"PDF Generation Error: {str(e)}")
+        return None
+
 @app.route('/create-owner-employee')
 @login_required
 def create_owner_employee():
@@ -3316,8 +3342,9 @@ def export_employees_financial(export_type):
                     today=today,
                     current_user=current_user
                 )
-
-                pdf = HTML(string=html_content).write_pdf()
+                # ✅ الطريقة الجديدة
+                html = HTML(string=html_content)
+                pdf = html.write_pdf()
                 response = make_response(pdf)
                 response.headers['Content-Type'] = 'application/pdf'
                 response.headers['Content-Disposition'] = f'attachment; filename=employees_financial_{year}{month:02d}_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
@@ -15374,8 +15401,10 @@ def export_late_employees(export_type):
                     today=today,
                     current_user=current_user
                 )
+                # ✅ الطريقة الجديدة
+                html = HTML(string=html_content)
+                pdf = html.write_pdf()
 
-                pdf = HTML(string=html_content).write_pdf()
                 response = make_response(pdf)
                 response.headers['Content-Type'] = 'application/pdf'
                 response.headers['Content-Disposition'] = f'attachment; filename=late_employees_report_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
@@ -15479,7 +15508,9 @@ def export_employees_efficiency(export_type):
                 )
 
                 # إنشاء PDF
-                pdf = HTML(string=html_content).write_pdf()
+                # ✅ الطريقة الجديدة
+                html = HTML(string=html_content)
+                pdf = html.write_pdf()
 
                 response = make_response(pdf)
                 response.headers['Content-Type'] = 'application/pdf'
