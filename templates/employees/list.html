@@ -13,6 +13,65 @@
         --employee-secondary: #858796;
     }
 
+    /* أنماط أزرار التصدير */
+    .btn-modern {
+        border-radius: 25px;
+        padding: 0.5rem 1.2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: all 0.3s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 3px;
+        font-weight: 500;
+        font-size: 0.85rem;
+    }
+
+    .btn-modern:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+    }
+
+    .btn-group {
+        direction: ltr;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    a.btn-modern {
+        color: white;
+    }
+
+    a.btn-modern:hover {
+        color: white;
+        text-decoration: none;
+    }
+
+    a.btn-outline-primary.btn-modern {
+        color: #4e73df;
+    }
+
+    a.btn-outline-primary.btn-modern:hover {
+        color: white;
+    }
+
+    a.btn-outline-info.btn-modern {
+        color: #36b9cc;
+    }
+
+    a.btn-outline-info.btn-modern:hover {
+        color: white;
+    }
+
+    a.btn-outline-success.btn-modern {
+        color: #1cc88a;
+    }
+
+    a.btn-outline-success.btn-modern:hover {
+        color: white;
+    }
+
     /* ========== بطاقات الإحصائيات ========== */
     .stats-grid {
         display: grid;
@@ -351,6 +410,10 @@
             height: 32px;
             font-size: 0.9rem;
         }
+        .btn-modern {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.75rem;
+        }
     }
 
     /* ========== تنسيق شريط التمرير ========== */
@@ -371,7 +434,7 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <!-- شريط العنوان -->
+    <!-- شريط العنوان مع أزرار التصدير -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="text-gradient-primary mb-1">
@@ -395,21 +458,37 @@
             </p>
         </div>
         <div class="btn-group">
+            <!-- أزرار التصدير -->
+            <a href="{{ url_for('export_employees_list', export_type='pdf', **request.args) }}"
+               class="btn btn-danger btn-modern"
+               title="تصدير PDF">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </a>
+            <a href="{{ url_for('export_employees_list', export_type='excel', **request.args) }}"
+               class="btn btn-success btn-modern"
+               title="تصدير Excel">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </a>
+            <button class="btn btn-primary btn-modern" onclick="window.print()" title="طباعة">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
+
+            <!-- الأزرار الأصلية -->
             {% if current_user.role == 'owner' %}
-            <a href="/employees/add" class="btn btn-success">
+            <a href="/employees/add" class="btn btn-success btn-modern">
                 <i class="fas fa-plus me-1"></i>إضافة موظف
             </a>
-            <button class="btn btn-info" onclick="showAssignSupervisorModal()">
+            <button class="btn btn-info btn-modern" onclick="showAssignSupervisorModal()">
                 <i class="fas fa-link me-1"></i>ربط المشرفين
             </button>
             {% endif %}
-            <a href="{{ url_for('employees_list') }}" class="btn btn-outline-primary active">
+            <a href="{{ url_for('employees_list') }}" class="btn btn-outline-primary btn-modern active">
                 <i class="fas fa-list me-1"></i>قائمة الموظفين
             </a>
-            <a href="{{ url_for('employees_hierarchy') }}" class="btn btn-outline-info">
+            <a href="{{ url_for('employees_hierarchy') }}" class="btn btn-outline-info btn-modern">
                 <i class="fas fa-sitemap me-1"></i>الهيكل التنظيمي
             </a>
-            <a href="{{ url_for('employees_financial') }}" class="btn btn-outline-success">
+            <a href="{{ url_for('employees_financial') }}" class="btn btn-outline-success btn-modern">
                 <i class="fas fa-chart-line me-1"></i>البيانات المالية
             </a>
         </div>
@@ -1114,6 +1193,11 @@ function exportToExcel() {
         console.error('خطأ في التصدير:', error);
         showNotification('error', 'حدث خطأ أثناء تصدير الملف');
     });
+}
+
+// دالة تصدير PDF (محجوزة للاستخدام المستقبلي)
+function exportToPDF() {
+    window.location.href = "{{ url_for('export_employees_list', export_type='pdf', **request.args) }}";
 }
 
 // =============================================

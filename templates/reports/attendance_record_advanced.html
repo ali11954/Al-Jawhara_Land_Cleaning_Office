@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <!-- شريط العنوان -->
+    <!-- شريط العنوان مع أزرار التصدير -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="text-gradient-info mb-1">
@@ -13,17 +13,88 @@
                 سجل الحضور والانصراف المتقدم
             </h2>
             <p class="text-muted mb-0">تحليل لحظي للحضور مع مؤشرات الأداء والتوقعات</p>
+            {% if from_date and to_date %}
+            <p class="text-info mb-0">
+                <i class="fas fa-calendar-alt me-1"></i>
+                الفترة: {{ from_date.strftime('%Y-%m-%d') }} إلى {{ to_date.strftime('%Y-%m-%d') }}
+            </p>
+            {% endif %}
         </div>
         <div class="btn-group">
-            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">
-                <i class="fas fa-file-pdf me-1"></i>PDF
-            </button>
-            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">
+            <!-- زر تصدير Excel -->
+            <a href="{{ url_for('export_attendance_record', export_type='excel',
+                from_date=from_date.strftime('%Y-%m-%d') if from_date else '',
+                to_date=to_date.strftime('%Y-%m-%d') if to_date else '',
+                employee_id=selected_employee_id,
+                company_id=selected_company_id) }}"
+               class="btn btn-modern btn-success">
                 <i class="fas fa-file-excel me-1"></i>Excel
-            </button>
+            </a>
+
+            <!-- زر تصدير PDF -->
+            <a href="{{ url_for('export_attendance_record', export_type='pdf',
+                from_date=from_date.strftime('%Y-%m-%d') if from_date else '',
+                to_date=to_date.strftime('%Y-%m-%d') if to_date else '',
+                employee_id=selected_employee_id,
+                company_id=selected_company_id) }}"
+               class="btn btn-modern btn-danger">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </a>
+
+            <!-- زر طباعة -->
             <button class="btn btn-modern btn-info" onclick="window.print()">
                 <i class="fas fa-print me-1"></i>طباعة
             </button>
+        </div>
+    </div>
+
+    <!-- إضافة فلترة التاريخ -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-white py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter me-2"></i>فلترة الفترة
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">من تاريخ</label>
+                    <input type="date" name="from_date" class="form-control"
+                           value="{{ from_date.strftime('%Y-%m-%d') if from_date else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">إلى تاريخ</label>
+                    <input type="date" name="to_date" class="form-control"
+                           value="{{ to_date.strftime('%Y-%m-%d') if to_date else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الشركة</label>
+                    <select name="company_id" class="form-select">
+                        <option value="">جميع الشركات</option>
+                        {% for company in companies %}
+                        <option value="{{ company.id }}" {% if company.id == selected_company_id %}selected{% endif %}>
+                            {{ company.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الموظف</label>
+                    <select name="employee_id" class="form-select">
+                        <option value="">جميع الموظفين</option>
+                        {% for emp in employees %}
+                        <option value="{{ emp.id }}" {% if emp.id == selected_employee_id %}selected{% endif %}>
+                            {{ emp.full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i> بحث
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -110,7 +181,7 @@
         </div>
     </div>
 
-    <!-- فلترة متقدمة -->
+    <!-- فلترة متقدمة (محفوظة للتوافق مع الكود القديم) -->
     <div class="card shadow mb-4">
         <div class="card-header bg-white py-3">
             <h6 class="m-0 font-weight-bold text-primary">
@@ -493,44 +564,36 @@ function changeChartPeriod(period) {
     console.log(`تغيير الفترة إلى: ${period}`);
 }
 
+// دالة تصدير التقرير المحسنة
 function exportReport(type) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromDate = urlParams.get('from_date') || '{{ from_date.strftime("%Y-%m-%d") if from_date else "" }}';
+    const toDate = urlParams.get('to_date') || '{{ to_date.strftime("%Y-%m-%d") if to_date else "" }}';
+    const companyId = urlParams.get('company_id') || '{{ selected_company_id or "" }}';
+    const employeeId = urlParams.get('employee_id') || '{{ selected_employee_id or "" }}';
+
+    let url = "{{ url_for('export_attendance_record', export_type='') }}";
+
     if (type === 'excel') {
-        // تصدير إلى Excel
-        const table = document.getElementById('attendanceTable');
-        const rows = [];
-
-        // تجميع البيانات من الجدول
-        const headerRow = [];
-        document.querySelectorAll('#attendanceTable thead th').forEach(th => {
-            headerRow.push(th.textContent.trim());
-        });
-        rows.push(headerRow);
-
-        document.querySelectorAll('#attendanceTable tbody tr').forEach(tr => {
-            const row = [];
-            tr.querySelectorAll('td').forEach((td, index) => {
-                // تخطي أعمدة الإجراءات
-                if (index < 10) {
-                    row.push(td.textContent.trim());
-                }
-            });
-            rows.push(row);
-        });
-
-        // إنشاء ملف CSV
-        let csvContent = rows.map(row => row.join(',')).join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', 'تقرير_الحضور.csv');
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        url += 'excel?';
     } else if (type === 'pdf') {
-        alert('جاري إنشاء ملف PDF... سيتم تفعيل هذه الميزة قريباً');
+        url += 'pdf?';
     }
+
+    if (fromDate && toDate) {
+        url += `from_date=${fromDate}&to_date=${toDate}&`;
+    }
+    if (companyId) {
+        url += `company_id=${companyId}&`;
+    }
+    if (employeeId) {
+        url += `employee_id=${employeeId}&`;
+    }
+
+    // إزالة آخر &
+    url = url.slice(0, -1);
+
+    window.location.href = url;
 }
 </script>
 

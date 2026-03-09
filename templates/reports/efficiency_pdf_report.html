@@ -1,10 +1,368 @@
 <!DOCTYPE html>
-<html lang="en">
+<html dir="rtl" lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <title>تقرير كفاءة الموظفين</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 2cm 1.5cm 1.8cm 1.5cm;
+
+            /* الهيدر النحيف في كل الصفحات */
+            @top-center {
+                content: "أرض الجوهرة للخدمات - تقرير كفاءة الموظفين";
+                color: #36b9cc;
+                font-size: 9pt;
+                font-family: Arial, sans-serif;
+                font-weight: normal;
+                border-bottom: 1px solid #36b9cc50;
+                padding-bottom: 3px;
+                width: 100%;
+            }
+
+            /* التذييل النحيف في كل الصفحات */
+            @bottom-center {
+                content: "الحديدة - اليمن | هاتف: 776605949 | بريد: info@jewel-land.com | الصفحة " counter(page) " من " counter(pages);
+                color: #666;
+                font-size: 8pt;
+                font-family: Arial, sans-serif;
+                border-top: 1px solid #36b9cc50;
+                padding-top: 3px;
+                width: 100%;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        /* رأس التقرير الرئيسي (يظهر فقط في الصفحة الأولى) */
+        .main-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #36b9cc;
+            border-radius: 10px;
+            background-color: #f8f9fc;
+        }
+
+        .logo {
+            width: 70px;
+            height: 70px;
+            background-color: #36b9cc;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            color: white;
+            font-size: 28px;
+        }
+
+        .app-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #36b9cc;
+            margin: 3px 0;
+        }
+
+        .report-title {
+            font-size: 16px;
+            color: #666;
+            margin: 3px 0;
+        }
+
+        /* بطاقات الإحصائيات */
+        .stats-container {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            flex: 1;
+            color: white;
+            padding: 15px 10px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .stat-card:nth-child(1) { background: linear-gradient(135deg, #1cc88a, #13855c); }
+        .stat-card:nth-child(2) { background: linear-gradient(135deg, #36b9cc, #258391); }
+        .stat-card:nth-child(3) { background: linear-gradient(135deg, #e74a3b, #be2617); }
+
+        .stat-card h3 {
+            margin: 0 0 5px 0;
+            font-size: 13px;
+            font-weight: normal;
+            opacity: 0.9;
+        }
+
+        .stat-card .value {
+            font-size: 22px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        .stat-card .small {
+            font-size: 10px;
+            opacity: 0.8;
+        }
+
+        /* معلومات التقرير */
+        .meta {
+            text-align: center;
+            margin: 15px 0;
+            padding: 8px;
+            background-color: #f8f9fc;
+            border-radius: 5px;
+            font-size: 11px;
+            border: 1px solid #e3e6f0;
+        }
+
+        /* الجدول */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 11px;
+        }
+
+        th {
+            background-color: #36b9cc;
+            color: white;
+            padding: 8px 5px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        td {
+            padding: 6px 4px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fc;
+        }
+
+        .high-efficiency {
+            color: #1cc88a;
+            font-weight: bold;
+        }
+
+        .medium-efficiency {
+            color: #36b9cc;
+            font-weight: bold;
+        }
+
+        .low-efficiency {
+            color: #e74a3b;
+            font-weight: bold;
+        }
+
+        /* تذييل التقرير الرئيسي (يظهر فقط في الصفحة الأخيرة) */
+        .main-footer {
+            margin-top: 30px;
+            padding: 20px;
+            border-top: 3px solid #36b9cc;
+            background-color: #f8f9fc;
+            border-radius: 8px;
+            page-break-inside: avoid;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .company-info {
+            flex: 1;
+        }
+
+        .designer-info {
+            flex: 1;
+            border-right: 3px solid #36b9cc;
+            padding-right: 15px;
+            margin-right: 15px;
+        }
+
+        .designer-badge {
+            background-color: #36b9cc;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 10px;
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+
+        .footer-logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #36b9cc, #258391);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .copyright {
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 8px;
+            border-top: 1px solid #ddd;
+            font-size: 9px;
+            color: #666;
+        }
+
+        /* تجنب تكرار العناصر في الصفحات */
+        @media print {
+            .main-header {
+                break-inside: avoid;
+            }
+
+            .main-footer {
+                break-inside: avoid;
+            }
+
+            table {
+                break-inside: auto;
+            }
+
+            tr {
+                break-inside: avoid;
+            }
+        }
+    </style>
 </head>
 <body>
-$END$
+    <!-- رأس التقرير الرئيسي (يظهر فقط في الصفحة الأولى) -->
+    <div class="main-header">
+        <div class="logo">📊</div>
+        <div class="app-name">أرض الجوهرة للخدمات</div>
+        <div class="report-title">تقرير كفاءة الموظفين</div>
+    </div>
+
+    <!-- معلومات التقرير -->
+    <div class="meta">
+        <strong>تاريخ التقرير:</strong> {{ today.strftime('%Y-%m-%d') }} |
+        <strong>وقت الطباعة:</strong> {{ today.strftime('%H:%M:%S') }} |
+        <strong>إجمالي الموظفين:</strong> {{ employees|length }}
+    </div>
+
+    <!-- بطاقات الإحصائيات -->
+    <div class="stats-container">
+        <div class="stat-card">
+            <h3>كفاءة عالية</h3>
+            <div class="value">{{ high_efficiency }}</div>
+            <div class="small">أكثر من 10 تقييمات</div>
+        </div>
+        <div class="stat-card">
+            <h3>كفاءة متوسطة</h3>
+            <div class="value">{{ medium_efficiency }}</div>
+            <div class="small">5 - 10 تقييمات</div>
+        </div>
+        <div class="stat-card">
+            <h3>كفاءة منخفضة</h3>
+            <div class="value">{{ low_efficiency }}</div>
+            <div class="small">أقل من 5 تقييمات</div>
+        </div>
+    </div>
+
+    <!-- جدول كفاءة الموظفين -->
+    <table>
+        <thead>
+            <tr>
+                <th>الموظف</th>
+                <th>الوظيفة</th>
+                <th>الشركة</th>
+                <th>عدد التقييمات</th>
+                <th>مستوى الكفاءة</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for emp in employees %}
+            <tr>
+                <td>{{ emp.full_name }}</td>
+                <td>{{ emp.position_ar }}</td>
+                <td>{{ emp.company_name }}</td>
+                <td>{{ emp.evaluations_count }}</td>
+                <td class="
+                    {% if emp.efficiency_level == 'عالية' %}high-efficiency
+                    {% elif emp.efficiency_level == 'متوسطة' %}medium-efficiency
+                    {% elif emp.efficiency_level == 'منخفضة' %}low-efficiency
+                    {% endif %}">
+                    {{ emp.efficiency_level }}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="text-align: center; padding: 30px; color: #666;">
+                    <strong>لا توجد بيانات كفاءة</strong>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- ملخص الكفاءات -->
+    <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fc; border-radius: 5px; border: 1px solid #36b9cc30;">
+        <h4 style="margin-top: 0; color: #36b9cc; text-align: center;">📊 ملخص مستويات الكفاءة</h4>
+        <div style="display: flex; justify-content: space-around; text-align: center;">
+            <div>
+                <div style="font-size: 14px; color: #1cc88a; font-weight: bold;">كفاءة عالية</div>
+                <div style="font-size: 24px; font-weight: bold;">{{ high_efficiency }}</div>
+                <div style="font-size: 11px; color: #666;">موظف</div>
+            </div>
+            <div>
+                <div style="font-size: 14px; color: #36b9cc; font-weight: bold;">كفاءة متوسطة</div>
+                <div style="font-size: 24px; font-weight: bold;">{{ medium_efficiency }}</div>
+                <div style="font-size: 11px; color: #666;">موظف</div>
+            </div>
+            <div>
+                <div style="font-size: 14px; color: #e74a3b; font-weight: bold;">كفاءة منخفضة</div>
+                <div style="font-size: 24px; font-weight: bold;">{{ low_efficiency }}</div>
+                <div style="font-size: 11px; color: #666;">موظف</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تذييل التقرير الرئيسي (يظهر فقط في الصفحة الأخيرة) -->
+    <div class="main-footer">
+        <div class="footer-content">
+            <div class="company-info">
+                <div class="footer-logo">💎</div>
+                <strong style="color: #36b9cc; font-size: 14px;">أرض الجوهرة للخدمات</strong><br>
+                <span style="font-size: 10px; color: #666;">
+                    📍 الحديدة - مدينة العمال<br>
+                    📞 776605949 | ✉️ info@jewel-land.com
+                </span>
+            </div>
+
+            <div class="designer-info">
+                <div class="designer-badge">👨‍💻 معلومات المستخدم</div>
+                <div style="font-size: 10px;">
+                    <div>المستخدم: {{ current_user.full_name or current_user.username }}</div>
+                    <div>تاريخ التقرير: {{ today.strftime('%Y-%m-%d') }}</div>
+                    <div>وقت الطباعة: {{ today.strftime('%H:%M:%S') }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="copyright">
+            © {{ today.year }} جميع الحقوق محفوظة - تصميم وبرمجة: الغيث لتصميم البرامج
+        </div>
+    </div>
 </body>
 </html>

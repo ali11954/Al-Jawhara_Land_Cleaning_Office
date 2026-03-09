@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <!-- شريط العنوان -->
+    <!-- شريط العنوان مع أزرار التصدير -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="text-gradient-warning mb-1">
@@ -13,14 +13,38 @@
                 أفضل الموظفين أداءً
             </h2>
             <p class="text-muted mb-0">تحليل متقدم للأداء حسب الفترة الزمنية والشركة</p>
+            {% if from_date and to_date %}
+            <p class="text-info mb-0">
+                <i class="fas fa-calendar-alt me-1"></i>
+                الفترة: {{ from_date.strftime('%Y-%m-%d') }} إلى {{ to_date.strftime('%Y-%m-%d') }}
+                ({{ days_in_period }} يوم)
+            </p>
+            {% endif %}
         </div>
         <div class="btn-group">
-            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">
-                <i class="fas fa-file-pdf me-1"></i>PDF
-            </button>
-            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">
+            <!-- زر تصدير Excel -->
+            <a href="{{ url_for('export_top_employees', export_type='excel',
+                from_date=from_date_str if from_date_str else '',
+                to_date=to_date_str if to_date_str else '',
+                company_id=selected_company,
+                year=selected_year,
+                month=selected_month) }}"
+               class="btn btn-modern btn-success">
                 <i class="fas fa-file-excel me-1"></i>Excel
-            </button>
+            </a>
+
+            <!-- زر تصدير PDF -->
+            <a href="{{ url_for('export_top_employees', export_type='pdf',
+                from_date=from_date_str if from_date_str else '',
+                to_date=to_date_str if to_date_str else '',
+                company_id=selected_company,
+                year=selected_year,
+                month=selected_month) }}"
+               class="btn btn-modern btn-danger">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </a>
+
+            <!-- زر طباعة -->
             <button class="btn btn-modern btn-info" onclick="window.print()">
                 <i class="fas fa-print me-1"></i>طباعة
             </button>
@@ -185,7 +209,7 @@
 
                                     {% if company_top.employee %}
                                     <div class="d-flex align-items-center">
-                                        <img src="{{ company_top.employee.avatar or 'https://ui-avatars.com/api/?name=' + company_top.employee.full_name + '&size=50&background=4e73df&color=fff' }}"
+                                        <img src="{{ company_top.employee.avatar or 'https://ui-avatars.com/api/?name=' + company_top.employee.full_name|urlencode + '&size=50&background=4e73df&color=fff' }}"
                                              class="rounded-circle me-3" width="50" height="50">
                                         <div class="flex-grow-1">
                                             <h6 class="mb-1">{{ company_top.employee.full_name }}</h6>
@@ -224,7 +248,7 @@
                     <span class="position-absolute top-0 start-50 translate-middle badge bg-secondary rounded-pill">
                         <i class="fas fa-medal me-1"></i>المركز الثاني
                     </span>
-                    <img src="{{ top_employees[1].avatar or 'https://ui-avatars.com/api/?name=' + top_employees[1].full_name + '&size=120&background=6c757d&color=fff' }}"
+                    <img src="{{ top_employees[1].avatar or 'https://ui-avatars.com/api/?name=' + top_employees[1].full_name|urlencode + '&size=120&background=6c757d&color=fff' }}"
                          class="rounded-circle border border-secondary border-4 shadow" width="100" height="100">
                 </div>
                 <h4>{{ top_employees[1].full_name }}</h4>
@@ -254,7 +278,7 @@
                     <span class="position-absolute top-0 start-50 translate-middle">
                         <i class="fas fa-crown fa-3x text-warning"></i>
                     </span>
-                    <img src="{{ top_employees[0].avatar or 'https://ui-avatars.com/api/?name=' + top_employees[0].full_name + '&size=150&background=ffc107&color=000' }}"
+                    <img src="{{ top_employees[0].avatar or 'https://ui-avatars.com/api/?name=' + top_employees[0].full_name|urlencode + '&size=150&background=ffc107&color=000' }}"
                          class="rounded-circle border border-warning border-4 shadow-lg" width="140" height="140">
                 </div>
                 <h2 class="text-warning mb-1">{{ top_employees[0].full_name }}</h2>
@@ -280,7 +304,7 @@
                     <span class="position-absolute top-0 start-50 translate-middle badge bg-bronze rounded-pill">
                         <i class="fas fa-medal me-1"></i>المركز الثالث
                     </span>
-                    <img src="{{ top_employees[2].avatar or 'https://ui-avatars.com/api/?name=' + top_employees[2].full_name + '&size=120&background=cd7f32&color=fff' }}"
+                    <img src="{{ top_employees[2].avatar or 'https://ui-avatars.com/api/?name=' + top_employees[2].full_name|urlencode + '&size=120&background=cd7f32&color=fff' }}"
                          class="rounded-circle border border-bronze border-4 shadow" width="100" height="100">
                 </div>
                 <h4>{{ top_employees[2].full_name }}</h4>
@@ -307,11 +331,10 @@
                 <i class="fas fa-list-ol me-2"></i>
                 ترتيب الموظفين حسب الأداء
                 {% if selected_company %}
-
                 <span class="badge bg-primary ms-2">
-    {% set selected_company_obj = companies|selectattr('id', 'equalto', selected_company)|first %}
-    {{ selected_company_obj.name if selected_company_obj else '' }}
-</span>
+                    {% set selected_company_obj = companies|selectattr('id', 'equalto', selected_company)|first %}
+                    {{ selected_company_obj.name if selected_company_obj else '' }}
+                </span>
                 {% endif %}
             </h6>
         </div>
@@ -346,7 +369,7 @@
                             </td>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <img src="{{ emp.avatar or 'https://ui-avatars.com/api/?name=' + emp.full_name + '&size=40&background=4e73df&color=fff' }}"
+                                    <img src="{{ emp.avatar or 'https://ui-avatars.com/api/?name=' + emp.full_name|urlencode + '&size=40&background=4e73df&color=fff' }}"
                                          class="rounded-circle me-2" width="40" height="40">
                                     {{ emp.full_name }}
                                 </div>
@@ -465,12 +488,38 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// دالة تصدير التقرير المحسنة
 function exportReport(type) {
-    if (type === 'pdf') {
-        alert('سيتم تفعيل تصدير PDF قريباً');
-    } else if (type === 'excel') {
-        alert('سيتم تفعيل تصدير Excel قريباً');
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromDate = urlParams.get('from_date') || '{{ from_date_str if from_date_str else "" }}';
+    const toDate = urlParams.get('to_date') || '{{ to_date_str if to_date_str else "" }}';
+    const companyId = urlParams.get('company_id') || '{{ selected_company or "" }}';
+    const year = urlParams.get('year') || '{{ selected_year or "" }}';
+    const month = urlParams.get('month') || '{{ selected_month or "" }}';
+
+    let url = "{{ url_for('export_top_employees', export_type='') }}";
+
+    if (type === 'excel') {
+        url += 'excel?';
+    } else if (type === 'pdf') {
+        url += 'pdf?';
     }
+
+    if (fromDate && toDate) {
+        url += `from_date=${fromDate}&to_date=${toDate}&`;
+    } else {
+        if (year) url += `year=${year}&`;
+        if (month) url += `month=${month}&`;
+    }
+
+    if (companyId) {
+        url += `company_id=${companyId}&`;
+    }
+
+    // إزالة آخر &
+    url = url.slice(0, -1);
+
+    window.location.href = url;
 }
 </script>
 

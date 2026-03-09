@@ -1,6 +1,9 @@
+
 {% extends "base.html" %}
 
 {% block title %}إدارة الجزاءات{% endblock %}
+
+{% set query_params = request.args.copy() %}
 
 {% block extra_css %}
 <style>
@@ -351,6 +354,49 @@
         box-shadow: 0 0.5rem 1rem rgba(108, 117, 125, 0.3);
     }
 
+    /* Export Buttons - جديدة */
+    .btn-export-excel {
+        background: linear-gradient(135deg, #1cc88a, #0e8d5e);
+        color: white;
+        border: none;
+        border-radius: 25px;
+        padding: 0.5rem 1.2rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        box-shadow: 0 3px 10px rgba(28, 200, 138, 0.3);
+    }
+
+    .btn-export-excel:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(28, 200, 138, 0.4);
+        color: white;
+    }
+
+    .btn-export-pdf {
+        background: linear-gradient(135deg, #e74a3b, #c92112);
+        color: white;
+        border: none;
+        border-radius: 25px;
+        padding: 0.5rem 1.2rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        box-shadow: 0 3px 10px rgba(231, 74, 59, 0.3);
+    }
+
+    .btn-export-pdf:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(231, 74, 59, 0.4);
+        color: white;
+    }
+
+    .export-badge {
+        background: rgba(255,255,255,0.2);
+        padding: 0.2rem 0.8rem;
+        border-radius: 50px;
+        font-size: 0.85rem;
+        margin-right: 0.5rem;
+    }
+
     /* Progress Bar */
     .progress {
         height: 6px;
@@ -445,31 +491,100 @@
             width: 100%;
         }
     }
+    /* ===== إصلاح ظهور أزرار التصدير ===== */
+.btn-export-excel,
+.btn-export-pdf {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-width: 80px !important;
+    height: 35px !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    border: none !important;
+    position: relative !important;
+    z-index: 1000 !important;
+}
+
+.btn-export-excel {
+    background: linear-gradient(135deg, #1cc88a, #0e8d5e) !important;
+    color: white !important;
+}
+
+.btn-export-pdf {
+    background: linear-gradient(135deg, #e74a3b, #c92112) !important;
+    color: white !important;
+}
+
+.btn-export-excel:hover,
+.btn-export-pdf:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
+    color: white !important;
+}
+
+/* إصلاح مجموعة الأزرار */
+.btn-group {
+    display: flex !important;
+    direction: ltr !important;
+}
+
+.btn-group a {
+    margin: 0 !important;
+}
+
+/* إصلاح الرأس */
+.penalty-header .btn-group {
+    background: transparent !important;
+}
+
+/* إصلاح الجدول */
+.table-header .btn-group {
+    background: transparent !important;
+}
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <!-- رأس الصفحة المحسن -->
-    <div class="penalty-header animate-slide-in">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h2 class="text-white mb-2">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    إدارة الجزاءات
-                </h2>
-                <p class="text-white-50 mb-0">
-                    إضافة ومتابعة الجزاءات وربطها بكشوف المرتبات
-                </p>
-            </div>
-            <div>
-                <span class="badge bg-white text-danger p-2">
-                    <i class="fas fa-calendar me-1"></i>
-                    {{ today.strftime('%Y-%m-%d') }}
-                </span>
+
+    <!-- رأس الصفحة المحسن مع أزرار التصدير -->
+<div class="penalty-header animate-slide-in">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="text-white mb-2">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                إدارة الجزاءات
+            </h2>
+            <p class="text-white-50 mb-0">
+                إضافة ومتابعة الجزاءات وربطها بكشوف المرتبات
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="badge bg-white text-danger p-2">
+                <i class="fas fa-calendar me-1"></i>
+                {{ today.strftime('%Y-%m-%d') }}
+            </span>
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('export_penalties_report', export_type='excel', **query_params) }}"
+                   class="btn-export-excel btn-sm" style="border-radius: 25px 0 0 25px;" title="تصدير Excel">
+                    <i class="fas fa-file-excel me-1"></i>
+                    Excel
+                </a>
+                <a href="{{ url_for('export_penalties_report', export_type='pdf', **query_params) }}"
+                   class="btn-export-pdf btn-sm" style="border-radius: 0 25px 25px 0;" title="تصدير PDF">
+                    <i class="fas fa-file-pdf me-1"></i>
+                    PDF
+                </a>
             </div>
         </div>
     </div>
+</div>
+
 
     <!-- إحصائيات سريعة جديدة -->
     <div class="quick-stats animate-slide-in" style="animation-delay: 0.1s">
@@ -560,7 +675,7 @@
         </div>
     </div>
 
-    <!-- قسم إضافة جزاء جديد - إضافة جديدة -->
+    <!-- قسم إضافة جزاء جديد -->
     <div class="add-penalty-card animate-slide-in" style="animation-delay: 0.6s">
         <div class="add-penalty-header">
             <h5 class="mb-0">
@@ -607,7 +722,7 @@
                         <div class="input-group">
                             <input type="number" class="form-control" name="amount"
                                    step="0.01" min="0" required placeholder="0.00">
-                            <span class="input-group-text">ر.س</span>
+                            <span class="input-group-text">ر.ي</span>
                         </div>
                     </div>
 
@@ -719,14 +834,32 @@
         </div>
     </div>
 
-    <!-- جدول الجزاءات المحسن -->
+    <!-- جدول الجزاءات المحسن مع أزرار التصدير -->
     <div class="table-card">
         <div class="table-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
                 <i class="fas fa-list me-2"></i>
                 قائمة الجزاءات
+                <span class="export-badge">
+                    <i class="fas fa-file me-1"></i>
+                    {{ penalties|length }} جزاء
+                </span>
             </h5>
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 align-items-center">
+<!-- أزرار التصدير - طريقة مبسطة -->
+<div class="btn-group" role="group">
+    <a href="/reports/penalties/export/excel?employee_id={{ request.args.get('employee_id', '') }}&year={{ request.args.get('year', '') }}&month={{ request.args.get('month', '') }}&status={{ request.args.get('status', '') }}"
+       class="btn-export-excel btn-sm" style="border-radius: 25px 0 0 25px;" title="تصدير Excel">
+        <i class="fas fa-file-excel me-1"></i>
+        Excel
+    </a>
+    <a href="/reports/penalties/export/pdf?employee_id={{ request.args.get('employee_id', '') }}&year={{ request.args.get('year', '') }}&month={{ request.args.get('month', '') }}&status={{ request.args.get('status', '') }}"
+       class="btn-export-pdf btn-sm" style="border-radius: 0 25px 25px 0;" title="تصدير PDF">
+        <i class="fas fa-file-pdf me-1"></i>
+        PDF
+    </a>
+</div>
+                <!-- الأزرار الموجودة مسبقاً -->
                 <button class="btn btn-light btn-sm" onclick="selectAll()">
                     <i class="fas fa-check-double me-1"></i>
                     تحديد الكل
@@ -805,7 +938,7 @@
                             {% endif %}
                         </td>
                         <td>{{ penalty.year }}</td>
-                        <td class="amount-cell">{{ "{:,.2f}".format(penalty.amount) }} ر.س</td>
+                        <td class="amount-cell">{{ "{:,.2f}".format(penalty.amount) }} ر.ي</td>
                         <td>
                             {{ penalty.reason }}
                             {% if penalty.reason == 'أخرى' and penalty.description %}
@@ -1142,63 +1275,6 @@ function deletePenalty(penaltyId) {
                 });
             });
         }
-    });
-}
-
-// تصدير إلى Excel (محسنة)
-function exportToExcel() {
-    const rows = [];
-
-    {% for penalty in penalties %}
-    rows.push({
-        'الموظف': '{{ penalty.employee.full_name if penalty.employee else "" }}',
-        'تاريخ الجزاء': '{{ penalty.penalty_date.strftime("%Y-%m-%d") }}',
-        'الشهر': '{% if penalty.month == 1 %}يناير{% elif penalty.month == 2 %}فبراير{% elif penalty.month == 3 %}مارس{% elif penalty.month == 4 %}أبريل{% elif penalty.month == 5 %}مايو{% elif penalty.month == 6 %}يونيو{% elif penalty.month == 7 %}يوليو{% elif penalty.month == 8 %}أغسطس{% elif penalty.month == 9 %}سبتمبر{% elif penalty.month == 10 %}أكتوبر{% elif penalty.month == 11 %}نوفمبر{% elif penalty.month == 12 %}ديسمبر{% endif %}',
-        'السنة': {{ penalty.year }},
-        'المبلغ': {{ penalty.amount }},
-        'السبب': '{{ penalty.reason }}',
-        'الوصف': '{{ penalty.description or "" }}',
-        'الحالة': '{% if penalty.is_deducted %}مرحل{% else %}غير مرحل{% endif %}'
-    });
-    {% endfor %}
-
-    fetch('/export-to-excel', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            rows: rows,
-            report_name: 'تقرير_الجزاءات_{{ today.strftime("%Y%m%d") }}',
-            columns: [
-                { field: 'الموظف', label: 'الموظف' },
-                { field: 'تاريخ الجزاء', label: 'تاريخ الجزاء' },
-                { field: 'الشهر', label: 'الشهر' },
-                { field: 'السنة', label: 'السنة' },
-                { field: 'المبلغ', label: 'المبلغ' },
-                { field: 'السبب', label: 'السبب' },
-                { field: 'الوصف', label: 'الوصف' },
-                { field: 'الحالة', label: 'الحالة' }
-            ]
-        })
-    })
-    .then(response => response.blob())
-    .then(blob => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'الجزاءات.xlsx';
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-    })
-    .catch(error => {
-        Swal.fire({
-            icon: 'error',
-            title: 'خطأ',
-            text: 'حدث خطأ أثناء تصدير الملف'
-        });
     });
 }
 </script>

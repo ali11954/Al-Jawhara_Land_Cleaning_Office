@@ -1,10 +1,184 @@
 <!DOCTYPE html>
-<html lang="en">
+<html dir="rtl" lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <title>تقرير مؤشرات الأداء</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 2cm 1.5cm 1.8cm 1.5cm;
+
+            @top-center {
+                content: "أرض الجوهرة للخدمات - تقرير مؤشرات الأداء";
+                color: #36b9cc;
+                font-size: 9pt;
+                font-family: Arial, sans-serif;
+                border-bottom: 1px solid #36b9cc50;
+                padding-bottom: 3px;
+            }
+
+            @bottom-center {
+                content: "الحديدة - اليمن | هاتف: 776605949 | بريد: info@jewel-land.com | الصفحة " counter(page) " من " counter(pages);
+                color: #666;
+                font-size: 8pt;
+                font-family: Arial, sans-serif;
+                border-top: 1px solid #36b9cc50;
+                padding-top: 3px;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        .main-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #36b9cc;
+            border-radius: 10px;
+            background-color: #f8f9fc;
+        }
+
+        .logo {
+            width: 70px;
+            height: 70px;
+            background-color: #36b9cc;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            color: white;
+            font-size: 28px;
+        }
+
+        .app-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #36b9cc;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .kpi-card {
+            background: linear-gradient(135deg, #f8f9fc, #ffffff);
+            border: 2px solid #36b9cc;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .kpi-card h3 {
+            color: #36b9cc;
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+
+        .kpi-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .kpi-unit {
+            font-size: 12px;
+            color: #666;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th {
+            background-color: #36b9cc;
+            color: white;
+            padding: 10px;
+        }
+
+        td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding: 20px;
+            border-top: 3px solid #36b9cc;
+            background-color: #f8f9fc;
+        }
+    </style>
 </head>
 <body>
-$END$
+    <div class="main-header">
+        <div class="logo">📊</div>
+        <div class="app-name">أرض الجوهرة للخدمات</div>
+        <div>تقرير مؤشرات الأداء الرئيسية</div>
+    </div>
+
+    <div style="text-align:center; margin:15px 0;">
+        تاريخ التقرير: {{ today.strftime('%Y-%m-%d') }}
+    </div>
+
+    <div class="kpi-grid">
+        {% for kpi_name, kpi_value in kpis.items() %}
+        <div class="kpi-card">
+            <h3>{{ kpi_name }}</h3>
+            <div class="kpi-value">{{ kpi_value }}</div>
+            <div class="kpi-unit">%</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>المؤشر</th>
+                <th>القيمة</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for kpi_name, kpi_value in kpis.items() %}
+            <tr>
+                <td>{{ kpi_name }}</td>
+                <td>{{ kpi_value }}%</td>
+            </tr>
+            {% endfor %}
+            <tr>
+                <td><strong>إجمالي الموظفين</strong></td>
+                <td>{{ total_employees }}</td>
+            </tr>
+            <tr>
+                <td><strong>إجمالي التقييمات</strong></td>
+                <td>{{ total_evaluations }}</td>
+            </tr>
+            <tr>
+                <td><strong>إجمالي الشركات</strong></td>
+                <td>{{ total_companies }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <div style="display:flex; justify-content:space-between;">
+            <div><strong>أرض الجوهرة للخدمات</strong><br><small>الحديدة - اليمن</small></div>
+            <div style="border-right: 3px solid #36b9cc; padding-right: 10px;">
+                <div><strong>المستخدم:</strong> {{ current_user.full_name or current_user.username }}</div>
+                <div><strong>التاريخ:</strong> {{ today.strftime('%Y-%m-%d') }}</div>
+            </div>
+        </div>
+        <div style="text-align:center; margin-top:10px;">© {{ today.year }} جميع الحقوق محفوظة</div>
+    </div>
 </body>
 </html>

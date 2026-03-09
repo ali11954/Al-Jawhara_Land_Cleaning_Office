@@ -1,10 +1,341 @@
 <!DOCTYPE html>
-<html lang="en">
+<html dir="rtl" lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <title>البيانات المالية للموظفين</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 2cm 1.5cm 1.8cm 1.5cm;
+
+            @top-center {
+                content: "أرض الجوهرة للخدمات - البيانات المالية للموظفين";
+                color: #1cc88a;
+                font-size: 9pt;
+                font-family: Arial, sans-serif;
+                border-bottom: 1px solid #1cc88a50;
+                padding-bottom: 3px;
+            }
+
+            @bottom-center {
+                content: "الحديدة - اليمن | هاتف: 776605949 | بريد: info@jewel-land.com | الصفحة " counter(page) " من " counter(pages);
+                color: #666;
+                font-size: 8pt;
+                font-family: Arial, sans-serif;
+                border-top: 1px solid #1cc88a50;
+                padding-top: 3px;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .main-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #1cc88a;
+            border-radius: 10px;
+            background-color: #f8f9fc;
+        }
+
+        .logo {
+            width: 70px;
+            height: 70px;
+            background-color: #1cc88a;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            color: white;
+            font-size: 28px;
+        }
+
+        .app-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1cc88a;
+            margin: 3px 0;
+        }
+
+        .report-title {
+            font-size: 16px;
+            color: #666;
+            margin: 3px 0;
+        }
+
+        .meta {
+            text-align: center;
+            margin: 15px 0;
+            padding: 8px;
+            background-color: #f8f9fc;
+            border-radius: 5px;
+            font-size: 11px;
+            border: 1px solid #e3e6f0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            color: white;
+            padding: 10px 5px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 9px;
+        }
+
+        .stat-card:nth-child(1) { background: linear-gradient(135deg, #4e73df, #224abe); }
+        .stat-card:nth-child(2) { background: linear-gradient(135deg, #1cc88a, #169b6b); }
+        .stat-card:nth-child(3) { background: linear-gradient(135deg, #36b9cc, #258391); }
+        .stat-card:nth-child(4) { background: linear-gradient(135deg, #f6c23e, #dda20a); }
+        .stat-card:nth-child(5) { background: linear-gradient(135deg, #e74a3b, #c92112); }
+        .stat-card:nth-child(6) { background: linear-gradient(135deg, #858796, #6c757d); }
+
+        .stat-card .value {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 8px;
+        }
+
+        th {
+            background-color: #1cc88a;
+            color: white;
+            padding: 6px 3px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        td {
+            padding: 4px 3px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fc;
+        }
+
+        .positive {
+            color: #1cc88a;
+            font-weight: bold;
+        }
+
+        .negative {
+            color: #e74a3b;
+            font-weight: bold;
+        }
+
+        .warning {
+            color: #f6c23e;
+            font-weight: bold;
+        }
+
+        .summary-box {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fc;
+            border-radius: 8px;
+            border: 1px solid #1cc88a30;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 10px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding: 20px;
+            border-top: 3px solid #1cc88a;
+            background-color: #f8f9fc;
+            border-radius: 8px;
+            page-break-inside: avoid;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .designer-info {
+            border-right: 3px solid #1cc88a;
+            padding-right: 15px;
+        }
+
+        .designer-badge {
+            background-color: #1cc88a;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 10px;
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+
+        .footer-logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #1cc88a, #169b6b);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .copyright {
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 8px;
+            border-top: 1px solid #ddd;
+            font-size: 9px;
+            color: #666;
+        }
+    </style>
 </head>
 <body>
-$END$
+    <div class="main-header">
+        <div class="logo">💰</div>
+        <div class="app-name">أرض الجوهرة للخدمات</div>
+        <div class="report-title">البيانات المالية للموظفين - {{ month_name }} {{ year }}</div>
+    </div>
+
+    <div class="meta">
+        <strong>الفترة:</strong> {{ start_date.strftime('%Y-%m-%d') }} إلى {{ end_date.strftime('%Y-%m-%d') }} |
+        <strong>تاريخ التقرير:</strong> {{ today.strftime('%Y-%m-%d') }} |
+        <strong>عدد الموظفين:</strong> {{ stats.total_employees }}
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div>إجمالي الموظفين</div>
+            <div class="value">{{ stats.total_employees }}</div>
+        </div>
+        <div class="stat-card">
+            <div>صافي الرواتب</div>
+            <div class="value">{{ "{:,.2f}".format(stats.total_net_salaries) }}</div>
+        </div>
+        <div class="stat-card">
+            <div>الساعات الإضافية</div>
+            <div class="value">{{ "{:,.2f}".format(stats.total_overtime) }}</div>
+        </div>
+        <div class="stat-card">
+            <div>أقساط السلف</div>
+            <div class="value">{{ "{:,.2f}".format(stats.total_loans) }}</div>
+        </div>
+        <div class="stat-card">
+            <div>الجزاءات</div>
+            <div class="value">{{ "{:,.2f}".format(stats.total_penalties) }}</div>
+        </div>
+        <div class="stat-card">
+            <div>أيام الحضور</div>
+            <div class="value">{{ stats.total_attendance_days }}</div>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>الموظف</th>
+                <th>الراتب الأساسي</th>
+                <th>أيام الحضور</th>
+                <th>الراتب المحتسب</th>
+                <th>ساعات إضافية</th>
+                <th>قيمة إضافية</th>
+                <th>أقساط السلف</th>
+                <th>المتبقي</th>
+                <th>الجزاءات</th>
+                <th>إجمالي الخصومات</th>
+                <th>صافي الراتب</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for emp in employees %}
+            <tr>
+                <td>{{ emp.name }}</td>
+                <td>{{ "{:,.2f}".format(emp.base_salary) }}</td>
+                <td>{{ emp.present_days }}</td>
+                <td>{{ "{:,.2f}".format(emp.base_pay) }}</td>
+                <td>{{ emp.overtime_hours }}</td>
+                <td class="positive">{{ "{:,.2f}".format(emp.overtime_cost) }}</td>
+                <td class="warning">{{ "{:,.2f}".format(emp.monthly_installments) }}</td>
+                <td class="warning">{{ "{:,.2f}".format(emp.remaining_loans) }}</td>
+                <td class="negative">{{ "{:,.2f}".format(emp.penalties_amount) }}</td>
+                <td class="negative">{{ "{:,.2f}".format(emp.total_deductions) }}</td>
+                <td class="positive">{{ "{:,.2f}".format(emp.net_salary) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="summary-box">
+        <h4 style="margin-top:0; color:#1cc88a;">📊 ملخص مالي</h4>
+        <div class="summary-row">
+            <span>إجمالي الرواتب المحتسبة:</span>
+            <span class="positive">{{ "{:,.2f}".format(stats.total_base_salaries) }}</span>
+        </div>
+        <div class="summary-row">
+            <span>+ قيمة الساعات الإضافية:</span>
+            <span class="positive">+ {{ "{:,.2f}".format(stats.total_overtime) }}</span>
+        </div>
+        <div class="summary-row">
+            <span>- أقساط السلف:</span>
+            <span class="warning">- {{ "{:,.2f}".format(stats.total_loans) }}</span>
+        </div>
+        <div class="summary-row">
+            <span>- الجزاءات:</span>
+            <span class="negative">- {{ "{:,.2f}".format(stats.total_penalties) }}</span>
+        </div>
+        <hr style="border:1px dashed #1cc88a;">
+        <div class="summary-row">
+            <strong>صافي الرواتب المستحقة:</strong>
+            <strong class="positive">{{ "{:,.2f}".format(stats.total_net_salaries) }}</strong>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="footer-content">
+            <div>
+                <div class="footer-logo">💎</div>
+                <strong style="color: #1cc88a; font-size: 12px;">أرض الجوهرة للخدمات</strong><br>
+                <span style="font-size: 9px; color: #666;">الحديدة - مدينة العمال</span>
+            </div>
+
+            <div class="designer-info">
+                <div class="designer-badge">👨‍💻 معلومات المستخدم</div>
+                <div style="font-size: 9px;">
+                    <div>المستخدم: {{ current_user.full_name or current_user.username }}</div>
+                    <div>تاريخ التقرير: {{ today.strftime('%Y-%m-%d') }}</div>
+                    <div>وقت الطباعة: {{ today.strftime('%H:%M:%S') }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="copyright">
+            © {{ today.year }} جميع الحقوق محفوظة - تصميم وبرمجة: الغيث لتصميم البرامج
+        </div>
+    </div>
 </body>
 </html>

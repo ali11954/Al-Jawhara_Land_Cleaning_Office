@@ -151,12 +151,280 @@
     .animate-slide-in {
         animation: slideIn 0.5s ease forwards;
     }
+
+    /* ========== رأس التقرير المحسن للطباعة ========== */
+    .report-header {
+        background: linear-gradient(135deg, #ffffff, #f8f9fc);
+        border-bottom: 4px solid #4e73df;
+        margin-bottom: 25px;
+        padding: 25px;
+        border-radius: 20px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        display: none; /* مخفي في الوضع العادي */
+    }
+
+    .app-logo-container {
+        width: 100px;
+        height: 100px;
+        background: linear-gradient(135deg, #4e73df, #224abe);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 42px;
+        box-shadow: 0 10px 25px rgba(78, 115, 223, 0.4);
+        margin: 0 auto;
+        border: 3px solid rgba(255,255,255,0.5);
+    }
+
+    .app-title-main {
+        font-size: 32px;
+        font-weight: 800;
+        color: #4e73df;
+        margin-bottom: 5px;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .app-subtitle-main {
+        font-size: 16px;
+        color: #6c757d;
+        background: rgba(78, 115, 223, 0.1);
+        padding: 10px 20px;
+        border-radius: 50px;
+        display: inline-block;
+    }
+
+    .report-meta {
+        background: white;
+        padding: 15px;
+        border-radius: 15px;
+        border: 1px solid rgba(78, 115, 223, 0.2);
+        margin-top: 15px;
+    }
+
+    /* ========== تذييل التقرير المحسن ========== */
+    .footer-report {
+        background: linear-gradient(135deg, #f8f9fc, #ffffff);
+        border-top: 4px solid #4e73df;
+        margin-top: 40px;
+        padding: 25px;
+        border-radius: 20px;
+        direction: rtl;
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+    }
+
+    .company-logo-footer {
+        width: 70px;
+        height: 70px;
+        background: linear-gradient(135deg, #4e73df, #224abe);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 28px;
+        box-shadow: 0 8px 20px rgba(78, 115, 223, 0.3);
+        border: 2px solid rgba(255,255,255,0.5);
+    }
+
+    .designer-info {
+        background: linear-gradient(135deg, #4e73df10, #224abe10);
+        padding: 15px 20px;
+        border-radius: 15px;
+        border-right: 4px solid #4e73df;
+    }
+
+    .designer-badge {
+        background: #4e73df;
+        color: white;
+        padding: 5px 15px;
+        border-radius: 50px;
+        font-size: 0.9rem;
+        display: inline-block;
+    }
+
+    .company-details {
+        background: #f8f9fc;
+        padding: 15px;
+        border-radius: 15px;
+    }
+
+    /* ========== تحسينات الطباعة ========== */
+    @media print {
+        /* إظهار رأس التقرير في الطباعة */
+        .report-header {
+            display: block !important;
+            background: white !important;
+            border: 2px solid #4e73df !important;
+            box-shadow: none !important;
+        }
+
+        .btn-group, .btn-loan, .filter-card, .btn, .modal, .card-header .btn,
+        #transferBtn, .btn-group-sm {
+            display: none !important;
+        }
+
+        .footer-report {
+            background: white !important;
+            border: 2px solid #4e73df !important;
+            box-shadow: none !important;
+            page-break-inside: avoid;
+        }
+
+        .app-logo-container, .company-logo-footer {
+            background: #4e73df !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .designer-info {
+            border: 2px solid #4e73df !important;
+            background: #f8f9fc !important;
+        }
+
+        .card {
+            border: 1px solid #ddd !important;
+            break-inside: avoid;
+            box-shadow: none !important;
+        }
+
+        .table {
+            border-collapse: collapse !important;
+        }
+
+        .table th {
+            background-color: #4e73df20 !important;
+            color: black !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .loan-stat-card {
+            break-inside: avoid;
+            border: 1px solid #4e73df !important;
+        }
+
+        /* ضمان ظهور الألوان في الطباعة */
+        .bg-primary, .bg-success, .bg-warning, .bg-info {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    }
+
+    /* أنماط إضافية */
+    .text-gradient-primary {
+        background: linear-gradient(135deg, #4e73df, #224abe);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #4e73df, #224abe);
+    }
+
+    .avatar-circle {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 1rem;
+    }
+
+    .opacity-50 {
+        opacity: 0.5;
+    }
+
+    .table-success {
+        background-color: rgba(28, 200, 138, 0.1) !important;
+    }
+
+    .progress {
+        background-color: #e9ecef;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        border-radius: 10px;
+        transition: width 0.5s ease;
+    }
+
+    .btn-group .btn {
+        border-radius: 20px !important;
+        margin: 0 2px;
+    }
+
+    .modal-content {
+        border-radius: 15px;
+        border: none;
+    }
+
+    .modal-header {
+        border-top-left-radius: 15px;
+        border-top-right-radius: 15px;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <!-- شريط العنوان -->
+    <!-- 📌 رأس التقرير المحسن للطباعة (يظهر فقط في الطباعة) -->
+    <div class="report-header">
+        <div class="row align-items-center">
+            <div class="col-md-3 text-center">
+                <div class="app-logo-container">
+                    <i class="fas fa-gem"></i>
+                </div>
+            </div>
+            <div class="col-md-6 text-center">
+                <div class="app-title-main">أرض الجوهرة للخدمات</div>
+                <div class="app-subtitle-main mb-3">
+                    <i class="fas fa-file-invoice me-2"></i>
+                    تقرير السلف والاقتراض
+                </div>
+                <div class="report-meta">
+                    <div class="row">
+                        <div class="col-6">
+                            <i class="fas fa-calendar-alt text-primary me-1"></i>
+                            <strong>تاريخ التقرير:</strong> {{ today.strftime('%Y-%m-%d') if today else '' }}
+                        </div>
+                        <div class="col-6">
+                            <i class="fas fa-clock text-primary me-1"></i>
+                            <strong>وقت الطباعة:</strong> {{ today.strftime('%H:%M') if today else '' }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="qr-code-placeholder bg-light p-2 rounded d-inline-block">
+                    <i class="fas fa-qrcode fa-3x text-primary"></i>
+                    <div class="small text-muted mt-1">رمز التقرير</div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3 text-center text-muted small">
+            <div class="col-4">
+                <i class="fas fa-map-marker-alt me-1"></i>
+                الرياض - المملكة العربية السعودية
+            </div>
+            <div class="col-4">
+                <i class="fas fa-phone me-1"></i>
+                920000000
+            </div>
+            <div class="col-4">
+                <i class="fas fa-envelope me-1"></i>
+                info@jewel-land.com
+            </div>
+        </div>
+    </div>
+
+    <!-- شريط العنوان مع أزرار التصدير -->
     <div class="d-flex justify-content-between align-items-center mb-4 animate-slide-in">
         <div>
             <h2 class="text-gradient-primary mb-1">
@@ -170,10 +438,14 @@
                 <i class="fas fa-plus-circle me-1"></i>
                 إضافة سلفة جديدة
             </button>
-            <button class="btn btn-success btn-loan" onclick="exportLoansReport()">
-                <i class="fas fa-file-excel me-1"></i>
-                تصدير تقرير
-            </button>
+            <a href="{{ url_for('export_loans_report', export_type='excel') }}"
+               class="btn btn-success btn-loan">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </a>
+            <a href="{{ url_for('export_loans_report', export_type='pdf') }}"
+               class="btn btn-danger btn-loan">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </a>
         </div>
     </div>
 
@@ -184,7 +456,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="text-white-50 mb-2">إجمالي السلف</h6>
-                        <h2 class="text-white mb-0">{{ "{:,.2f}".format(total_loans) }} ر.س</h2>
+                        <h2 class="text-white mb-0">{{ "{:,.2f}".format(total_loans) }} ر.ي</h2>
                         <small class="text-white-50">{{ active_loans }} سلفة نشطة</small>
                     </div>
                     <i class="fas fa-hand-holding-usd fa-3x opacity-50"></i>
@@ -197,7 +469,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="text-white-50 mb-2">المبلغ المسدد</h6>
-                        <h2 class="text-white mb-0">{{ "{:,.2f}".format(total_paid) }} ر.س</h2>
+                        <h2 class="text-white mb-0">{{ "{:,.2f}".format(total_paid) }} ر.ي</h2>
                         <small class="text-white-50">{{ paid_loans }} سلفة مسددة</small>
                     </div>
                     <i class="fas fa-check-circle fa-3x opacity-50"></i>
@@ -210,7 +482,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="text-white-50 mb-2">المبلغ المتبقي</h6>
-                        <h2 class="text-white mb-0">{{ "{:,.2f}".format(total_remaining) }} ر.س</h2>
+                        <h2 class="text-white mb-0">{{ "{:,.2f}".format(total_remaining) }} ر.ي</h2>
                         <small class="text-white-50">نسبة التحصيل {{ ((total_paid/total_loans)*100)|round|int if total_loans > 0 else 0 }}%</small>
                     </div>
                     <i class="fas fa-clock fa-3x opacity-50"></i>
@@ -223,7 +495,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="text-white-50 mb-2">متوسط السلفة</h6>
-                        <h2 class="text-white mb-0">{{ "{:,.2f}".format(total_loans/active_loans if active_loans > 0 else 0) }} ر.س</h2>
+                        <h2 class="text-white mb-0">{{ "{:,.2f}".format(total_loans/active_loans if active_loans > 0 else 0) }} ر.ي</h2>
                         <small class="text-white-50">لكل موظف</small>
                     </div>
                     <i class="fas fa-chart-line fa-3x opacity-50"></i>
@@ -402,11 +674,78 @@
                 </div>
                 <div class="col-md-6 text-end">
                     <strong>إجمالي المتبقي: </strong>
-                    <span class="text-danger fw-bold">{{ "{:,.2f}".format(total_remaining) }} ر.س</span>
+                    <span class="text-danger fw-bold">{{ "{:,.2f}".format(total_remaining) }} ر.ي</span>
                 </div>
             </div>
         </div>
         {% endif %}
+    </div>
+
+    <!-- 📌 تذييل التقرير المحسن مع معلومات الشركة والمستخدم والمصمم -->
+    <div class="footer-report animate-slide-in" style="animation-delay: 0.4s">
+        <div class="row align-items-center">
+            <div class="col-md-3 text-center text-md-start">
+                <div class="company-logo-footer mx-auto mx-md-0 mb-3 mb-md-0">
+                    <i class="fas fa-gem"></i>
+                </div>
+            </div>
+
+            <div class="col-md-5 text-center">
+                <div class="company-details">
+                    <h5 class="text-primary mb-2">🏢 أرض الجوهرة للخدمات</h5>
+                    <p class="text-muted mb-1">
+                        <i class="fas fa-map-marker-alt me-1"></i>
+                        الرياض - حطابة
+                    </p>
+                    <p class="text-muted small mb-0">
+                        <i class="fas fa-phone me-1"></i> 920000000 |
+                        <i class="fas fa-envelope me-1"></i> info@jewel-land.com
+                    </p>
+                    <p class="text-muted small mt-1">
+                        <i class="fas fa-globe me-1"></i> www.jewel-land.com
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-4 text-center text-md-end">
+                <div class="designer-info">
+                    <div class="designer-badge mb-2">
+                        <i class="fas fa-code me-1"></i>
+                        معلومات المصمم
+                    </div>
+                    <p class="mb-2">
+                        <i class="fas fa-user-circle fa-lg text-primary me-1"></i>
+                        <strong>إعداد وتصميم: غيث العنزي</strong>
+                    </p>
+                    <p class="mb-1 small">
+                        <i class="fas fa-calendar-check text-primary me-1"></i>
+                        تاريخ التقرير: {{ today.strftime('%Y-%m-%d') if today else '' }}
+                    </p>
+                    <p class="mb-0 small">
+                        <i class="fas fa-user-check text-primary me-1"></i>
+                        المستخدم: {{ current_user.full_name or current_user.username }}
+                    </p>
+                    <p class="mb-0 small text-muted mt-1">
+                        <i class="fas fa-clock me-1"></i>
+                        وقت الطباعة: {{ today.strftime('%H:%M:%S') if today else '' }}
+                    </p>
+                    <p class="mb-0 small text-primary mt-2">
+                        <i class="fas fa-copyright me-1"></i>
+                        جميع الحقوق محفوظة © {% if today %}{{ today.year }}{% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- شريط التوقيع الرقمي -->
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="text-center small text-muted border-top pt-2">
+                    <i class="fas fa-check-circle text-success me-1"></i>
+                    هذا التقرير معتمد إلكترونياً - تصميم وبرمجة: غيث التقنية
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -443,7 +782,7 @@
                             <div class="input-group">
                                 <input type="number" name="amount" class="form-control"
                                        min="1" step="0.01" required oninput="calculateInstallment()">
-                                <span class="input-group-text">ر.س</span>
+                                <span class="input-group-text">ر.ي</span>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -455,7 +794,7 @@
                             <div class="alert alert-info">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <span><i class="fas fa-calculator me-2"></i>القسط الشهري:</span>
-                                    <span class="fw-bold" id="monthlyInstallmentDisplay">0.00 ر.س</span>
+                                    <span class="fw-bold" id="monthlyInstallmentDisplay">0.00 ر.ي</span>
                                 </div>
                             </div>
                         </div>
@@ -510,7 +849,7 @@
                         <div class="input-group">
                             <input type="number" name="amount" id="payAmount" class="form-control"
                                    min="1" step="0.01" required>
-                            <span class="input-group-text">ر.س</span>
+                            <span class="input-group-text">ر.ي</span>
                         </div>
                         <small class="text-muted">القسط الشهري الموصى به: <span id="suggestedAmount"></span></small>
                     </div>
@@ -553,6 +892,9 @@
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
 // متغيرات عامة
 let selectedLoans = [];
@@ -614,9 +956,9 @@ function calculateInstallment() {
     if (amount > 0 && installments > 0) {
         const monthly = (amount / installments).toFixed(2);
         document.getElementById('monthlyInstallmentDisplay').innerText =
-            Number(monthly).toLocaleString('ar-SA') + ' ر.س';
+            Number(monthly).toLocaleString('ar-SA') + ' ر.ي';
     } else {
-        document.getElementById('monthlyInstallmentDisplay').innerText = '0.00 ر.س';
+        document.getElementById('monthlyInstallmentDisplay').innerText = '0.00 ر.ي';
     }
 }
 
@@ -738,7 +1080,7 @@ function viewLoanDetails(loanId) {
                                     </tr>
                                     <tr>
                                         <th>المبلغ:</th>
-                                        <td class="fw-bold">${loan.amount.toLocaleString()} ر.س</td>
+                                        <td class="fw-bold">${loan.amount.toLocaleString()} ر.ي</td>
                                     </tr>
                                     <tr>
                                         <th>عدد الأقساط:</th>
@@ -746,15 +1088,15 @@ function viewLoanDetails(loanId) {
                                     </tr>
                                     <tr>
                                         <th>القسط الشهري:</th>
-                                        <td class="text-info">${loan.monthly_installment.toLocaleString()} ر.س</td>
+                                        <td class="text-info">${loan.monthly_installment.toLocaleString()} ر.ي</td>
                                     </tr>
                                     <tr>
                                         <th>المسدد:</th>
-                                        <td class="text-success">${loan.paid_amount.toLocaleString()} ر.س</td>
+                                        <td class="text-success">${loan.paid_amount.toLocaleString()} ر.ي</td>
                                     </tr>
                                     <tr>
                                         <th>المتبقي:</th>
-                                        <td class="text-danger">${loan.remaining.toLocaleString()} ر.س</td>
+                                        <td class="text-danger">${loan.remaining.toLocaleString()} ر.ي</td>
                                     </tr>
                                     <tr>
                                         <th>الحالة:</th>
@@ -793,7 +1135,7 @@ function viewLoanDetails(loanId) {
                                 <i class="fas fa-calendar-alt me-1"></i>${inst.payment_date}
                             </div>
                             <div class="installment-amount">
-                                ${inst.amount.toLocaleString()} ر.س
+                                ${inst.amount.toLocaleString()} ر.ي
                             </div>
                             <div class="installment-method ms-auto">
                                 <span class="badge bg-info">${inst.payment_method}</span>
@@ -830,7 +1172,6 @@ function viewLoanDetails(loanId) {
 
 // فتح نافذة تسديد قسط
 function payInstallment(loanId) {
-    // هذه دالة مؤقتة - سيتم تفعيلها لاحقاً
     if (typeof Swal !== 'undefined') {
         Swal.fire({
             icon: 'info',
@@ -1023,7 +1364,7 @@ function transferSelectedLoans() {
                         html: `
                             <div class="text-end">
                                 <p class="mb-1">✅ تم ترحيل ${data.transferred_count} سلفة</p>
-                                <p class="mb-1">💰 إجمالي الخصم: ${data.total_deducted.toLocaleString()} ر.س</p>
+                                <p class="mb-1">💰 إجمالي الخصم: ${data.total_deducted.toLocaleString()} ر.ي</p>
                                 ${data.errors && data.errors.length > 0 ?
                                     `<p class="text-danger mt-2">⚠️ ${data.errors.length} خطأ</p>` : ''}
                             </div>
@@ -1047,72 +1388,5 @@ function transferSelectedLoans() {
         }
     }
 }
-
-// تصدير تقرير السلف
-function exportLoansReport() {
-    alert('سيتم تفعيل هذه الميزة قريباً');
-}
 </script>
-
-<style>
-.text-gradient-primary {
-    background: linear-gradient(135deg, #4e73df, #224abe);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.bg-gradient-primary {
-    background: linear-gradient(135deg, #4e73df, #224abe);
-}
-
-.avatar-circle {
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
-    font-size: 1rem;
-}
-
-.opacity-50 {
-    opacity: 0.5;
-}
-
-.table-success {
-    background-color: rgba(28, 200, 138, 0.1) !important;
-}
-
-.progress {
-    background-color: #e9ecef;
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-.progress-bar {
-    border-radius: 10px;
-    transition: width 0.5s ease;
-}
-
-.btn-group .btn {
-    border-radius: 20px !important;
-    margin: 0 2px;
-}
-
-.modal-content {
-    border-radius: 15px;
-    border: none;
-}
-
-.modal-header {
-    border-top-left-radius: 15px;
-    border-top-right-radius: 15px;
-}
-</style>
-
-<!-- SweetAlert2 للمزيد من الجمالية -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 {% endblock %}

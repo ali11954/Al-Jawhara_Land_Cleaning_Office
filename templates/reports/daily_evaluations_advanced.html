@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <!-- شريط العنوان مع فلترة متقدمة -->
+    <!-- شريط العنوان مع أزرار التصدير -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="text-gradient-info mb-1">
@@ -13,14 +13,29 @@
                 التقييمات اليومية - تحليل ذكي
             </h2>
             <p class="text-muted mb-0">تحليل لحظي للتقييمات مع مؤشرات الأداء والتوصيات</p>
+            <p class="text-info mb-0">
+                <i class="fas fa-calendar-alt me-1"></i>
+                التاريخ: {{ selected_date }}
+            </p>
         </div>
         <div class="btn-group">
-            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">
-                <i class="fas fa-file-pdf me-1"></i>PDF
-            </button>
-            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">
+            <!-- زر تصدير Excel -->
+            <a href="{{ url_for('export_evaluations_report', export_type='excel',
+                from_date=selected_date,
+                to_date=selected_date) }}"
+               class="btn btn-modern btn-success">
                 <i class="fas fa-file-excel me-1"></i>Excel
-            </button>
+            </a>
+
+            <!-- زر تصدير PDF -->
+            <a href="{{ url_for('export_evaluations_report', export_type='pdf',
+                from_date=selected_date,
+                to_date=selected_date) }}"
+               class="btn btn-modern btn-danger">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </a>
+
+            <!-- زر تحديث -->
             <button class="btn btn-modern btn-info" onclick="refreshData()">
                 <i class="fas fa-sync-alt me-1"></i>تحديث
             </button>
@@ -561,12 +576,22 @@ function refreshData() {
     location.reload();
 }
 
+// دالة تصدير التقرير المحسنة
 function exportReport(type) {
-    if (type === 'pdf') {
-        alert('سيتم تفعيل تصدير PDF قريباً');
-    } else if (type === 'excel') {
-        alert('سيتم تفعيل تصدير Excel قريباً');
+    const urlParams = new URLSearchParams(window.location.search);
+    const date = urlParams.get('date') || '{{ selected_date }}';
+
+    let url = "{{ url_for('export_evaluations_report', export_type='') }}";
+
+    if (type === 'excel') {
+        url += 'excel?';
+    } else if (type === 'pdf') {
+        url += 'pdf?';
     }
+
+    url += `from_date=${date}&to_date=${date}`;
+
+    window.location.href = url;
 }
 </script>
 

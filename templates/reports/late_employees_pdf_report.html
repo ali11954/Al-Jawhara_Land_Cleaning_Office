@@ -1,10 +1,226 @@
 <!DOCTYPE html>
-<html lang="en">
+<html dir="rtl" lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <title>تقرير الموظفين المتأخرين</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 2cm 1.5cm 1.8cm 1.5cm;
+
+            @top-center {
+                content: "أرض الجوهرة للخدمات - تقرير الموظفين المتأخرين";
+                color: #f6c23e;
+                font-size: 9pt;
+                font-family: Arial, sans-serif;
+                border-bottom: 1px solid #f6c23e50;
+                padding-bottom: 3px;
+            }
+
+            @bottom-center {
+                content: "الحديدة - اليمن | هاتف: 776605949 | بريد: info@jewel-land.com | الصفحة " counter(page) " من " counter(pages);
+                color: #666;
+                font-size: 8pt;
+                font-family: Arial, sans-serif;
+                border-top: 1px solid #f6c23e50;
+                padding-top: 3px;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .main-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #f6c23e;
+            border-radius: 10px;
+            background-color: #f8f9fc;
+        }
+
+        .logo {
+            width: 70px;
+            height: 70px;
+            background-color: #f6c23e;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            color: white;
+            font-size: 28px;
+        }
+
+        .app-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #f6c23e;
+            margin: 3px 0;
+        }
+
+        .report-title {
+            font-size: 16px;
+            color: #666;
+            margin: 3px 0;
+        }
+
+        .meta {
+            text-align: center;
+            margin: 15px 0;
+            padding: 8px;
+            background-color: #f8f9fc;
+            border-radius: 5px;
+            font-size: 11px;
+            border: 1px solid #e3e6f0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 11px;
+        }
+
+        th {
+            background-color: #f6c23e;
+            color: white;
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        td {
+            padding: 6px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fc;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding: 20px;
+            border-top: 3px solid #f6c23e;
+            background-color: #f8f9fc;
+            border-radius: 8px;
+            page-break-inside: avoid;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .designer-info {
+            border-right: 3px solid #f6c23e;
+            padding-right: 15px;
+        }
+
+        .designer-badge {
+            background-color: #f6c23e;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 10px;
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+
+        .footer-logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #f6c23e, #d4950e);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .copyright {
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 8px;
+            border-top: 1px solid #ddd;
+            font-size: 9px;
+            color: #666;
+        }
+    </style>
 </head>
 <body>
-$END$
+    <div class="main-header">
+        <div class="logo">⏰</div>
+        <div class="app-name">أرض الجوهرة للخدمات</div>
+        <div class="report-title">تقرير الموظفين المتأخرين</div>
+    </div>
+
+    <div class="meta">
+        <strong>تاريخ التقرير:</strong> {{ today.strftime('%Y-%m-%d') }} |
+        <strong>وقت الطباعة:</strong> {{ today.strftime('%H:%M:%S') }} |
+        <strong>عدد المتأخرين:</strong> {{ late_employees|length }}
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>الموظف</th>
+                <th>القسم</th>
+                <th>آخر تاريخ تأخير</th>
+                <th>وقت الحضور</th>
+                <th>عدد مرات التأخير</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for emp in late_employees %}
+            <tr>
+                <td>{{ emp.name }}</td>
+                <td>{{ emp.department }}</td>
+                <td>{{ emp.late_date }}</td>
+                <td>{{ emp.check_in }}</td>
+                <td>{{ emp.late_count }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="text-align: center; padding: 30px; color: #666;">
+                    <strong>لا توجد بيانات تأخير</strong>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <div class="footer-content">
+            <div>
+                <div class="footer-logo">💎</div>
+                <strong style="color: #f6c23e;">أرض الجوهرة للخدمات</strong><br>
+                <span style="font-size: 10px;">الحديدة - مدينة العمال</span>
+            </div>
+
+            <div class="designer-info">
+                <div class="designer-badge">👨‍💻 معلومات المستخدم</div>
+                <div style="font-size: 10px;">
+                    <div>المستخدم: {{ current_user.full_name or current_user.username }}</div>
+                    <div>التاريخ: {{ today.strftime('%Y-%m-%d') }}</div>
+                    <div>الوقت: {{ today.strftime('%H:%M:%S') }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="copyright">
+            © {{ today.year }} جميع الحقوق محفوظة - تصميم وبرمجة: الغيث لتصميم البرامج
+        </div>
+    </div>
 </body>
 </html>

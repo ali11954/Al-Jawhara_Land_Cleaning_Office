@@ -13,6 +13,65 @@
         --financial-secondary: #858796;
     }
 
+    /* أنماط أزرار التصدير */
+    .btn-modern {
+        border-radius: 25px;
+        padding: 0.5rem 1.2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: all 0.3s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 3px;
+        font-weight: 500;
+        font-size: 0.85rem;
+    }
+
+    .btn-modern:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+    }
+
+    .btn-group {
+        direction: ltr;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    a.btn-modern {
+        color: white;
+    }
+
+    a.btn-modern:hover {
+        color: white;
+        text-decoration: none;
+    }
+
+    a.btn-outline-primary.btn-modern {
+        color: #4e73df;
+    }
+
+    a.btn-outline-primary.btn-modern:hover {
+        color: white;
+    }
+
+    a.btn-outline-info.btn-modern {
+        color: #36b9cc;
+    }
+
+    a.btn-outline-info.btn-modern:hover {
+        color: white;
+    }
+
+    a.btn-outline-secondary.btn-modern {
+        color: #858796;
+    }
+
+    a.btn-outline-secondary.btn-modern:hover {
+        color: white;
+    }
+
     /* بطاقات الإحصائيات المالية */
     .stats-grid {
         display: grid;
@@ -184,13 +243,17 @@
         .financial-table {
             font-size: 0.75rem;
         }
+        .btn-modern {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.75rem;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <!-- شريط العنوان -->
+    <!-- شريط العنوان مع أزرار التصدير -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="text-gradient-primary mb-1">
@@ -202,18 +265,31 @@
             </p>
         </div>
         <div class="btn-group">
-            <a href="{{ url_for('employees_list') }}" class="btn btn-outline-primary">
+            <!-- أزرار التصدير -->
+            <a href="{{ url_for('export_employees_financial', export_type='pdf', **request.args) }}"
+               class="btn btn-danger btn-modern"
+               title="تصدير PDF">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </a>
+            <a href="{{ url_for('export_employees_financial', export_type='excel', **request.args) }}"
+               class="btn btn-success btn-modern"
+               title="تصدير Excel">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </a>
+            <button class="btn btn-primary btn-modern" onclick="window.print()" title="طباعة">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
+
+            <!-- أزرار التنقل -->
+            <a href="{{ url_for('employees_list') }}" class="btn btn-outline-primary btn-modern">
                 <i class="fas fa-list me-1"></i>قائمة الموظفين
             </a>
-            <a href="{{ url_for('employees_hierarchy') }}" class="btn btn-outline-info">
+            <a href="{{ url_for('employees_hierarchy') }}" class="btn btn-outline-info btn-modern">
                 <i class="fas fa-sitemap me-1"></i>الهيكل التنظيمي
             </a>
-            <a href="{{ url_for('employees_comprehensive') }}" class="btn btn-outline-secondary">
+            <a href="{{ url_for('employees_comprehensive') }}" class="btn btn-outline-secondary btn-modern">
                 <i class="fas fa-database me-1"></i>البيانات الشاملة
             </a>
-            <button class="btn btn-outline-success" onclick="exportToExcel()">
-                <i class="fas fa-file-excel me-1"></i>تصدير
-            </button>
         </div>
     </div>
 
@@ -343,7 +419,7 @@
         <form method="GET" action="{{ url_for('employees_financial') }}" class="row g-3">
             <div class="col-md-3">
                 <label class="form-label fw-bold">بحث</label>
-                <input type="text" name="search" class="form-control"
+                <input type="text" name="search" class="form-control" id="searchInput"
                        placeholder="الاسم - الكود"
                        value="{{ search_query }}">
             </div>
@@ -599,70 +675,18 @@
 </div>
 
 <script>
-// دالة تصدير إلى Excel
+// دالة تصدير إلى Excel (محجوزة للاستخدام المستقبلي)
 function exportToExcel() {
-    const rows = [];
+    // هذه الدالة محجوزة للاستخدام مع زر Excel الجديد
+    // تم استبدالها بالرابط المباشر
+    console.log('جاري التصدير إلى Excel...');
+}
 
-    {% for emp in employees %}
-    rows.push({
-        'الموظف': '{{ emp.name }}',
-        'الشركة': '{{ emp.company }}',
-        'الوظيفة': '{{ emp.position }}',
-        'الراتب الأساسي': {{ emp.base_salary }},
-        'أيام الحضور': {{ emp.present_days }},
-        'نسبة الحضور': {{ emp.attendance_rate }},
-        'الراتب المحتسب': {{ emp.base_pay }},
-        'ساعات إضافية': {{ emp.overtime_hours }},
-        'قيمة إضافية': {{ emp.overtime_cost }},
-        'أقساط السلف': {{ emp.monthly_installments }},
-        'المتبقي من السلف': {{ emp.remaining_loans }},
-        'الجزاءات': {{ emp.penalties_amount }},
-        'إجمالي الخصومات': {{ emp.total_deductions }},
-        'صافي الراتب': {{ emp.net_salary }}
-    });
-    {% endfor %}
-
-    fetch('/export-to-excel', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            rows: rows,
-            report_name: 'البيانات_المالية_{{ selected_year }}_{{ selected_month }}',
-            columns: [
-                { field: 'الموظف', label: 'الموظف' },
-                { field: 'الشركة', label: 'الشركة' },
-                { field: 'الوظيفة', label: 'الوظيفة' },
-                { field: 'الراتب الأساسي', label: 'الراتب الأساسي' },
-                { field: 'أيام الحضور', label: 'أيام الحضور' },
-                { field: 'نسبة الحضور', label: 'نسبة الحضور' },
-                { field: 'الراتب المحتسب', label: 'الراتب المحتسب' },
-                { field: 'ساعات إضافية', label: 'ساعات إضافية' },
-                { field: 'قيمة إضافية', label: 'قيمة إضافية' },
-                { field: 'أقساط السلف', label: 'أقساط السلف' },
-                { field: 'المتبقي من السلف', label: 'المتبقي من السلف' },
-                { field: 'الجزاءات', label: 'الجزاءات' },
-                { field: 'إجمالي الخصومات', label: 'إجمالي الخصومات' },
-                { field: 'صافي الراتب', label: 'صافي الراتب' }
-            ]
-        })
-    })
-    .then(response => response.blob())
-    .then(blob => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'البيانات_المالية.xlsx';
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-    })
-    .catch(error => {
-        console.error('خطأ في التصدير:', error);
-        alert('حدث خطأ أثناء تصدير الملف');
-    });
+// دالة تصدير إلى PDF (محجوزة للاستخدام المستقبلي)
+function exportToPDF() {
+    // هذه الدالة محجوزة للاستخدام مع زر PDF الجديد
+    // تم استبدالها بالرابط المباشر
+    console.log('جاري التصدير إلى PDF...');
 }
 
 // دالة البحث المباشر في الجدول

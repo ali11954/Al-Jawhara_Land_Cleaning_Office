@@ -1,30 +1,36 @@
-<!-- templates/reports/companies_zones.html -->
 {% extends "base.html" %}
 
 {% block title %}تقرير الشركات والمناطق{% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <!-- شريط العنوان مع إحصائيات حية -->
+    <!-- شريط العنوان مع أزرار التصدير -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="text-gradient-primary mb-1">
-                <i class="fas fa-building me-2"></i>
+                <i class="fas fa-chart-pie me-2"></i>
                 تقرير الشركات والمناطق
             </h2>
             <p class="text-muted mb-0">
                 <i class="fas fa-sync-alt fa-spin me-1"></i>
-                آخر تحديث: {{ now|arabic_date }} - {{ now|time }}
+                آخر تحديث: {{ now.strftime('%Y-%m-%d %H:%M') if now else '' }}
             </p>
         </div>
         <div class="btn-group">
-            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">
-                <i class="fas fa-file-pdf me-1"></i>PDF
-            </button>
-            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">
+            <!-- زر تصدير Excel -->
+            <a href="{{ url_for('export_companies_zones', export_type='excel') }}"
+               class="btn btn-modern btn-success">
                 <i class="fas fa-file-excel me-1"></i>Excel
-            </button>
-            <button class="btn btn-modern btn-info" onclick="exportReport('print')">
+            </a>
+
+            <!-- زر تصدير PDF -->
+            <a href="{{ url_for('export_companies_zones', export_type='pdf') }}"
+               class="btn btn-modern btn-danger">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </a>
+
+            <!-- زر طباعة -->
+            <button class="btn btn-modern btn-info" onclick="window.print()">
                 <i class="fas fa-print me-1"></i>طباعة
             </button>
         </div>
@@ -61,7 +67,7 @@
                             <h5 class="text-white text-uppercase mb-1">إجمالي المناطق</h5>
                             <span class="h2 font-weight-bold text-white mb-0">{{ total_areas }}</span>
                             <p class="mt-2 text-white-50 mb-0">
-                                <i class="fas fa-map-marker-alt me-1"></i> بمعدل {{ avg_areas_per_company }} لكل شركة
+                                <i class="fas fa-map-marker-alt me-1"></i> بمعدل {{ "%.1f"|format(avg_areas_per_company) }} لكل شركة
                             </p>
                         </div>
                         <div class="col-auto">
@@ -79,15 +85,15 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col">
-                            <h5 class="text-white text-uppercase mb-1">إجمالي الموظفين</h5>
-                            <span class="h2 font-weight-bold text-white mb-0">{{ total_employees_in_companies }}</span>
+                            <h5 class="text-white text-uppercase mb-1">إجمالي المواقع</h5>
+                            <span class="h2 font-weight-bold text-white mb-0">{{ total_locations }}</span>
                             <p class="mt-2 text-white-50 mb-0">
-                                <i class="fas fa-user-tie me-1"></i> مشرفين: {{ total_supervisors }}
+                                <i class="fas fa-map-pin me-1"></i> بمعدل {{ "%.1f"|format(avg_locations_per_area) }} لكل منطقة
                             </p>
                         </div>
                         <div class="col-auto">
                             <div class="icon-circle bg-white-20">
-                                <i class="fas fa-users fa-2x text-white"></i>
+                                <i class="fas fa-map-pin fa-2x text-white"></i>
                             </div>
                         </div>
                     </div>
@@ -117,24 +123,72 @@
         </div>
     </div>
 
-    <!-- خريطة المناطق التفاعلية -->
+    <!-- ✅ الرسوم البيانية -->
     <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow">
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow h-100">
                 <div class="card-header bg-white py-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h6 class="m-0 font-weight-bold text-primary">
-                            <i class="fas fa-map me-2"></i>خريطة توزيع المناطق
-                        </h6>
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-primary active" onclick="changeMapView('companies')">الشركات</button>
-                            <button class="btn btn-outline-primary" onclick="changeMapView('areas')">المناطق</button>
-                            <button class="btn btn-outline-primary" onclick="changeMapView('employees')">الموظفين</button>
-                        </div>
-                    </div>
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-bar me-2"></i>توزيع المناطق والمواقع حسب الشركة
+                    </h6>
                 </div>
                 <div class="card-body">
-                    <div id="companyMap" style="height: 400px;"></div>
+                    <canvas id="companiesDistributionChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-line me-2"></i>متوسط تقييمات الشركات
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="companiesRatingChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- صف ثاني من الرسوم البيانية -->
+    <div class="row mb-4">
+        <div class="col-xl-4 col-lg-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-chart-pie me-2"></i>توزيع التقييمات
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="ratingsPieChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-lg-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-info">
+                        <i class="fas fa-chart-bar me-2"></i>أعلى 5 مناطق تقييماً
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="topAreasChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-lg-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-warning">
+                        <i class="fas fa-chart-bar me-2"></i>أداء المواقع
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="locationsPerformanceChart" height="200"></canvas>
                 </div>
             </div>
         </div>
@@ -168,10 +222,11 @@
                                     <th>#</th>
                                     <th>الشركة</th>
                                     <th>عدد المناطق</th>
-                                    <th>الموظفين</th>
+                                    <th>عدد المواقع</th>
+                                    <th>عدد الأماكن</th>
+                                    <th>عدد الموظفين</th>
                                     <th>التقييم</th>
                                     <th>حالة النشاط</th>
-                                    <th>أداء المناطق</th>
                                     <th>التفاصيل</th>
                                 </tr>
                             </thead>
@@ -181,12 +236,12 @@
                                     <td>{{ loop.index }}</td>
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <div class="company-icon me-2" style="background-color: {{ company.color }}">
+                                            <div class="company-icon me-2" style="background-color: {{ company.color or '#4e73df' }}">
                                                 <i class="fas fa-building"></i>
                                             </div>
                                             <div>
                                                 <div class="fw-bold">{{ company.name }}</div>
-                                                <small class="text-muted">{{ company.contact_person|default('') }}</small>
+                                                <small class="text-muted">{{ company.contact_person or '' }}</small>
                                             </div>
                                         </div>
                                     </td>
@@ -194,7 +249,13 @@
                                         <span class="badge bg-info rounded-pill">{{ company.areas_count }}</span>
                                     </td>
                                     <td>
-                                        <span class="badge bg-primary rounded-pill">{{ company.employees_count }}</span>
+                                        <span class="badge bg-primary rounded-pill">{{ company.locations_count }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary rounded-pill">{{ company.places_count }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success rounded-pill">{{ company.employees_count }}</span>
                                     </td>
                                     <td>
                                         <div class="d-flex align-items-center">
@@ -218,12 +279,6 @@
                                         {% else %}
                                             <span class="badge bg-secondary">غير نشط</span>
                                         {% endif %}
-                                    </td>
-                                    <td style="width: 150px;">
-                                        <div class="progress" style="height: 8px;">
-                                            <div class="progress-bar bg-{{ company.performance_color }}"
-                                                 style="width: {{ company.performance }}%;"></div>
-                                        </div>
                                     </td>
                                     <td>
                                         <button class="btn btn-sm btn-outline-primary" onclick="viewCompanyDetails({{ company.id }})">
@@ -261,9 +316,9 @@
                                     <th>المنطقة</th>
                                     <th>المشرف</th>
                                     <th>عدد المواقع</th>
+                                    <th>عدد الأماكن</th>
                                     <th>عدد العمال</th>
                                     <th>التقييم</th>
-                                    <th>الأداء</th>
                                     <th>الإجراءات</th>
                                 </tr>
                             </thead>
@@ -278,62 +333,165 @@
     </div>
 </div>
 
-<!-- Leaflet للخرائط -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- إضافة مكتبة Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
 // بيانات الشركات من Flask
 const companiesData = {{ companies_data|tojson }};
+const chartColors = ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#5a5c69'];
 
 document.addEventListener('DOMContentLoaded', function() {
-    initMap();
+    initCharts();
     initSearch();
 });
 
-function initMap() {
-    // إنشاء الخريطة
-    const map = L.map('companyMap').setView([24.7136, 46.6753], 10);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
-
-    // إضافة علامات للشركات
-    companiesData.forEach(company => {
-        if (company.lat && company.lng) {
-            const marker = L.marker([company.lat, company.lng]).addTo(map);
-
-            // محتوى النافذة المنبثقة
-            const popupContent = `
-                <div style="text-align: right; direction: rtl;">
-                    <h6 class="fw-bold">${company.name}</h6>
-                    <p class="mb-1">المناطق: ${company.areas_count}</p>
-                    <p class="mb-1">الموظفين: ${company.employees_count}</p>
-                    <p class="mb-1">التقييم: ${company.rating}/5</p>
-                    <button class="btn btn-sm btn-primary mt-2" onclick="viewCompanyDetails(${company.id})">
-                        عرض التفاصيل
-                    </button>
-                </div>
-            `;
-
-            marker.bindPopup(popupContent);
-
-            // إضافة دائرة ملونة حسب الأداء
-            L.circle([company.lat, company.lng], {
-                color: getPerformanceColor(company.performance),
-                fillColor: getPerformanceColor(company.performance),
-                fillOpacity: 0.2,
-                radius: company.employees_count * 50
-            }).addTo(map);
+function initCharts() {
+    // رسم بياني 1: توزيع المناطق والمواقع حسب الشركة
+    new Chart(document.getElementById('companiesDistributionChart'), {
+        type: 'bar',
+        data: {
+            labels: companiesData.map(c => c.name),
+            datasets: [
+                {
+                    label: 'المناطق',
+                    data: companiesData.map(c => c.areas_count),
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'المواقع',
+                    data: companiesData.map(c => c.locations_count),
+                    backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'الأماكن',
+                    data: companiesData.map(c => c.places_count),
+                    backgroundColor: 'rgba(153, 102, 255, 0.5)',
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' }
+            }
         }
     });
-}
 
-function getPerformanceColor(performance) {
-    if (performance >= 80) return '#1cc88a';
-    if (performance >= 60) return '#f6c23e';
-    return '#e74a3b';
+    // رسم بياني 2: متوسط تقييمات الشركات
+    new Chart(document.getElementById('companiesRatingChart'), {
+        type: 'line',
+        data: {
+            labels: companiesData.map(c => c.name),
+            datasets: [{
+                label: 'متوسط التقييم',
+                data: companiesData.map(c => c.rating),
+                backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                borderColor: 'rgba(255, 159, 64, 1)',
+                borderWidth: 2,
+                tension: 0.1,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    min: 0,
+                    max: 5,
+                    ticks: { stepSize: 0.5 }
+                }
+            }
+        }
+    });
+
+    // رسم بياني 3: توزيع التقييمات (دائري)
+    const ratingCategories = {
+        ممتاز: companiesData.filter(c => c.rating >= 4.5).length,
+        جيد: companiesData.filter(c => c.rating >= 3.5 && c.rating < 4.5).length,
+        متوسط: companiesData.filter(c => c.rating >= 2.5 && c.rating < 3.5).length,
+        ضعيف: companiesData.filter(c => c.rating < 2.5).length
+    };
+
+    new Chart(document.getElementById('ratingsPieChart'), {
+        type: 'pie',
+        data: {
+            labels: ['ممتاز (4.5+)', 'جيد (3.5-4.4)', 'متوسط (2.5-3.4)', 'ضعيف (<2.5)'],
+            datasets: [{
+                data: Object.values(ratingCategories),
+                backgroundColor: ['#1cc88a', '#4e73df', '#f6c23e', '#e74a3b'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // رسم بياني 4: أعلى 5 مناطق تقييماً
+    const topAreas = companiesData.flatMap(c => c.areas || [])
+        .sort((a, b) => b.rating - a.rating)
+        .slice(0, 5);
+
+    new Chart(document.getElementById('topAreasChart'), {
+        type: 'bar',
+        data: {
+            labels: topAreas.map(a => a.name),
+            datasets: [{
+                label: 'التقييم',
+                data: topAreas.map(a => a.rating),
+                backgroundColor: 'rgba(255, 159, 64, 0.5)',
+                borderColor: 'rgba(255, 159, 64, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            scales: {
+                x: { min: 0, max: 5 }
+            }
+        }
+    });
+
+    // رسم بياني 5: أداء المواقع
+    const locations = companiesData.flatMap(c =>
+        c.areas?.flatMap(a => a.locations || []) || []
+    ).slice(0, 8);
+
+    new Chart(document.getElementById('locationsPerformanceChart'), {
+        type: 'radar',
+        data: {
+            labels: locations.map(l => l.name),
+            datasets: [{
+                label: 'أداء المواقع',
+                data: locations.map(l => l.rating || 3),
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                pointBackgroundColor: 'rgba(54, 162, 235, 1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: { min: 0, max: 5 }
+            }
+        }
+    });
 }
 
 function initSearch() {
@@ -361,23 +519,19 @@ function showCompanyAreas(companyId) {
     const tbody = document.getElementById('areasTableBody');
     tbody.innerHTML = '';
 
-    company.areas.forEach(area => {
+    (company.areas || []).forEach(area => {
         const row = `
             <tr>
                 <td>${area.name}</td>
                 <td>${area.supervisor_name || 'غير محدد'}</td>
-                <td><span class="badge bg-info">${area.locations_count}</span></td>
-                <td><span class="badge bg-primary">${area.workers_count}</span></td>
+                <td><span class="badge bg-info">${area.locations_count || 0}</span></td>
+                <td><span class="badge bg-secondary">${area.places_count || 0}</span></td>
+                <td><span class="badge bg-primary">${area.workers_count || 0}</span></td>
                 <td>
                     <div class="stars-container">
-                        ${generateStars(area.rating)}
+                        ${generateStars(area.rating || 0)}
                     </div>
-                </td>
-                <td>
-                    <div class="progress" style="height: 6px;">
-                        <div class="progress-bar bg-${getPerformanceColor(area.performance)}"
-                             style="width: ${area.performance}%;"></div>
-                    </div>
+                    <small class="text-muted">(${(area.rating || 0).toFixed(1)})</small>
                 </td>
                 <td>
                     <button class="btn btn-sm btn-outline-primary" onclick="viewAreaDetails(${area.id})">
@@ -414,17 +568,26 @@ function viewAreaDetails(areaId) {
     window.location.href = `/areas/${areaId}`;
 }
 
-function changeMapView(view) {
-    // تغيير طريقة عرض الخريطة
-    alert(`تغيير عرض الخريطة إلى: ${view}`);
+// دالة تصدير التقرير المحسنة (اختياري - يمكن استخدام الروابط المباشرة)
+function exportReport(format) {
+    let url = "{{ url_for('export_companies_zones', export_type='') }}";
+
+    if (format === 'excel') {
+        url += 'excel';
+    } else if (format === 'pdf') {
+        url += 'pdf';
+    }
+
+    window.location.href = url;
 }
 
-function exportReport(format) {
-    showLoading();
-    setTimeout(() => {
-        hideLoading();
-        alert(`جاري تصدير التقرير بصيغة ${format.toUpperCase()}`);
-    }, 1000);
+// دالة إظهار رسالة التحميل (اختياري)
+function showLoading() {
+    // يمكن إضافة كود لإظهار شريط التحميل
+}
+
+function hideLoading() {
+    // يمكن إضافة كود لإخفاء شريط التحميل
 }
 </script>
 
@@ -442,6 +605,58 @@ function exportReport(format) {
 
 .stars-container {
     min-width: 100px;
+}
+
+.icon-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bg-white-20 {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.card-stats {
+    transition: transform 0.2s;
+}
+
+.card-stats:hover {
+    transform: translateY(-5px);
+}
+
+.gradient-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.gradient-success { background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%); }
+.gradient-info { background: linear-gradient(135deg, #36b9cc 0%, #1d7e8a 100%); }
+.gradient-warning { background: linear-gradient(135deg, #f6c23e 0%, #b48a1c 100%); }
+
+.btn-modern {
+    border-radius: 25px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+.btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+canvas {
+    max-height: 250px;
+    width: 100% !important;
+}
+
+@media print {
+    .btn-group, .btn-modern, .input-group {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #ddd !important;
+        break-inside: avoid;
+    }
 }
 </style>
 {% endblock %}

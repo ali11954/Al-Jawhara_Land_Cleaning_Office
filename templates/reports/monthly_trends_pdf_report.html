@@ -1,10 +1,171 @@
 <!DOCTYPE html>
-<html lang="en">
+<html dir="rtl" lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <title>تقرير الاتجاهات الشهرية</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 2cm 1.5cm 1.8cm 1.5cm;
+
+            @top-center {
+                content: "أرض الجوهرة للخدمات - تقرير الاتجاهات الشهرية";
+                color: #4e73df;
+                font-size: 9pt;
+                font-family: Arial, sans-serif;
+                border-bottom: 1px solid #4e73df50;
+                padding-bottom: 3px;
+            }
+
+            @bottom-center {
+                content: "الحديدة - اليمن | هاتف: 776605949 | بريد: info@jewel-land.com | الصفحة " counter(page) " من " counter(pages);
+                color: #666;
+                font-size: 8pt;
+                font-family: Arial, sans-serif;
+                border-top: 1px solid #4e73df50;
+                padding-top: 3px;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        .main-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #4e73df;
+            border-radius: 10px;
+            background-color: #f8f9fc;
+        }
+
+        .logo {
+            width: 70px;
+            height: 70px;
+            background-color: #4e73df;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            color: white;
+            font-size: 28px;
+        }
+
+        .app-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #4e73df;
+        }
+
+        .meta {
+            text-align: center;
+            margin: 15px 0;
+            padding: 8px;
+            background-color: #f8f9fc;
+            border-radius: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th {
+            background-color: #4e73df;
+            color: white;
+            padding: 10px;
+        }
+
+        td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .chart-container {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #f8f9fc;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .bar {
+            height: 30px;
+            margin: 5px 0;
+            background-color: #4e73df;
+            color: white;
+            text-align: left;
+            padding-right: 10px;
+            line-height: 30px;
+            border-radius: 5px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding: 20px;
+            border-top: 3px solid #4e73df;
+            background-color: #f8f9fc;
+        }
+    </style>
 </head>
 <body>
-$END$
+    <div class="main-header">
+        <div class="logo">📈</div>
+        <div class="app-name">أرض الجوهرة للخدمات</div>
+        <div>تقرير الاتجاهات الشهرية</div>
+    </div>
+
+    <div class="meta">
+        <strong>تاريخ التقرير:</strong> {{ today.strftime('%Y-%m-%d') }} |
+        <strong>آخر 6 أشهر</strong>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>الشهر</th>
+                <th>عدد التقييمات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for month, count in months_data %}
+            <tr>
+                <td>{{ month }}</td>
+                <td>{{ count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="chart-container">
+        <h4>التمثيل البياني</h4>
+        {% for month, count in months_data %}
+        {% set max_count = months_data|map(attribute=1)|max %}
+        <div style="margin: 10px 0;">
+            <div style="font-weight: bold; margin-bottom: 3px;">{{ month }}</div>
+            <div class="bar" style="width: {{ (count / max_count * 100) if max_count > 0 else 0 }}%;">
+                {{ count }} تقييم
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="footer">
+        <div style="display:flex; justify-content:space-between;">
+            <div><strong>أرض الجوهرة للخدمات</strong><br><small>الحديدة - اليمن</small></div>
+            <div style="border-right: 3px solid #4e73df; padding-right: 10px;">
+                <div><strong>المستخدم:</strong> {{ current_user.full_name or current_user.username }}</div>
+                <div><strong>التاريخ:</strong> {{ today.strftime('%Y-%m-%d') }}</div>
+            </div>
+        </div>
+        <div style="text-align:center; margin-top:10px;">© {{ today.year }} جميع الحقوق محفوظة</div>
+    </div>
 </body>
 </html>

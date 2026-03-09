@@ -339,7 +339,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="text-white-50 mb-2">إجمالي السلف</h6>
-                        <h3 class="text-white mb-0">{{ "{:,.2f}".format(loan_stats.total|default(0)) }} ر.س</h3>
+                        <h3 class="text-white mb-0">{{ "{:,.2f}".format(loan_stats.total|default(0)) }} ر.ي</h3>
                         <small class="text-white-50">{{ loan_stats.active|default(0) }} سلفة نشطة</small>
                     </div>
                     <i class="fas fa-hand-holding-usd fa-3x opacity-50"></i>
@@ -358,7 +358,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="text-white-50 mb-2">إجمالي الجزاءات</h6>
-                        <h3 class="text-white mb-0">{{ "{:,.2f}".format(penalty_stats.total|default(0)) }} ر.س</h3>
+                        <h3 class="text-white mb-0">{{ "{:,.2f}".format(penalty_stats.total|default(0)) }} ر.ي</h3>
                         <small class="text-white-50">{{ penalty_stats.pending|default(0) }} غير مرحل</small>
                     </div>
                     <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
@@ -378,7 +378,7 @@
                     <div>
                         <h6 class="text-white-50 mb-2">الساعات الإضافية</h6>
                         <h3 class="text-white mb-0">{{ overtime_stats.total_hours|default(0) }} ساعة</h3>
-                        <small class="text-white-50">{{ "{:,.2f}".format(overtime_stats.total_cost|default(0)) }} ر.س</small>
+                        <small class="text-white-50">{{ "{:,.2f}".format(overtime_stats.total_cost|default(0)) }} ر.ي</small>
                     </div>
                     <i class="fas fa-hourglass-half fa-3x opacity-50"></i>
                 </div>
@@ -396,7 +396,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="text-white-50 mb-2">صافي التأثير</h6>
-                        <h3 class="text-white mb-0">{{ "{:,.2f}".format(net_impact|default(0)) }} ر.س</h3>
+                        <h3 class="text-white mb-0">{{ "{:,.2f}".format(net_impact|default(0)) }} ر.ي</h3>
                         <small class="text-white-50">على كشوف المرتبات</small>
                     </div>
                     <i class="fas fa-chart-line fa-3x opacity-50"></i>
@@ -539,8 +539,8 @@
                                                     </div>
                                                 </td>
                                                 <td>{{ loan.loan_date.strftime('%Y-%m-%d') }}</td>
-                                                <td class="fw-bold">{{ "{:,.2f}".format(loan.amount) }} ر.س</td>
-                                                <td class="text-danger">{{ "{:,.2f}".format(loan.remaining) }} ر.س</td>
+                                                <td class="fw-bold">{{ "{:,.2f}".format(loan.amount) }} ر.ي</td>
+                                                <td class="text-danger">{{ "{:,.2f}".format(loan.remaining) }} ر.ي</td>
                                                 <td>
                                                     <div class="progress progress-sm">
                                                         <div class="progress-bar bg-success" style="width: {{ (loan.paid_amount/loan.amount*100)|round|int if loan.amount > 0 else 0 }}%"></div>
@@ -613,7 +613,7 @@
                                                     </div>
                                                 </td>
                                                 <td>{{ penalty.penalty_date.strftime('%Y-%m-%d') }}</td>
-                                                <td class="text-danger fw-bold">{{ "{:,.2f}".format(penalty.amount) }} ر.س</td>
+                                                <td class="text-danger fw-bold">{{ "{:,.2f}".format(penalty.amount) }} ر.ي</td>
                                                 <td>{{ penalty.reason }}</td>
                                                 <td>
                                                     {% if penalty.is_deducted %}
@@ -682,7 +682,7 @@
                                                 </td>
                                                 <td>{{ overtime.overtime_date.strftime('%Y-%m-%d') }}</td>
                                                 <td class="fw-bold">{{ overtime.hours }} ساعة</td>
-                                                <td class="text-success">{{ "{:,.2f}".format(overtime.cost) }} ر.س</td>
+                                                <td class="text-success">{{ "{:,.2f}".format(overtime.cost) }} ر.ي</td>
                                                 <td>
                                                     {% if overtime.is_transferred %}
                                                     <span class="badge-transferred"><i class="fas fa-check-circle me-1"></i>مرحل</span>
@@ -755,11 +755,11 @@
                                             </div>
                                         </td>
                                         <td>{{ loan.loan_date.strftime('%Y-%m-%d') }}</td>
-                                        <td class="fw-bold">{{ "{:,.2f}".format(loan.amount) }} ر.س</td>
+                                        <td class="fw-bold">{{ "{:,.2f}".format(loan.amount) }} ر.ي</td>
                                         <td>{{ loan.installments }}</td>
-                                        <td>{{ "{:,.2f}".format(loan.monthly_installment) }} ر.س</td>
-                                        <td class="text-success">{{ "{:,.2f}".format(loan.paid_amount) }} ر.س</td>
-                                        <td class="text-danger">{{ "{:,.2f}".format(loan.remaining) }} ر.س</td>
+                                        <td>{{ "{:,.2f}".format(loan.monthly_installment) }} ر.ي</td>
+                                        <td class="text-success">{{ "{:,.2f}".format(loan.paid_amount) }} ر.ي</td>
+                                        <td class="text-danger">{{ "{:,.2f}".format(loan.remaining) }} ر.ي</td>
                                         <td>
                                             <div class="progress progress-sm">
                                                 <div class="progress-bar bg-success" style="width: {{ (loan.paid_amount/loan.amount*100)|round|int if loan.amount > 0 else 0 }}%"></div>
@@ -840,7 +840,7 @@
                                             </div>
                                         </td>
                                         <td>{{ penalty.penalty_date.strftime('%Y-%m-%d') }}</td>
-                                        <td class="text-danger fw-bold">{{ "{:,.2f}".format(penalty.amount) }} ر.س</td>
+                                        <td class="text-danger fw-bold">{{ "{:,.2f}".format(penalty.amount) }} ر.ي</td>
                                         <td>{{ penalty.reason }}</td>
                                         <td>{{ penalty.description or '-' }}</td>
                                         <td>
@@ -919,8 +919,8 @@
                                         </td>
                                         <td>{{ overtime.overtime_date.strftime('%Y-%m-%d') }}</td>
                                         <td class="fw-bold">{{ overtime.hours }} ساعة</td>
-                                        <td>{{ "{:,.2f}".format(overtime.rate) }} ر.س</td>
-                                        <td class="text-success">{{ "{:,.2f}".format(overtime.cost) }} ر.س</td>
+                                        <td>{{ "{:,.2f}".format(overtime.rate) }} ر.ي</td>
+                                        <td class="text-success">{{ "{:,.2f}".format(overtime.cost) }} ر.ي</td>
                                         <td>{{ overtime.reason or '-' }}</td>
                                         <td>
                                             {% if overtime.is_transferred %}

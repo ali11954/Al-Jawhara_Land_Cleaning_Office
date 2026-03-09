@@ -1,10 +1,143 @@
 <!DOCTYPE html>
-<html lang="en">
+<html dir="rtl" lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <title>تقرير أفضل الموظفين</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 2cm 1.5cm 1.8cm 1.5cm;
+            @top-center {
+                content: "أرض الجوهرة للخدمات - أفضل الموظفين";
+                color: #f6c23e;
+                font-size: 9pt;
+                font-family: Arial, sans-serif;
+                border-bottom: 1px solid #f6c23e50;
+                padding-bottom: 3px;
+            }
+            @bottom-center {
+                content: "الحديدة - اليمن | هاتف: 776605949 | بريد: info@jewel-land.com | الصفحة " counter(page) " من " counter(pages);
+                color: #666;
+                font-size: 8pt;
+                font-family: Arial, sans-serif;
+                border-top: 1px solid #f6c23e50;
+                padding-top: 3px;
+            }
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        .main-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #f6c23e;
+            border-radius: 10px;
+            background-color: #f8f9fc;
+        }
+        .logo {
+            width: 70px;
+            height: 70px;
+            background-color: #f6c23e;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            color: white;
+            font-size: 28px;
+        }
+        .app-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #f6c23e;
+        }
+        .meta {
+            text-align: center;
+            margin: 15px 0;
+            padding: 8px;
+            background-color: #f8f9fc;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        th {
+            background-color: #f6c23e;
+            color: white;
+            padding: 8px;
+        }
+        td {
+            padding: 6px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .footer {
+            margin-top: 20px;
+            padding: 15px;
+            border-top: 3px solid #f6c23e;
+            background-color: #f8f9fc;
+        }
+        .designer-info {
+            border-right: 3px solid #f6c23e;
+            padding-right: 10px;
+        }
+        .rank-1 { background-color: #ffd70020; }
+        .rank-2 { background-color: #c0c0c020; }
+        .rank-3 { background-color: #cd7f3220; }
+    </style>
 </head>
 <body>
-$END$
+    <div class="main-header">
+        <div class="logo">🏆</div>
+        <div class="app-name">أرض الجوهرة للخدمات</div>
+        <div>تقرير أفضل الموظفين أداءً</div>
+    </div>
+    <div class="meta">
+        <strong>الفترة:</strong> {{ from_date }} إلى {{ to_date }} |
+        <strong>تاريخ التقرير:</strong> {{ today.strftime('%Y-%m-%d') }}
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>الموظف</th>
+                <th>الوظيفة</th>
+                <th>الشركة</th>
+                <th>عدد التقييمات</th>
+                <th>معدل الأداء</th>
+                <th>أيام الحضور</th>
+                <th>نسبة الحضور</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for emp in employees_data %}
+            <tr class="rank-{{ loop.index if loop.index <= 3 else '' }}">
+                <td>{{ loop.index }}</td>
+                <td>{{ emp['الموظف'] }}</td>
+                <td>{{ emp['الوظيفة'] }}</td>
+                <td>{{ emp['الشركة'] }}</td>
+                <td>{{ emp['عدد التقييمات'] }}</td>
+                <td>{{ emp['معدل الأداء'] }}</td>
+                <td>{{ emp['أيام الحضور'] }}</td>
+                <td>{{ emp['نسبة الحضور'] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="footer">
+        <div style="display:flex; justify-content:space-between;">
+            <div><strong>أرض الجوهرة للخدمات</strong><br><small>الحديدة - اليمن</small></div>
+            <div class="designer-info">
+                <div><strong>المستخدم:</strong> {{ current_user.full_name or current_user.username }}</div>
+                <div><strong>التاريخ:</strong> {{ today.strftime('%Y-%m-%d') }}</div>
+            </div>
+        </div>
+        <div style="text-align:center; margin-top:10px;">© {{ today.year }} جميع الحقوق محفوظة</div>
+    </div>
 </body>
 </html>

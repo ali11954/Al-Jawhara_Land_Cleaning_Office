@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <!-- شريط العنوان -->
+    <!-- شريط العنوان مع أزرار التصدير -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="text-gradient-danger mb-1">
@@ -13,10 +13,60 @@
                 نسب الغياب والتأخير
             </h2>
             <p class="text-muted mb-0">تحليل متقدم لمعدلات الغياب والتأخير مع التوصيات</p>
+            {% if from_date and to_date %}
+            <p class="text-info mb-0">
+                <i class="fas fa-calendar-alt me-1"></i>
+                الفترة: {{ from_date.strftime('%Y-%m-%d') }} إلى {{ to_date.strftime('%Y-%m-%d') }}
+            </p>
+            {% endif %}
         </div>
         <div class="btn-group">
-            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">PDF</button>
-            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">Excel</button>
+            <!-- زر تصدير Excel -->
+            <a href="{{ url_for('export_absence_rates', export_type='excel',
+                from_date=from_date.strftime('%Y-%m-%d') if from_date else '',
+                to_date=to_date.strftime('%Y-%m-%d') if to_date else '') }}"
+               class="btn btn-modern btn-success">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </a>
+
+            <!-- زر تصدير PDF -->
+            <a href="{{ url_for('export_absence_rates', export_type='pdf',
+                from_date=from_date.strftime('%Y-%m-%d') if from_date else '',
+                to_date=to_date.strftime('%Y-%m-%d') if to_date else '') }}"
+               class="btn btn-modern btn-danger">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </a>
+
+            <!-- زر طباعة -->
+            <button class="btn btn-modern btn-primary" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
+        </div>
+    </div>
+
+    <!-- إضافة فلترة التاريخ -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-gradient-secondary text-white">
+            <i class="fas fa-filter me-2"></i>فلترة الفترة
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row align-items-end">
+                <div class="col-md-4">
+                    <label>من تاريخ</label>
+                    <input type="date" name="from_date" class="form-control"
+                           value="{{ from_date.strftime('%Y-%m-%d') if from_date else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label>إلى تاريخ</label>
+                    <input type="date" name="to_date" class="form-control"
+                           value="{{ to_date.strftime('%Y-%m-%d') if to_date else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i>تطبيق
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -94,12 +144,13 @@
 
     <!-- جدول الموظفين الأكثر غياباً -->
     <div class="card shadow mb-4">
-        <div class="card-header bg-danger text-white">
+        <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
             <h6 class="m-0"><i class="fas fa-exclamation-circle me-2"></i>الموظفون الأكثر غياباً (أعلى 10)</h6>
+            <span class="badge bg-light text-dark">إجمالي: {{ top_absent_employees|length }}</span>
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover" id="absenceTable">
                     <thead>
                         <tr>
                             <th>#</th>
@@ -118,7 +169,7 @@
                             <td>{{ loop.index }}</td>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <div class="avatar-sm me-2" style="background-color: {{ emp.color }}">
+                                    <div class="avatar-sm me-2" style="background-color: {{ emp.color }}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
                                         {{ emp.name[:1] }}
                                     </div>
                                     {{ emp.name }}
@@ -191,6 +242,7 @@
 </div>
 
 <script>
+// رسم بياني لاتجاهات الغياب
 new ApexCharts(document.querySelector("#absenceTrendChart"), {
     series: [{
         name: 'نسبة الغياب',
@@ -216,6 +268,7 @@ new ApexCharts(document.querySelector("#absenceTrendChart"), {
     }
 }).render();
 
+// رسم بياني لتوزيع الغياب
 new ApexCharts(document.querySelector("#absenceReasonsChart"), {
     series: {{ absence_reasons_data|tojson }},
     chart: {
@@ -228,10 +281,69 @@ new ApexCharts(document.querySelector("#absenceReasonsChart"), {
     legend: { position: 'bottom' }
 }).render();
 
+// دالة إرسال إنذار
 function sendWarning(employeeId) {
     if(confirm('هل تريد إرسال إنذار للموظف؟')) {
+        // هنا يمكن إضافة كود إرسال الإنذار عبر API
         alert('تم إرسال الإنذار بنجاح');
     }
 }
+
+// دالة تصدير التقرير (اختياري - يمكن استخدام الروابط المباشرة)
+function exportReport(type) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromDate = urlParams.get('from_date') || '{{ from_date.strftime("%Y-%m-%d") if from_date else "" }}';
+    const toDate = urlParams.get('to_date') || '{{ to_date.strftime("%Y-%m-%d") if to_date else "" }}';
+
+    let url = "{{ url_for('export_absence_rates', export_type='') }}" + type + "?";
+    if (fromDate && toDate) {
+        url += `from_date=${fromDate}&to_date=${toDate}`;
+    }
+
+    window.location.href = url;
+}
 </script>
+
+<style>
+.text-gradient-danger {
+    background: linear-gradient(45deg, #e74a3b, #f6c23e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+}
+
+.btn-modern {
+    border-radius: 50px;
+    padding: 8px 20px;
+    transition: all 0.3s;
+    border: none;
+    font-weight: 600;
+}
+
+.btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+
+@media print {
+    .btn-modern, .card-header button, .btn-group, form {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #ddd !important;
+        break-inside: avoid;
+    }
+}
+</style>
 {% endblock %}

@@ -1,10 +1,117 @@
 <!DOCTYPE html>
-<html lang="en">
+<html dir="rtl" lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <title>تقرير أداء الموظفين</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 2cm;
+            @top-center {
+                content: "أرض الجوهرة للخدمات - تقرير الأداء";
+                color: #36b9cc;
+                font-size: 9pt;
+                border-bottom: 1px solid #36b9cc50;
+                padding-bottom: 3px;
+            }
+            @bottom-center {
+                content: "الصفحة " counter(page) " من " counter(pages);
+                color: #666;
+                font-size: 8pt;
+                border-top: 1px solid #36b9cc50;
+                padding-top: 3px;
+            }
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .main-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #36b9cc;
+            border-radius: 10px;
+            background-color: #f8f9fc;
+        }
+        .logo {
+            width: 70px;
+            height: 70px;
+            background-color: #36b9cc;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            color: white;
+            font-size: 28px;
+        }
+        .app-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #36b9cc;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        th {
+            background-color: #36b9cc;
+            color: white;
+            padding: 8px;
+        }
+        td {
+            padding: 6px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .footer {
+            margin-top: 20px;
+            padding: 15px;
+            border-top: 3px solid #36b9cc;
+            background-color: #f8f9fc;
+        }
+    </style>
 </head>
 <body>
-$END$
+    <div class="main-header">
+        <div class="logo">📊</div>
+        <div class="app-name">أرض الجوهرة للخدمات</div>
+        <div>تقرير أداء الموظفين</div>
+    </div>
+    <div style="text-align:center; margin:10px;">
+        تاريخ التقرير: {{ today.strftime('%Y-%m-%d') }}
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>الموظف</th>
+                <th>الوظيفة</th>
+                <th>الشركة</th>
+                <th>عدد التقييمات</th>
+                <th>متوسط الأداء</th>
+                <th>أيام الحضور</th>
+                <th>الحالة</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in performance %}
+            <tr>
+                <td>{{ p.employee }}</td>
+                <td>{{ p.position }}</td>
+                <td>{{ p.company }}</td>
+                <td>{{ p.evaluations }}</td>
+                <td>{{ p.avg_performance }}</td>
+                <td>{{ p.attendance_days }}</td>
+                <td>{{ p.status }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="footer">
+        <div style="text-align:center;">© {{ today.year }} جميع الحقوق محفوظة</div>
+    </div>
 </body>
 </html>

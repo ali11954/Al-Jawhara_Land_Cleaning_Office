@@ -10,16 +10,42 @@
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-dark">تقرير التقييمات اليومية</h6>
                 <div class="d-flex gap-2">
-                    <input type="date" class="form-control" id="reportDate" value="{{ report_date }}">
+                    <input type="date" class="form-control" id="reportDate" value="{{ report_date }}" style="width: 200px;">
+
+                    <!-- زر عرض التقرير -->
                     <button class="btn btn-outline-primary" onclick="loadDailyReport()">
                         <i class="fas fa-search me-1"></i>عرض
                     </button>
-                    <button class="btn btn-success" onclick="printReport()">
+
+                    <!-- زر تصدير Excel -->
+                    <a href="{{ url_for('export_evaluations_report', export_type='excel',
+                        from_date=report_date.strftime('%Y-%m-%d') if report_date else '',
+                        to_date=report_date.strftime('%Y-%m-%d') if report_date else '') }}"
+                       class="btn btn-success">
+                        <i class="fas fa-file-excel me-1"></i>Excel
+                    </a>
+
+                    <!-- زر تصدير PDF -->
+                    <a href="{{ url_for('export_evaluations_report', export_type='pdf',
+                        from_date=report_date.strftime('%Y-%m-%d') if report_date else '',
+                        to_date=report_date.strftime('%Y-%m-%d') if report_date else '') }}"
+                       class="btn btn-danger">
+                        <i class="fas fa-file-pdf me-1"></i>PDF
+                    </a>
+
+                    <!-- زر طباعة -->
+                    <button class="btn btn-secondary" onclick="printReport()">
                         <i class="fas fa-print me-1"></i>طباعة
                     </button>
                 </div>
             </div>
             <div class="card-body">
+                <!-- معلومات الفترة -->
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    <strong>التاريخ:</strong> {{ report_date.strftime('%Y-%m-%d') if report_date else '' }}
+                </div>
+
                 <div class="row mb-4">
                     <div class="col-md-3">
                         <div class="card bg-primary text-white">
@@ -94,11 +120,11 @@
                         <tbody>
                             {% for evaluation in evaluations %}
                             <tr>
-                                <td class="text-dark">{{ evaluation.created_at.strftime('%H:%M') }}</td>
-                                <td class="text-dark">{{ evaluation.place.location.area.company.name }}</td>
-                                <td class="text-dark">{{ evaluation.place.location.area.name }}</td>
-                                <td class="text-dark">{{ evaluation.place.name }}</td>
-                                <td class="text-dark">{{ evaluation.evaluator.full_name }}</td>
+                                <td class="text-dark">{{ evaluation.created_at.strftime('%H:%M') if evaluation.created_at else '-' }}</td>
+                                <td class="text-dark">{{ evaluation.place.location.area.company.name if evaluation.place and evaluation.place.location and evaluation.place.location.area and evaluation.place.location.area.company else '-' }}</td>
+                                <td class="text-dark">{{ evaluation.place.location.area.name if evaluation.place and evaluation.place.location and evaluation.place.location.area else '-' }}</td>
+                                <td class="text-dark">{{ evaluation.place.name if evaluation.place else '-' }}</td>
+                                <td class="text-dark">{{ evaluation.evaluator.full_name if evaluation.evaluator else '-' }}</td>
                                 <td>
                                     <span class="badge bg-{{ 'success' if evaluation.cleanliness >= 4 else 'warning' if evaluation.cleanliness >= 3 else 'danger' }} text-dark">
                                         {{ evaluation.cleanliness }}
@@ -220,7 +246,11 @@
 <script>
     function loadDailyReport() {
         const date = document.getElementById('reportDate').value;
-        window.location.href = `/reports/daily-evaluations?date=${date}`;
+        if (date) {
+            window.location.href = `/reports/daily-evaluations?date=${date}`;
+        } else {
+            alert('الرجاء اختيار التاريخ');
+        }
     }
 
     function printReport() {
@@ -236,7 +266,21 @@
             order: [[0, 'desc']],
             dom: 'Bfrtip',
             buttons: [
-                'copy', 'excel', 'pdf'
+                {
+                    extend: 'copy',
+                    text: '<i class="fas fa-copy"></i> نسخ',
+                    className: 'btn btn-sm btn-outline-secondary'
+                },
+                {
+                    extend: 'excel',
+                    text: '<i class="fas fa-file-excel"></i> Excel',
+                    className: 'btn btn-sm btn-outline-success'
+                },
+                {
+                    extend: 'pdf',
+                    text: '<i class="fas fa-file-pdf"></i> PDF',
+                    className: 'btn btn-sm btn-outline-danger'
+                }
             ]
         });
 
@@ -365,6 +409,16 @@
         color: white;
     }
 
+    .btn-success, .btn-danger, .btn-secondary {
+        color: white;
+        transition: all 0.3s;
+    }
+
+    .btn-success:hover, .btn-danger:hover, .btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
     /* تحسين مظهر البطاقات الإحصائية */
     .card.bg-primary,
     .card.bg-success,
@@ -388,7 +442,7 @@
 
     @media print {
         .navbar, .sidebar, .card-header .btn, .dataTables_length, .dataTables_filter,
-        .dataTables_info, .dataTables_paginate {
+        .dataTables_info, .dataTables_paginate, .btn-group, .btn {
             display: none !important;
         }
 
@@ -420,6 +474,11 @@
 
         .text-dark {
             color: #000 !important;
+        }
+
+        #scoreDistributionChart {
+            max-width: 100%;
+            height: auto;
         }
     }
 </style>

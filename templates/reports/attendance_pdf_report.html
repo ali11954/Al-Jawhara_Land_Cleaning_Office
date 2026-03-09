@@ -1,10 +1,155 @@
 <!DOCTYPE html>
-<html lang="en">
+<html dir="rtl" lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <title>تقرير الحضور</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 2cm 1.5cm 1.8cm 1.5cm;
+            @top-center {
+                content: "أرض الجوهرة للخدمات - تقرير الحضور";
+                color: #4e73df;
+                font-size: 9pt;
+                font-family: Arial, sans-serif;
+                border-bottom: 1px solid #4e73df50;
+                padding-bottom: 3px;
+            }
+            @bottom-center {
+                content: "الحديدة - اليمن | هاتف: 776605949 | بريد: info@jewel-land.com | الصفحة " counter(page) " من " counter(pages);
+                color: #666;
+                font-size: 8pt;
+                font-family: Arial, sans-serif;
+                border-top: 1px solid #4e73df50;
+                padding-top: 3px;
+            }
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        .main-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #4e73df;
+            border-radius: 10px;
+            background-color: #f8f9fc;
+        }
+        .logo {
+            width: 70px;
+            height: 70px;
+            background-color: #4e73df;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            color: white;
+            font-size: 28px;
+        }
+        .app-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #4e73df;
+        }
+        .meta {
+            text-align: center;
+            margin: 15px 0;
+            padding: 8px;
+            background-color: #f8f9fc;
+            border-radius: 5px;
+            font-size: 11px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+        }
+        th {
+            background-color: #4e73df;
+            color: white;
+            padding: 6px;
+            text-align: center;
+        }
+        td {
+            padding: 5px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .present { color: #1cc88a; font-weight: bold; }
+        .absent { color: #e74a3b; font-weight: bold; }
+        .late { color: #f6c23e; font-weight: bold; }
+        .footer {
+            margin-top: 20px;
+            padding: 15px;
+            border-top: 3px solid #4e73df;
+            background-color: #f8f9fc;
+        }
+        .designer-info {
+            border-right: 3px solid #4e73df;
+            padding-right: 10px;
+        }
+    </style>
 </head>
 <body>
-$END$
+    <div class="main-header">
+        <div class="logo">📋</div>
+        <div class="app-name">أرض الجوهرة للخدمات</div>
+        <div>تقرير الحضور</div>
+    </div>
+    <div class="meta">
+        <strong>الفترة:</strong> {{ from_date }} إلى {{ to_date }} |
+        <strong>تاريخ التقرير:</strong> {{ today.strftime('%Y-%m-%d') }} |
+        <strong>عدد السجلات:</strong> {{ records|length }}
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>التاريخ</th>
+                <th>الموظف</th>
+                <th>الوظيفة</th>
+                <th>الشركة</th>
+                <th>الحالة</th>
+                <th>الوردية</th>
+                <th>الحضور</th>
+                <th>الانصراف</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in records %}
+            <tr>
+                <td>{{ r.date }}</td>
+                <td>{{ r.employee }}</td>
+                <td>{{ r.position }}</td>
+                <td>{{ r.company }}</td>
+                <td class="
+                    {% if r.status == 'present' %}present
+                    {% elif r.status == 'absent' %}absent
+                    {% elif r.status == 'late' %}late
+                    {% endif %}">
+                    {{ r.status_text }}
+                </td>
+                <td>{{ r.shift }}</td>
+                <td>{{ r.check_in }}</td>
+                <td>{{ r.check_out }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="footer">
+        <div style="display:flex; justify-content:space-between;">
+            <div><strong>أرض الجوهرة للخدمات</strong><br><small>الحديدة - اليمن</small></div>
+            <div class="designer-info">
+                <div><strong>المستخدم:</strong> {{ current_user.full_name or current_user.username }}</div>
+                <div><strong>التاريخ:</strong> {{ today.strftime('%Y-%m-%d') }}</div>
+            </div>
+        </div>
+        <div style="text-align:center; margin-top:10px; font-size:9px;">
+            © {{ today.year }} جميع الحقوق محفوظة - الغيث لتصميم البرامج
+        </div>
+    </div>
 </body>
 </html>

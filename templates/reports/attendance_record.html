@@ -5,14 +5,40 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
+    <!-- عنوان الصفحة مع أزرار التصدير -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-primary">
-            <i class="fas fa-clock me-2"></i>
-            سجل حضور الموظفين
-        </h2>
+        <div>
+            <h2 class="text-primary mb-1">
+                <i class="fas fa-calendar-check me-2"></i>
+                تقرير سجل الحضور
+            </h2>
+            {% if from_date and to_date %}
+            <p class="text-muted mb-0">
+                <i class="fas fa-calendar-alt me-1"></i>
+                الفترة: {{ from_date.strftime('%Y-%m-%d') }} إلى {{ to_date.strftime('%Y-%m-%d') }}
+            </p>
+            {% endif %}
+        </div>
         <div class="btn-group">
-            <button class="btn btn-outline-primary" onclick="exportReport('pdf')">PDF</button>
-            <button class="btn btn-outline-success" onclick="exportReport('excel')">Excel</button>
+            <a href="{{ url_for('export_attendance_record', export_type='excel',
+                from_date=from_date.strftime('%Y-%m-%d') if from_date else '',
+                to_date=to_date.strftime('%Y-%m-%d') if to_date else '',
+                employee_id=selected_employee_id,
+                company_id=selected_company_id) }}"
+               class="btn btn-success">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </a>
+            <a href="{{ url_for('export_attendance_record', export_type='pdf',
+                from_date=from_date.strftime('%Y-%m-%d') if from_date else '',
+                to_date=to_date.strftime('%Y-%m-%d') if to_date else '',
+                employee_id=selected_employee_id,
+                company_id=selected_company_id) }}"
+               class="btn btn-danger">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </a>
+            <button class="btn btn-outline-primary" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
         </div>
     </div>
 
@@ -24,15 +50,19 @@
         <div class="card-body">
             <form method="GET" class="row">
                 <div class="col-md-3">
-                    <label>التاريخ</label>
-                    <input type="date" name="date" class="form-control" value="{{ selected_date }}">
+                    <label>من تاريخ</label>
+                    <input type="date" name="from_date" class="form-control" value="{{ from_date.strftime('%Y-%m-%d') if from_date else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label>إلى تاريخ</label>
+                    <input type="date" name="to_date" class="form-control" value="{{ to_date.strftime('%Y-%m-%d') if to_date else '' }}">
                 </div>
                 <div class="col-md-3">
                     <label>الشركة</label>
-                    <select name="company" class="form-select">
+                    <select name="company_id" class="form-select">
                         <option value="">الكل</option>
                         {% for company in companies %}
-                        <option value="{{ company.id }}" {% if company.id == selected_company %}selected{% endif %}>
+                        <option value="{{ company.id }}" {% if company.id == selected_company_id %}selected{% endif %}>
                             {{ company.name }}
                         </option>
                         {% endfor %}
@@ -40,18 +70,19 @@
                 </div>
                 <div class="col-md-3">
                     <label>الموظف</label>
-                    <select name="employee" class="form-select">
+                    <select name="employee_id" class="form-select">
                         <option value="">الكل</option>
                         {% for emp in employees %}
-                        <option value="{{ emp.id }}" {% if emp.id == selected_employee %}selected{% endif %}>
+                        <option value="{{ emp.id }}" {% if emp.id == selected_employee_id %}selected{% endif %}>
                             {{ emp.full_name }}
                         </option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label>&nbsp;</label>
-                    <button type="submit" class="btn btn-primary w-100">تطبيق</button>
+                <div class="col-12 mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>بحث
+                    </button>
                 </div>
             </form>
         </div>
@@ -100,6 +131,7 @@
                 <table class="table table-hover" id="attendanceTable">
                     <thead>
                         <tr>
+                            <th>التاريخ</th>
                             <th>الموظف</th>
                             <th>الوظيفة</th>
                             <th>الشركة</th>
@@ -112,6 +144,7 @@
                     <tbody>
                         {% for record in attendance_records %}
                         <tr>
+                            <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
                             <td>{{ record.employee.full_name }}</td>
                             <td>{{ record.employee.position_ar }}</td>
                             <td>{{ record.employee.company.name if record.employee.company else 'غير محدد' }}</td>
@@ -130,7 +163,7 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="7" class="text-center text-muted">لا توجد سجلات حضور</td>
+                            <td colspan="8" class="text-center text-muted">لا توجد سجلات حضور</td>
                         </tr>
                         {% endfor %}
                     </tbody>

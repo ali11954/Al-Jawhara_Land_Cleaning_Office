@@ -20,7 +20,7 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <!-- عنوان الصفحة -->
+    <!-- عنوان الصفحة مع أزرار التصدير -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="text-primary mb-1">
@@ -36,14 +36,30 @@
             {% endif %}
         </div>
         <div class="btn-group">
-            <button class="btn btn-outline-primary" onclick="exportToExcel()">
+            <!-- رابط تصدير Excel -->
+            <a href="{{ url_for('export_salary_report', export_type='excel',
+                from_date=from_date.strftime('%Y-%m-%d') if from_date else '',
+                to_date=to_date.strftime('%Y-%m-%d') if to_date else '',
+                company_id=selected_company_id,
+                year=selected_year,
+                month=selected_month) }}"
+               class="btn btn-success">
                 <i class="fas fa-file-excel me-1"></i>تصدير Excel
-            </button>
-            <button class="btn btn-outline-success" onclick="window.print()">
+            </a>
+
+            <!-- رابط تصدير PDF -->
+            <a href="{{ url_for('export_salary_report', export_type='pdf',
+                from_date=from_date.strftime('%Y-%m-%d') if from_date else '',
+                to_date=to_date.strftime('%Y-%m-%d') if to_date else '',
+                company_id=selected_company_id,
+                year=selected_year,
+                month=selected_month) }}"
+               class="btn btn-danger">
+                <i class="fas fa-file-pdf me-1"></i>تصدير PDF
+            </a>
+
+            <button class="btn btn-outline-primary" onclick="window.print()">
                 <i class="fas fa-print me-1"></i>طباعة
-            </button>
-            <button class="btn btn-outline-danger" onclick="generatePayslips()">
-                <i class="fas fa-file-pdf me-1"></i>كشوف المرتبات
             </button>
         </div>
     </div>
@@ -380,7 +396,7 @@
                         <div class="card-body text-center">
                             <h3>صافي الرواتب المستحقة</h3>
                             <h1 class="display-4">{{ "{:,.2f}".format(grand_totals.net_salary) }}</h1>
-                            <p class="mb-0">فقط {{ grand_totals.net_salary|int }} ريال سعودي</p>
+                            <p class="mb-0">فقط {{ grand_totals.net_salary|int }} ريال يمني</p>
                         </div>
                     </div>
                 </div>
@@ -405,86 +421,6 @@ function toggleCompany(companyId) {
         icon.classList.remove('fa-chevron-up');
         icon.classList.add('fa-chevron-down');
     }
-}
-
-// ✅ دالة تصدير إلى Excel
-function exportToExcel() {
-    // تجهيز البيانات للتصدير
-    const rows = [];
-
-    {% for company in report_data %}
-        {% for emp in company.employees %}
-        rows.push({
-            'الشركة': '{{ company.name }}',
-            'الموظف': '{{ emp.name }}',
-            'الوظيفة': '{{ emp.position }}',
-            'الأجر اليومي': {{ emp.daily_rate }},
-            'أيام الحضور': {{ emp.present_days }},
-            'أيام الغياب': {{ emp.absent_days }},
-            'ساعات إضافية': {{ emp.overtime_hours }},
-            'الراتب الأساسي': {{ emp.base_pay }},
-            'أجر إضافي': {{ emp.overtime_pay }},
-            'البدلات': {{ emp.allowances }},
-            'خصم السلف': {{ emp.loan_deductions or 0 }},
-            'المتبقي من السلف': {{ emp.loan_remaining or 0 }},
-            'الجزاءات': {{ emp.penalties or 0 }},
-            'خصومات أخرى': {{ emp.deductions }},
-            'إجمالي الخصومات': {{ emp.total_deductions }},
-            'الراتب الصافي': {{ emp.net_salary }}
-        });
-        {% endfor %}
-    {% endfor %}
-
-    // إرسال البيانات إلى API التصدير
-    fetch('/export-to-excel', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            rows: rows,
-            report_name: 'تقرير_الرواتب_{{ month_name }}_{{ selected_year }}',
-            columns: [
-                { field: 'الشركة', label: 'الشركة' },
-                { field: 'الموظف', label: 'الموظف' },
-                { field: 'الوظيفة', label: 'الوظيفة' },
-                { field: 'الأجر اليومي', label: 'الأجر اليومي' },
-                { field: 'أيام الحضور', label: 'أيام الحضور' },
-                { field: 'أيام الغياب', label: 'أيام الغياب' },
-                { field: 'ساعات إضافية', label: 'ساعات إضافية' },
-                { field: 'الراتب الأساسي', label: 'الراتب الأساسي' },
-                { field: 'أجر إضافي', label: 'أجر إضافي' },
-                { field: 'البدلات', label: 'البدلات' },
-                { field: 'خصم السلف', label: 'خصم السلف' },
-                { field: 'المتبقي من السلف', label: 'المتبقي من السلف' },
-                { field: 'الجزاءات', label: 'الجزاءات' },
-                { field: 'خصومات أخرى', label: 'خصومات أخرى' },
-                { field: 'إجمالي الخصومات', label: 'إجمالي الخصومات' },
-                { field: 'الراتب الصافي', label: 'الراتب الصافي' }
-            ]
-        })
-    })
-    .then(response => response.blob())
-    .then(blob => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'رواتب_{{ month_name }}_{{ selected_year }}.xlsx';
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-    })
-    .catch(error => {
-        console.error('خطأ في التصدير:', error);
-        alert('حدث خطأ أثناء تصدير الملف');
-    });
-}
-
-// دالة إنشاء كشوف المرتبات
-function generatePayslips() {
-    alert('جاري إنشاء كشوف المرتبات... سيتم تحميل ملف PDF قريباً');
-    // يمكن إضافة دالة لإنشاء PDF لكل موظف لاحقاً
 }
 
 // دالة الطباعة

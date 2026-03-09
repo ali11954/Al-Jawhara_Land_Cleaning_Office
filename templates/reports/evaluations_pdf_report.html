@@ -1,10 +1,124 @@
 <!DOCTYPE html>
-<html lang="en">
+<html dir="rtl" lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <title>تقرير التقييمات</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 2cm;
+            @top-center {
+                content: "أرض الجوهرة للخدمات - تقرير التقييمات";
+                color: #1cc88a;
+                font-size: 9pt;
+                border-bottom: 1px solid #1cc88a50;
+                padding-bottom: 3px;
+            }
+            @bottom-center {
+                content: "الصفحة " counter(page) " من " counter(pages);
+                color: #666;
+                font-size: 8pt;
+                border-top: 1px solid #1cc88a50;
+                padding-top: 3px;
+            }
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .main-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #1cc88a;
+            border-radius: 10px;
+            background-color: #f8f9fc;
+        }
+        .logo {
+            width: 70px;
+            height: 70px;
+            background-color: #1cc88a;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            color: white;
+            font-size: 28px;
+        }
+        .app-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1cc88a;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9px;
+        }
+        th {
+            background-color: #1cc88a;
+            color: white;
+            padding: 5px;
+        }
+        td {
+            padding: 4px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .footer {
+            margin-top: 20px;
+            padding: 15px;
+            border-top: 3px solid #1cc88a;
+            background-color: #f8f9fc;
+        }
+    </style>
 </head>
 <body>
-$END$
+    <div class="main-header">
+        <div class="logo">⭐</div>
+        <div class="app-name">أرض الجوهرة للخدمات</div>
+        <div>تقرير التقييمات</div>
+    </div>
+    <div style="text-align:center; margin:10px;">
+        الفترة: {{ from_date }} إلى {{ to_date }} | التاريخ: {{ today.strftime('%Y-%m-%d') }}
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>التاريخ</th>
+                <th>الموظف</th>
+                <th>المقيم</th>
+                <th>المكان</th>
+                <th>النظافة</th>
+                <th>التنظيم</th>
+                <th>المعدات</th>
+                <th>السلامة</th>
+                <th>النتيجة</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in evaluations %}
+            <tr>
+                <td>{{ e.date }}</td>
+                <td>{{ e.employee }}</td>
+                <td>{{ e.evaluator }}</td>
+                <td>{{ e.place }}</td>
+                <td>{{ e.cleanliness }}</td>
+                <td>{{ e.organization }}</td>
+                <td>{{ e.equipment }}</td>
+                <td>{{ e.safety }}</td>
+                <td>{{ e.result }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="footer">
+        <div style="display:flex; justify-content:space-between;">
+            <div><strong>أرض الجوهرة للخدمات</strong></div>
+            <div>المستخدم: {{ current_user.full_name or current_user.username }}</div>
+        </div>
+    </div>
 </body>
 </html>

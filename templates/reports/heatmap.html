@@ -1,7 +1,6 @@
-<!-- templates/reports/heatmap.html -->
 {% extends "base.html" %}
 
-{% block title %}خريطة المناطق الحرارية{% endblock %}
+{% block title %}تحليل أداء المناطق والأماكن{% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
@@ -9,95 +8,307 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="text-gradient-danger mb-1">
-                <i class="fas fa-fire me-2"></i>
-                خريطة المناطق الحرارية
+                <i class="fas fa-chart-line me-2"></i>
+                تحليل أداء المناطق والأماكن
             </h2>
-            <p class="text-muted mb-0">تحليل الأداء باستخدام الخرائط الحرارية</p>
+            <p class="text-muted mb-0">تحليل تفصيلي للمعايير وتحديد نقاط القوة والضعف</p>
         </div>
         <div class="btn-group">
-            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">PDF</button>
-            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">Excel</button>
+            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </button>
+            <button class="btn btn-modern btn-success" onclick="exportReport('excel')">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-modern btn-info" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
         </div>
     </div>
 
-    <!-- عناصر التحكم -->
+    <!-- ✅ فلتر متقدم -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-white py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter me-2"></i>فلتر البيانات
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('report_heatmap') }}" class="row g-3">
+                <!-- فترة التاريخ -->
+                <div class="col-md-3">
+                    <label class="form-label">من تاريخ</label>
+                    <input type="date" class="form-control" name="date_from"
+                           value="{{ request.args.get('date_from', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">إلى تاريخ</label>
+                    <input type="date" class="form-control" name="date_to"
+                           value="{{ request.args.get('date_to', '') }}">
+                </div>
+
+                <!-- فلتر الشركة -->
+                <div class="col-md-3">
+                    <label class="form-label">الشركة</label>
+                    <select class="form-select" name="company_id">
+                        <option value="">جميع الشركات</option>
+                        {% for company in all_companies %}
+                        <option value="{{ company.id }}"
+                                {% if request.args.get('company_id')|int == company.id %}selected{% endif %}>
+                            {{ company.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- فلتر المنطقة -->
+                <div class="col-md-3">
+                    <label class="form-label">المنطقة</label>
+                    <select class="form-select" name="area_id">
+                        <option value="">جميع المناطق</option>
+                        {% for area in all_areas %}
+                        <option value="{{ area.id }}"
+                                {% if request.args.get('area_id')|int == area.id %}selected{% endif %}>
+                            {{ area.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- أزرار التحكم -->
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>تطبيق الفلتر
+                    </button>
+                    <a href="{{ url_for('report_heatmap') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-redo me-2"></i>إعادة تعيين
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- بطاقات الإحصائيات السريعة مع تحديث ديناميكي -->
     <div class="row mb-4">
-        <div class="col-md-8">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-gradient-success text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small">مناطق ممتازة</div>
+                            <div class="h3">{{ excellent_zones }}</div>
+                        </div>
+                        <i class="fas fa-star fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-gradient-primary text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small">مناطق جيدة</div>
+                            <div class="h3">{{ good_zones }}</div>
+                        </div>
+                        <i class="fas fa-thumbs-up fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-gradient-warning text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small">مناطق متوسطة</div>
+                            <div class="h3">{{ average_zones }}</div>
+                        </div>
+                        <i class="fas fa-minus-circle fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-gradient-danger text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small">مناطق ضعيفة</div>
+                            <div class="h3">{{ poor_zones }}</div>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ تحليل المعايير للأماكن -->
+    <div class="row mb-4">
+        <div class="col-12">
             <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-radar me-2"></i>
+                        تحليل المعايير للأماكن - تحديد نقاط القوة والضعف
+                        <span class="badge bg-info ms-2">{{ top_places|length }} مكان</span>
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if top_places %}
+                    <div class="row">
+                        {% for place in top_places %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card border h-100">
+                                <div class="card-header bg-light py-2">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="fw-bold">{{ place.name }}</span>
+                                        <span class="badge bg-{{ 'success' if place.avg_score >= 4 else 'warning' if place.avg_score >= 3 else 'danger' }}">
+                                            {{ "%.1f"|format(place.avg_score) }}/5
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-3">
+                                    <!-- معايير المكان -->
+                                    <div class="criteria-grid">
+                                        {% set criteria = [
+                                            ('النظافة', place.cleanliness),
+                                            ('التنظيم', place.organization),
+                                            ('المعدات', place.equipment),
+                                            ('السلامة', place.safety)
+                                        ] %}
+
+                                        {% for name, value in criteria %}
+                                        <div class="criteria-item mt-2 {% if loop.first %}mt-0{% endif %}">
+                                            <small class="text-muted">{{ name }}</small>
+                                            <div class="d-flex align-items-center">
+                                                <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                    <div class="progress-bar {{ 'bg-success' if value >= 4 else 'bg-warning' if value >= 3 else 'bg-danger' }}"
+                                                         style="width: {{ value * 20 }}%"></div>
+                                                </div>
+                                                <span class="fw-bold">{{ "%.1f"|format(value) }}</span>
+                                            </div>
+                                            {% if value >= 4 %}
+                                            <small class="text-success"><i class="fas fa-arrow-up"></i> قوة</small>
+                                            {% elif value <= 2.5 %}
+                                            <small class="text-danger"><i class="fas fa-arrow-down"></i> ضعف</small>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+
+                                    <div class="mt-3 pt-2 border-top">
+                                        <small class="text-muted">
+                                            <i class="fas fa-map-marker-alt me-1"></i> {{ place.location_name }}
+                                        </small>
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-chart-line me-1"></i> {{ place.evaluations_count }} تقييم
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">لا توجد أماكن متاحة للعرض</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- صف الرسوم البيانية الأولى -->
+    <div class="row mb-4">
+        <div class="col-xl-8">
+            <div class="card shadow h-100">
                 <div class="card-header bg-white py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <h6 class="m-0 font-weight-bold text-primary">
-                            <i class="fas fa-map me-2"></i>الخريطة الحرارية للأداء
+                            <i class="fas fa-chart-bar me-2"></i>توزيع أداء المناطق
                         </h6>
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-primary active" onclick="changeHeatmapType('performance')">الأداء</button>
-                            <button class="btn btn-outline-primary" onclick="changeHeatmapType('attendance')">الحضور</button>
-                            <button class="btn btn-outline-primary" onclick="changeHeatmapType('evaluations')">التقييمات</button>
+                        <div>
+                            <span class="badge bg-info me-2">{{ zones_data|length }} منطقة</span>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary active" onclick="changeChartType('bar')">أعمدة</button>
+                                <button class="btn btn-outline-primary" onclick="changeChartType('line')">خطي</button>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="card-body p-0">
-                    <div id="heatmap" style="height: 500px;"></div>
+                <div class="card-body" style="height: 350px;">
+                    <canvas id="performanceChart" style="height: 100%; width: 100%;"></canvas>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-xl-4">
             <div class="card shadow h-100">
                 <div class="card-header bg-white py-3">
                     <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-info-circle me-2"></i>مؤشر الخريطة الحرارية
+                        <i class="fas fa-chart-pie me-2"></i>توزيع المناطق حسب الأداء
                     </h6>
                 </div>
-                <div class="card-body">
-                    <div class="heatmap-legend">
-                        <div class="legend-item">
-                            <span class="color-box" style="background: #1cc88a;"></span>
-                            <span>أداء ممتاز (90-100%)</span>
+                <div class="card-body" style="height: 350px;">
+                    <canvas id="distributionPieChart" style="height: 200px; width: 100%;"></canvas>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><span class="badge bg-success me-2">&nbsp;</span> ممتاز (80%+)</span>
+                            <span class="fw-bold">{{ excellent_zones }}</span>
                         </div>
-                        <div class="legend-item">
-                            <span class="color-box" style="background: #4e73df;"></span>
-                            <span>أداء جيد جداً (80-89%)</span>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><span class="badge bg-primary me-2">&nbsp;</span> جيد (70-79%)</span>
+                            <span class="fw-bold">{{ good_zones }}</span>
                         </div>
-                        <div class="legend-item">
-                            <span class="color-box" style="background: #36b9cc;"></span>
-                            <span>أداء جيد (70-79%)</span>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><span class="badge bg-warning me-2">&nbsp;</span> متوسط (60-69%)</span>
+                            <span class="fw-bold">{{ average_zones }}</span>
                         </div>
-                        <div class="legend-item">
-                            <span class="color-box" style="background: #f6c23e;"></span>
-                            <span>أداء متوسط (60-69%)</span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="color-box" style="background: #e74a3b;"></span>
-                            <span>ضعيف (<60%)</span>
+                        <div class="d-flex justify-content-between">
+                            <span><span class="badge bg-danger me-2">&nbsp;</span> ضعيف (<60%)</span>
+                            <span class="fw-bold">{{ poor_zones }}</span>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                    <hr>
+    <!-- صف الرسوم البيانية الثانية -->
+    <div class="row mb-4">
+        <div class="col-xl-6">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-chart-line me-2"></i>تطور أداء المناطق (آخر 6 أشهر)
+                    </h6>
+                </div>
+                <div class="card-body" style="height: 300px;">
+                    <canvas id="trendChart" style="height: 100%; width: 100%;"></canvas>
+                </div>
+            </div>
+        </div>
 
-                    <div class="stats-summary">
-                        <h6 class="fw-bold mb-3">ملخص الأداء</h6>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>المناطق الممتازة:</span>
-                            <span class="fw-bold text-success">{{ excellent_zones }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>المناطق الجيدة:</span>
-                            <span class="fw-bold text-primary">{{ good_zones }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>المناطق المتوسطة:</span>
-                            <span class="fw-bold text-warning">{{ average_zones }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>المناطق الضعيفة:</span>
-                            <span class="fw-bold text-danger">{{ poor_zones }}</span>
-                        </div>
+        <div class="col-xl-6">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-info">
+                        <i class="fas fa-tachometer-alt me-2"></i>مقارنة أداء الشركات
+                    </h6>
+                </div>
+                <div class="card-body" style="height: 300px;">
+                    {% if companies_data %}
+                    <canvas id="companiesComparisonChart" style="height: 100%; width: 100%;"></canvas>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-building fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">لا توجد بيانات كافية للمقارنة</p>
                     </div>
-
-                    <button class="btn btn-primary w-100 mt-3" onclick="refreshHeatmap()">
-                        <i class="fas fa-sync-alt me-1"></i> تحديث البيانات
-                    </button>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -110,62 +321,245 @@
                 <div class="card-header bg-white py-3">
                     <h6 class="m-0 font-weight-bold text-primary">
                         <i class="fas fa-list me-2"></i>المناطق حسب مستوى الأداء
+                        <span class="badge bg-info ms-2">{{ excellent_zones + good_zones + average_zones + poor_zones }} منطقة</span>
                     </h6>
                 </div>
                 <div class="card-body">
                     <ul class="nav nav-pills mb-3" id="performanceTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="excellent-tab" data-bs-toggle="pill" data-bs-target="#excellent" type="button">
-                                ممتاز <span class="badge bg-success ms-1">{{ excellent_zones }}</span>
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#excellent">
+                                ممتاز <span class="badge bg-success ms-1">{{ excellent_zones_list|length }}</span>
                             </button>
                         </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="good-tab" data-bs-toggle="pill" data-bs-target="#good" type="button">
-                                جيد <span class="badge bg-primary ms-1">{{ good_zones }}</span>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#good">
+                                جيد <span class="badge bg-primary ms-1">{{ good_zones_list|length }}</span>
                             </button>
                         </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="average-tab" data-bs-toggle="pill" data-bs-target="#average" type="button">
-                                متوسط <span class="badge bg-warning ms-1">{{ average_zones }}</span>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#average">
+                                متوسط <span class="badge bg-warning ms-1">{{ average_zones_list|length }}</span>
                             </button>
                         </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="poor-tab" data-bs-toggle="pill" data-bs-target="#poor" type="button">
-                                ضعيف <span class="badge bg-danger ms-1">{{ poor_zones }}</span>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#poor">
+                                ضعيف <span class="badge bg-danger ms-1">{{ poor_zones_list|length }}</span>
                             </button>
                         </li>
                     </ul>
 
-                    <div class="tab-content" id="performanceTabsContent">
+                    <div class="tab-content">
+                        <!-- تبويب المناطق الممتازة -->
                         <div class="tab-pane fade show active" id="excellent">
+                            {% if excellent_zones_list %}
                             <div class="table-responsive">
-                                <table class="table">
-                                    <thead>
+                                <table class="table table-hover">
+                                    <thead class="bg-light">
                                         <tr>
                                             <th>المنطقة</th>
                                             <th>الشركة</th>
                                             <th>المشرف</th>
                                             <th>الأداء</th>
+                                            <th>الأماكن</th>
+                                            <th>التقييمات</th>
                                             <th>آخر تقييم</th>
+                                            <th></th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {% for zone in excellent_zones_list %}
                                         <tr>
-                                            <td>{{ zone.name }}</td>
+                                            <td class="fw-bold">{{ zone.name }}</td>
                                             <td>{{ zone.company_name }}</td>
-                                            <td>{{ zone.supervisor_name }}</td>
+                                            <td>{{ zone.supervisor_name or 'غير محدد' }}</td>
                                             <td>
-                                                <span class="badge bg-success">{{ zone.performance }}%</span>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                        <div class="progress-bar bg-success"
+                                                             style="width: {{ zone.performance }}%;"></div>
+                                                    </div>
+                                                    <span class="fw-bold text-success">{{ zone.performance }}%</span>
+                                                </div>
                                             </td>
-                                            <td>{{ zone.last_evaluation|date }}</td>
+                                            <td>{{ zone.places_count }}</td>
+                                            <td>{{ zone.evaluations_count }}</td>
+                                            <td>{{ zone.last_evaluation }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-success"
+                                                        onclick="viewZoneDetails({{ zone.id }})">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </td>
                                         </tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>
                             </div>
+                            {% else %}
+                            <div class="text-center py-3">
+                                <p class="text-muted mb-0">لا توجد مناطق في هذا التصنيف</p>
+                            </div>
+                            {% endif %}
                         </div>
-                        <!-- تكرار باقي التبويبات -->
+
+                        <!-- تبويب المناطق الجيدة -->
+                        <div class="tab-pane fade" id="good">
+                            {% if good_zones_list %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>المنطقة</th>
+                                            <th>الشركة</th>
+                                            <th>المشرف</th>
+                                            <th>الأداء</th>
+                                            <th>الأماكن</th>
+                                            <th>التقييمات</th>
+                                            <th>آخر تقييم</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for zone in good_zones_list %}
+                                        <tr>
+                                            <td class="fw-bold">{{ zone.name }}</td>
+                                            <td>{{ zone.company_name }}</td>
+                                            <td>{{ zone.supervisor_name or 'غير محدد' }}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                        <div class="progress-bar bg-primary"
+                                                             style="width: {{ zone.performance }}%;"></div>
+                                                    </div>
+                                                    <span class="fw-bold text-primary">{{ zone.performance }}%</span>
+                                                </div>
+                                            </td>
+                                            <td>{{ zone.places_count }}</td>
+                                            <td>{{ zone.evaluations_count }}</td>
+                                            <td>{{ zone.last_evaluation }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary"
+                                                        onclick="viewZoneDetails({{ zone.id }})">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-3">
+                                <p class="text-muted mb-0">لا توجد مناطق في هذا التصنيف</p>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- تبويب المناطق المتوسطة -->
+                        <div class="tab-pane fade" id="average">
+                            {% if average_zones_list %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>المنطقة</th>
+                                            <th>الشركة</th>
+                                            <th>المشرف</th>
+                                            <th>الأداء</th>
+                                            <th>الأماكن</th>
+                                            <th>التقييمات</th>
+                                            <th>آخر تقييم</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for zone in average_zones_list %}
+                                        <tr>
+                                            <td class="fw-bold">{{ zone.name }}</td>
+                                            <td>{{ zone.company_name }}</td>
+                                            <td>{{ zone.supervisor_name or 'غير محدد' }}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                        <div class="progress-bar bg-warning"
+                                                             style="width: {{ zone.performance }}%;"></div>
+                                                    </div>
+                                                    <span class="fw-bold text-warning">{{ zone.performance }}%</span>
+                                                </div>
+                                            </td>
+                                            <td>{{ zone.places_count }}</td>
+                                            <td>{{ zone.evaluations_count }}</td>
+                                            <td>{{ zone.last_evaluation }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-warning"
+                                                        onclick="viewZoneDetails({{ zone.id }})">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-3">
+                                <p class="text-muted mb-0">لا توجد مناطق في هذا التصنيف</p>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- تبويب المناطق الضعيفة -->
+                        <div class="tab-pane fade" id="poor">
+                            {% if poor_zones_list %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>المنطقة</th>
+                                            <th>الشركة</th>
+                                            <th>المشرف</th>
+                                            <th>الأداء</th>
+                                            <th>الأماكن</th>
+                                            <th>التقييمات</th>
+                                            <th>آخر تقييم</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for zone in poor_zones_list %}
+                                        <tr>
+                                            <td class="fw-bold">{{ zone.name }}</td>
+                                            <td>{{ zone.company_name }}</td>
+                                            <td>{{ zone.supervisor_name or 'غير محدد' }}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                        <div class="progress-bar bg-danger"
+                                                             style="width: {{ zone.performance }}%;"></div>
+                                                    </div>
+                                                    <span class="fw-bold text-danger">{{ zone.performance }}%</span>
+                                                </div>
+                                            </td>
+                                            <td>{{ zone.places_count }}</td>
+                                            <td>{{ zone.evaluations_count }}</td>
+                                            <td>{{ zone.last_evaluation }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-danger"
+                                                        onclick="viewZoneDetails({{ zone.id }})">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-3">
+                                <p class="text-muted mb-0">لا توجد مناطق في هذا التصنيف</p>
+                            </div>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -173,77 +567,208 @@
     </div>
 </div>
 
-<!-- Leaflet و Leaflet.heat -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<!-- إضافة Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-const heatmapData = {{ heatmap_data|tojson }};
-let heatmapLayer;
+// بيانات من Flask
+const zonesData = {{ zones_data|tojson }};
+const companiesData = {{ companies_data|tojson }};
+const trendsData = {{ trends_data|tojson }};
 
 document.addEventListener('DOMContentLoaded', function() {
-    initHeatmap();
+    initCharts();
 });
 
-function initHeatmap() {
-    // إنشاء الخريطة
-    const map = L.map('heatmap').setView([24.7136, 46.6753], 10);
+function initCharts() {
+    // رسم بياني 1: توزيع أداء المناطق
+    if (zonesData.length > 0) {
+        const perfCtx = document.getElementById('performanceChart').getContext('2d');
+        new Chart(perfCtx, {
+            type: 'bar',
+            data: {
+                labels: zonesData.map(z => z.name.length > 12 ? z.name.substring(0, 12) + '...' : z.name),
+                datasets: [{
+                    label: 'نسبة الأداء',
+                    data: zonesData.map(z => z.performance),
+                    backgroundColor: zonesData.map(z =>
+                        z.performance >= 80 ? 'rgba(28, 200, 138, 0.7)' :
+                        z.performance >= 70 ? 'rgba(78, 115, 223, 0.7)' :
+                        z.performance >= 60 ? 'rgba(246, 194, 62, 0.7)' :
+                        'rgba(231, 74, 59, 0.7)'
+                    ),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `${ctx.raw}%`
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: { display: true, text: 'نسبة الأداء %' }
+                    }
+                }
+            }
+        });
+    }
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+    // رسم بياني 2: توزيع المناطق (دائري)
+    const pieData = [
+        {{ excellent_zones }},
+        {{ good_zones }},
+        {{ average_zones }},
+        {{ poor_zones }}
+    ];
 
-    // تحويل البيانات إلى نقاط حرارية
-    const heatPoints = heatmapData.map(point => [
-        point.lat,
-        point.lng,
-        point.intensity
-    ]);
+    if (pieData.some(v => v > 0)) {
+        const pieCtx = document.getElementById('distributionPieChart').getContext('2d');
+        new Chart(pieCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['ممتاز (80%+)', 'جيد (70-79%)', 'متوسط (60-69%)', 'ضعيف (<60%)'],
+                datasets: [{
+                    data: pieData,
+                    backgroundColor: ['#1cc88a', '#4e73df', '#f6c23e', '#e74a3b'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `${ctx.raw} منطقة (${((ctx.raw / {{ excellent_zones + good_zones + average_zones + poor_zones }}) * 100).toFixed(1)}%)`
+                        }
+                    }
+                },
+                cutout: '60%'
+            }
+        });
+    }
 
-    // إضافة الطبقة الحرارية
-    heatmapLayer = L.heatLayer(heatPoints, {
-        radius: 25,
-        blur: 15,
-        maxZoom: 17,
-        gradient: {
-            0.0: '#1cc88a',
-            0.3: '#4e73df',
-            0.6: '#f6c23e',
-            0.8: '#e74a3b'
-        }
-    }).addTo(map);
+    // رسم بياني 3: اتجاهات الأداء
+    if (trendsData && trendsData.months) {
+        const trendCtx = document.getElementById('trendChart').getContext('2d');
+        new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: trendsData.months,
+                datasets: [
+                    {
+                        label: 'المناطق الممتازة',
+                        data: trendsData.excellent,
+                        borderColor: '#1cc88a',
+                        backgroundColor: 'rgba(28, 200, 138, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'المناطق الجيدة',
+                        data: trendsData.good,
+                        borderColor: '#4e73df',
+                        backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'المناطق الضعيفة',
+                        data: trendsData.poor,
+                        borderColor: '#e74a3b',
+                        backgroundColor: 'rgba(231, 74, 59, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: { mode: 'index', intersect: false }
+                }
+            }
+        });
+    }
+
+    // رسم بياني 4: مقارنة أداء الشركات
+    if (companiesData.length > 0) {
+        const radarCtx = document.getElementById('companiesComparisonChart').getContext('2d');
+        new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: companiesData.map(c => c.name.length > 15 ? c.name.substring(0, 15) + '...' : c.name),
+                datasets: [{
+                    label: 'أداء الشركات',
+                    data: companiesData.map(c => c.avg_performance),
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    pointBackgroundColor: 'rgba(54, 162, 235, 1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        min: 0,
+                        max: 100,
+                        ticks: { stepSize: 20 },
+                        pointLabels: { font: { size: 11 } }
+                    }
+                }
+            }
+        });
+    }
 }
 
-function changeHeatmapType(type) {
-    // تغيير نوع البيانات المعروضة في الخريطة الحرارية
-    alert(`تغيير نوع الخريطة الحرارية إلى: ${type}`);
+// دوال مساعدة
+function changeChartType(type) {
+    const perfChart = Chart.getChart('performanceChart');
+    if (perfChart) {
+        perfChart.destroy();
+        initCharts();
+    }
 }
 
-function refreshHeatmap() {
-    location.reload();
+function viewZoneDetails(zoneId) {
+    window.location.href = `/areas/${zoneId}`;
+}
+
+function exportReport(format) {
+    showLoading();
+    setTimeout(() => {
+        hideLoading();
+        alert(`جاري تصدير التقرير بصيغة ${format.toUpperCase()}`);
+    }, 1000);
 }
 </script>
 
 <style>
-.heatmap-legend {
-    padding: 1rem;
-    background: #f8f9fc;
+.bg-gradient-success { background: linear-gradient(135deg, #1cc88a, #13855c); }
+.bg-gradient-primary { background: linear-gradient(135deg, #4e73df, #224abe); }
+.bg-gradient-warning { background: linear-gradient(135deg, #f6c23e, #dda20a); }
+.bg-gradient-danger { background: linear-gradient(135deg, #e74a3b, #be2617); }
+
+.card {
     border-radius: 10px;
-    margin-bottom: 1rem;
+    border: none;
 }
 
-.legend-item {
-    display: flex;
-    align-items: center;
-    margin-bottom: 0.5rem;
-}
-
-.color-box {
-    width: 30px;
-    height: 20px;
-    border-radius: 4px;
-    margin-left: 10px;
+.card-header {
+    border-bottom: 1px solid #edf2f9;
+    background: white;
 }
 
 .nav-pills .nav-link {
@@ -251,6 +776,7 @@ function refreshHeatmap() {
     background: #f8f9fc;
     margin-left: 5px;
     border-radius: 25px;
+    padding: 0.5rem 1.2rem;
 }
 
 .nav-pills .nav-link.active {
@@ -260,6 +786,38 @@ function refreshHeatmap() {
 
 .nav-pills .nav-link .badge {
     background: rgba(0,0,0,0.1);
+}
+
+.nav-pills .nav-link.active .badge {
+    background: rgba(255,255,255,0.2);
+}
+
+.table th {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #5a5c69;
+}
+
+.progress {
+    background-color: #eaecf4;
+    border-radius: 10px;
+}
+
+.opacity-50 {
+    opacity: 0.5;
+}
+
+.criteria-grid {
+    font-size: 0.85rem;
+}
+
+.criteria-item {
+    padding: 4px 0;
+}
+
+canvas {
+    max-height: 100%;
+    width: 100% !important;
 }
 </style>
 {% endblock %}
