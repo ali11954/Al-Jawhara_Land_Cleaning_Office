@@ -7,6 +7,12 @@ import json
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import BadRequest
 import os
+import tempfile
+import subprocess
+from weasyprint import HTML
+import pdfkit
+from flask import make_response
+from datetime import datetime
 import humanize
 from babel.dates import format_timedelta
 import arabic_reshaper
@@ -825,7 +831,7 @@ def export_pdf(html_content, filename_prefix):
 
         else:
             # محلياً: استخدام WeasyPrint
-            from weasyprint import HTML
+            from weasyprint import HTML  # ✅ هذا السطر كان مفقوداً
             html = HTML(string=html_content)
             pdf = html.write_pdf()
 
@@ -841,58 +847,6 @@ def export_pdf(html_content, filename_prefix):
         app.logger.error(f"PDF Generation Error: {str(e)}")
         return None
 
-def export_pdf_with_pdfkit(html_content, filename_prefix):
-    """
-    دالة لإنشاء PDF باستخدام PDFKit مع تحديد المسار الكامل
-    """
-    import pdfkit
-    from flask import make_response
-    from datetime import datetime
-    import os
-
-    try:
-        # المسار الكامل لـ wkhtmltopdf (تأكد من وجوده)
-        path_to_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
-
-        # التحقق من وجود الملف
-        if not os.path.exists(path_to_wkhtmltopdf):
-            app.logger.error(f"الملف غير موجود: {path_to_wkhtmltopdf}")
-            # جرب مساراً آخر
-            path_to_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
-
-        # تكوين PDFKit مع المسار
-        config = pdfkit.configuration(wkhtmltopdf=path_to_wkhtmltopdf)
-
-        # خيارات PDF
-        options = {
-            'page-size': 'A4',
-            'orientation': 'Landscape',
-            'encoding': 'UTF-8',
-            'no-outline': None,
-            'margin-top': '20mm',
-            'margin-right': '15mm',
-            'margin-bottom': '20mm',
-            'margin-left': '15mm',
-            'enable-local-file-access': None
-        }
-
-        # إنشاء PDF مع تحديد المسار
-        pdf = pdfkit.from_string(html_content, False, options=options, configuration=config)
-
-        # تجهيز الاستجابة
-        today = datetime.now()
-        response = make_response(pdf)
-        response.headers['Content-Type'] = 'application/pdf'
-        response.headers[
-            'Content-Disposition'] = f'attachment; filename={filename_prefix}_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
-        return response
-
-    except Exception as e:
-        app.logger.error(f"PDFKit Error: {str(e)}")
-        # طباعة تفاصيل أكثر للخطأ
-        import traceback
-        traceback.print_exc()
-        return None
 # Authentication routes
 @app.route('/login', methods=['GET', 'POST'])
 def login():
