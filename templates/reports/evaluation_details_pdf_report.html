@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>تقرير تفاصيل التقييمات حسب المعايير</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 2cm 1.5cm 1.8cm 1.5cm;
+
+            @top-center {
+                content: "أرض الجوهرة للخدمات - تفاصيل التقييمات حسب المعايير";
+                color: #f6c23e;
+                font-size: 9pt;
+                font-family: Arial, sans-serif;
+                border-bottom: 1px solid #f6c23e50;
+                padding-bottom: 3px;
+            }
+
+            @bottom-center {
+                content: "الحديدة - اليمن | هاتف: 776605949 | بريد: info@jewel-land.com | الصفحة " counter(page) " من " counter(pages);
+                color: #666;
+                font-size: 8pt;
+                font-family: Arial, sans-serif;
+                border-top: 1px solid #f6c23e50;
+                padding-top: 3px;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .main-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #f6c23e;
+            border-radius: 10px;
+            background-color: #f8f9fc;
+        }
+
+        .logo {
+            width: 70px;
+            height: 70px;
+            background-color: #f6c23e;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            color: white;
+            font-size: 28px;
+        }
+
+        .app-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #f6c23e;
+            margin: 3px 0;
+        }
+
+        .report-title {
+            font-size: 16px;
+            color: #666;
+            margin: 3px 0;
+        }
+
+        .meta {
+            text-align: center;
+            margin: 15px 0;
+            padding: 8px;
+            background-color: #f8f9fc;
+            border-radius: 5px;
+            font-size: 11px;
+            border: 1px solid #e3e6f0;
+        }
+
+        /* بطاقات المعايير */
+        .criteria-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .criterion-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .criterion-header {
+            padding: 8px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .criterion-body {
+            padding: 10px;
+        }
+
+        .progress {
+            height: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            margin: 8px 0;
+        }
+
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            margin: 5px 0;
+        }
+
+        /* الجدول */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 10px;
+        }
+
+        th {
+            padding: 8px 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        td {
+            padding: 6px 4px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .bg-success { background-color: #1cc88a; color: white; }
+        .bg-info { background-color: #36b9cc; color: white; }
+        .bg-primary { background-color: #4e73df; color: white; }
+        .bg-warning { background-color: #f6c23e; color: white; }
+        .bg-danger { background-color: #e74a3b; color: white; }
+
+        .footer {
+            margin-top: 30px;
+            padding: 20px;
+            border-top: 3px solid #f6c23e;
+            background-color: #f8f9fc;
+            border-radius: 8px;
+            page-break-inside: avoid;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .designer-info {
+            border-right: 3px solid #f6c23e;
+            padding-right: 15px;
+        }
+
+        .designer-badge {
+            background-color: #f6c23e;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 10px;
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+
+        .footer-logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #f6c23e, #dda20a);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .copyright {
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 8px;
+            border-top: 1px solid #ddd;
+            font-size: 9px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-header">
+        <div class="logo">📊</div>
+        <div class="app-name">أرض الجوهرة للخدمات</div>
+        <div class="report-title">تفاصيل التقييمات حسب المعايير</div>
+    </div>
+
+    <div class="meta">
+        <strong>تاريخ التقرير:</strong> {{ today.strftime('%Y-%m-%d') }} |
+        <strong>وقت الطباعة:</strong> {{ today.strftime('%H:%M:%S') }}
+    </div>
+
+    <!-- بطاقات المعايير -->
+    <div class="criteria-grid">
+        {% for criterion in criteria %}
+        <div class="criterion-card">
+            <div class="criterion-header bg-{{ criterion.color }}">
+                {{ criterion.name }}
+            </div>
+            <div class="criterion-body">
+                <div class="stat-row">
+                    <span>المتوسط:</span>
+                    <span class="fw-bold">{{ "%.1f"|format(criterion.avg) }}/5</span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar bg-{{ criterion.color }}" style="width: {{ criterion.avg * 20 }}%;"></div>
+                </div>
+                <div class="stat-row">
+                    <span>الأعلى:</span>
+                    <span>{{ "%.1f"|format(criterion.max) }}</span>
+                </div>
+                <div class="stat-row">
+                    <span>الأدنى:</span>
+                    <span>{{ "%.1f"|format(criterion.min) }}</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- جدول التفاصيل -->
+    <table>
+        <thead>
+            <tr>
+                <th class="bg-primary">المعيار</th>
+                <th class="bg-success">ممتاز (5)</th>
+                <th class="bg-info">جيد جداً (4)</th>
+                <th class="bg-primary">جيد (3)</th>
+                <th class="bg-warning">مقبول (2)</th>
+                <th class="bg-danger">ضعيف (1)</th>
+                <th class="bg-primary">المجموع</th>
+                <th class="bg-primary">المتوسط</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for detail in criteria_details %}
+            <tr>
+                <td><strong>{{ detail.name }}</strong></td>
+                <td>{{ detail.excellent }}</td>
+                <td>{{ detail.good }}</td>
+                <td>{{ detail.average }}</td>
+                <td>{{ detail.poor }}</td>
+                <td>{{ detail.very_poor }}</td>
+                <td><strong>{{ detail.total }}</strong></td>
+                <td>
+                    {% set avg = (detail.excellent*5 + detail.good*4 + detail.average*3 + detail.poor*2 + detail.very_poor*1) / detail.total if detail.total > 0 else 0 %}
+                    {{ "%.1f"|format(avg) }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- ملخص المستويات -->
+    {% set excellent_count = criteria|selectattr('avg', '>=', 4.5)|list|length %}
+    {% set good_count = criteria|selectattr('avg', '>=', 4)|selectattr('avg', '<', 4.5)|list|length %}
+    {% set average_count = criteria|selectattr('avg', '>=', 3)|selectattr('avg', '<', 4)|list|length %}
+    {% set poor_count = criteria|selectattr('avg', '<', 3)|list|length %}
+
+    <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fc; border-radius: 5px;">
+        <h4 style="margin-top:0; color:#f6c23e;">📊 توزيع مستويات المعايير</h4>
+        <div style="display: flex; gap: 15px;">
+            <div style="flex:1; text-align: center;">
+                <div style="font-size: 14px; color:#1cc88a;">ممتاز</div>
+                <div style="font-size: 18px; font-weight:bold;">{{ excellent_count }}</div>
+            </div>
+            <div style="flex:1; text-align: center;">
+                <div style="font-size: 14px; color:#4e73df;">جيد جداً</div>
+                <div style="font-size: 18px; font-weight:bold;">{{ good_count }}</div>
+            </div>
+            <div style="flex:1; text-align: center;">
+                <div style="font-size: 14px; color:#36b9cc;">جيد</div>
+                <div style="font-size: 18px; font-weight:bold;">{{ average_count }}</div>
+            </div>
+            <div style="flex:1; text-align: center;">
+                <div style="font-size: 14px; color:#e74a3b;">ضعيف</div>
+                <div style="font-size: 18px; font-weight:bold;">{{ poor_count }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تذييل التقرير -->
+    <div class="footer">
+        <div class="footer-content">
+            <div>
+                <div class="footer-logo">💎</div>
+                <strong style="color: #f6c23e; font-size: 12px;">أرض الجوهرة للخدمات</strong><br>
+                <span style="font-size: 9px; color: #666;">الحديدة - مدينة العمال</span>
+            </div>
+
+            <div class="designer-info">
+                <div class="designer-badge">👨‍💻 معلومات المصمم</div>
+                <div style="font-size: 9px;">
+                    <div><strong>إعداد وتصميم: غيث العنزي</strong></div>
+                    <div>المستخدم: {{ current_user.full_name or current_user.username }}</div>
+                    <div>تاريخ التقرير: {{ today.strftime('%Y-%m-%d') }}</div>
+                    <div>وقت الطباعة: {{ today.strftime('%H:%M:%S') }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="copyright">
+            © {{ today.year }} جميع الحقوق محفوظة - تصميم وبرمجة: الغيث لتصميم البرامج
+        </div>
+    </div>
+</body>
+</html>

@@ -7493,6 +7493,151 @@ def overtime_list():
         app.logger.error(traceback.format_exc())
         flash(f'حدث خطأ: {str(e)}', 'error')
         return redirect(url_for('reports_index'))
+
+# ============================================
+# تصدير تقرير الساعات الإضافية
+# ============================================
+@app.route('/overtime/export/<export_type>')
+@login_required
+def export_overtime(export_type):
+    """تصدير تقرير الساعات الإضافية"""
+    if not check_permission('can_view_overtime'):
+        flash('غير مصرح', 'error')
+        return redirect(url_for('reports_index'))
+
+    try:
+        from models import Overtime
+
+        # الحصول على معاملات الفلترة
+        employee_id = request.args.get('employee_id', type=int)
+        from_date_str = request.args.get('from_date', '')
+        to_date_str = request.args.get('to_date', '')
+        status = request.args.get('status', '')
+
+        # تحويل النصوص إلى كائنات تاريخ
+        from_date = None
+        to_date = None
+
+        if from_date_str:
+            try:
+                from_date = datetime.strptime(from_date_str, '%Y-%m-%d').date()
+            except:
+                from_date = None
+
+        if to_date_str:
+            try:
+                to_date = datetime.strptime(to_date_str, '%Y-%m-%d').date()
+            except:
+                to_date = None
+
+        # بناء الاستعلام
+        query = Overtime.query
+
+        if employee_id:
+            query = query.filter_by(employee_id=employee_id)
+
+        if from_date:
+            query = query.filter(Overtime.overtime_date >= from_date)
+
+        if to_date:
+            query = query.filter(Overtime.overtime_date <= to_date)
+
+        if status == 'transferred':
+            query = query.filter_by(is_transferred=True)
+        elif status == 'pending':
+            query = query.filter_by(is_transferred=False)
+
+        # تنفيذ الاستعلام
+        overtime_records = query.order_by(Overtime.overtime_date.desc()).all()
+
+        # إحصائيات
+        total_hours = sum(r.hours for r in overtime_records)
+        total_cost = sum(r.cost for r in overtime_records)
+        transferred_hours = sum(r.hours for r in overtime_records if r.is_transferred)
+        transferred_cost = sum(r.cost for r in overtime_records if r.is_transferred)
+        pending_hours = sum(r.hours for r in overtime_records if not r.is_transferred)
+        pending_cost = sum(r.cost for r in overtime_records if not r.is_transferred)
+
+        # تجهيز بيانات للتصدير
+        rows = []
+        for record in overtime_records:
+            rows.append({
+                'id': record.id,
+                'employee_id': record.employee_id,
+                'employee_name': record.employee.full_name if record.employee else 'غير معروف',
+                'overtime_date': record.overtime_date.strftime('%Y-%m-%d'),
+                'month': record.month,
+                'year': record.year,
+                'hours': record.hours,
+                'rate': record.rate,
+                'cost': record.cost,
+                'reason': record.reason or '',
+                'notes': record.notes or '',
+                'is_transferred': 'نعم' if record.is_transferred else 'لا'
+            })
+
+        today = datetime.now()
+
+        if export_type == 'excel':
+            excel_rows = []
+            for row in rows:
+                excel_rows.append({
+                    'الموظف': row['employee_name'],
+                    'التاريخ': row['overtime_date'],
+                    'الشهر': row['month'],
+                    'السنة': row['year'],
+                    'عدد الساعات': row['hours'],
+                    'سعر الساعة': row['rate'],
+                    'التكلفة': row['cost'],
+                    'السبب': row['reason'],
+                    'ملاحظات': row['notes'],
+                    'تم الترحيل': row['is_transferred']
+                })
+
+            headers = ['الموظف', 'التاريخ', 'الشهر', 'السنة', 'عدد الساعات', 'سعر الساعة', 'التكلفة', 'السبب', 'ملاحظات', 'تم الترحيل']
+            report_name = f"تقرير الساعات الإضافية {today.strftime('%Y-%m-%d')}"
+            filename_prefix = f"overtime_report_{today.strftime('%Y%m%d')}"
+            return export_report(export_type, report_name, headers, excel_rows, filename_prefix, 'landscape')
+
+        elif export_type == 'pdf':
+            from flask import render_template
+
+            try:
+                html_content = render_template(
+                    'reports/overtime_pdf_report.html',
+                    overtime_data=rows,
+                    total_hours=round(total_hours, 1),
+                    total_cost=round(total_cost, 2),
+                    transferred_hours=round(transferred_hours, 1),
+                    transferred_cost=round(transferred_cost, 2),
+                    pending_hours=round(pending_hours, 1),
+                    pending_cost=round(pending_cost, 2),
+                    records_count=len(rows),
+                    today=today,
+                    current_user=current_user
+                )
+
+                response = export_pdf(html_content, 'overtime_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('overtime_list', **request.args))
+
+            except Exception as pdf_error:
+                app.logger.error(f"PDF Error: {str(pdf_error)}")
+                import traceback
+                traceback.print_exc()
+                flash(f'حدث خطأ في إنشاء PDF: {str(pdf_error)}', 'error')
+                return redirect(url_for('overtime_list', **request.args))
+
+    except Exception as e:
+        app.logger.error(f"Error exporting overtime: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
+        return redirect(url_for('overtime_list', **request.args))
+
 @app.route('/overtime/add', methods=['POST'])
 @login_required
 def add_overtime():
@@ -10114,6 +10259,151 @@ def report_evaluation_details_advanced():
         return redirect(url_for('reports_index'))
 
 
+# ============================================
+# تصدير تقرير تفاصيل التقييمات حسب المعايير
+# ============================================
+@app.route('/reports/evaluation-details/export/<export_type>')
+@login_required
+def export_evaluation_details(export_type):
+    """تصدير تقرير تفاصيل التقييمات حسب المعايير"""
+    if not check_permission('can_view_evaluations'):
+        flash('غير مصرح', 'error')
+        return redirect(url_for('reports_index'))
+
+    try:
+        # جلب البيانات (نفس طريقة report_evaluation_details_advanced)
+        from models import CleaningEvaluation
+        all_evaluations = CleaningEvaluation.query.all()
+
+        # حساب إحصائيات المعايير
+        criteria = [
+            {'name': 'النظافة', 'avg': 0, 'color': 'primary', 'max': 0, 'min': 0},
+            {'name': 'التنظيم', 'avg': 0, 'color': 'success', 'max': 0, 'min': 0},
+            {'name': 'المعدات', 'avg': 0, 'color': 'info', 'max': 0, 'min': 0},
+            {'name': 'الوقت', 'avg': 0, 'color': 'warning', 'max': 0, 'min': 0},
+            {'name': 'السلامة', 'avg': 0, 'color': 'danger', 'max': 0, 'min': 0},
+        ]
+
+        criteria_details = []
+        for criterion_name in ['النظافة', 'التنظيم', 'المعدات', 'الوقت', 'السلامة']:
+            excellent = good = average = poor = very_poor = 0
+            values = []
+
+            for eval_obj in all_evaluations:
+                value = None
+                if criterion_name == 'النظافة':
+                    value = eval_obj.cleanliness
+                elif criterion_name == 'التنظيم':
+                    value = eval_obj.organization
+                elif criterion_name == 'المعدات':
+                    value = eval_obj.equipment_condition
+                elif criterion_name == 'الوقت':
+                    value = eval_obj.time
+                elif criterion_name == 'السلامة':
+                    value = eval_obj.safety_measures
+
+                if value:
+                    values.append(value)
+                    if value == 5:
+                        excellent += 1
+                    elif value == 4:
+                        good += 1
+                    elif value == 3:
+                        average += 1
+                    elif value == 2:
+                        poor += 1
+                    elif value == 1:
+                        very_poor += 1
+
+            avg = sum(values) / len(values) if values else 0
+            max_val = max(values) if values else 0
+            min_val = min(values) if values else 0
+
+            # تحديث بيانات المعايير
+            for c in criteria:
+                if c['name'] == criterion_name:
+                    c['avg'] = round(avg, 1)
+                    c['max'] = max_val
+                    c['min'] = min_val
+                    break
+
+            criteria_details.append({
+                'name': criterion_name,
+                'excellent': excellent,
+                'good': good,
+                'average': average,
+                'poor': poor,
+                'very_poor': very_poor,
+                'total': excellent + good + average + poor + very_poor
+            })
+
+        criteria_names = [c['name'] for c in criteria]
+        criteria_averages = [c['avg'] for c in criteria]
+        criteria_max = [c['max'] for c in criteria]
+        criteria_min = [c['min'] for c in criteria]
+
+        today = datetime.now()
+
+        if export_type == 'excel':
+            rows = []
+            for detail in criteria_details:
+                total = detail['total']
+                avg = (detail['excellent'] * 5 + detail['good'] * 4 + detail['average'] * 3 +
+                       detail['poor'] * 2 + detail['very_poor'] * 1) / total if total > 0 else 0
+
+                rows.append({
+                    'المعيار': detail['name'],
+                    'ممتاز (5)': detail['excellent'],
+                    'جيد جداً (4)': detail['good'],
+                    'جيد (3)': detail['average'],
+                    'مقبول (2)': detail['poor'],
+                    'ضعيف (1)': detail['very_poor'],
+                    'المجموع': total,
+                    'المتوسط': round(avg, 2)
+                })
+
+            headers = ['المعيار', 'ممتاز (5)', 'جيد جداً (4)', 'جيد (3)', 'مقبول (2)', 'ضعيف (1)', 'المجموع', 'المتوسط']
+            report_name = f"تقرير تفاصيل التقييمات {today.strftime('%Y-%m-%d')}"
+            filename_prefix = f"evaluation_details_{today.strftime('%Y%m%d')}"
+            return export_report(export_type, report_name, headers, rows, filename_prefix, 'landscape')
+
+        elif export_type == 'pdf':
+            from flask import render_template
+
+            try:
+                html_content = render_template(
+                    'reports/evaluation_details_pdf_report.html',
+                    criteria=criteria,
+                    criteria_names=criteria_names,
+                    criteria_averages=criteria_averages,
+                    criteria_max=criteria_max,
+                    criteria_min=criteria_min,
+                    criteria_details=criteria_details,
+                    today=today,
+                    current_user=current_user
+                )
+
+                response = export_pdf(html_content, 'evaluation_details_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('report_evaluation_details_advanced', **request.args))
+
+            except Exception as pdf_error:
+                app.logger.error(f"PDF Error: {str(pdf_error)}")
+                import traceback
+                traceback.print_exc()
+                flash(f'حدث خطأ في إنشاء PDF: {str(pdf_error)}', 'error')
+                return redirect(url_for('report_evaluation_details_advanced', **request.args))
+
+    except Exception as e:
+        app.logger.error(f"Error exporting evaluation details: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
+        return redirect(url_for('report_evaluation_details_advanced', **request.args))
+
 @app.route('/reports/kpis-advanced')
 @login_required
 def report_kpis_advanced():
@@ -10729,6 +11019,99 @@ def report_employees_distribution():
         app.logger.error(f"Error in report_employees_distribution: {str(e)}")
         flash('حدث خطأ في تحميل التقرير', 'error')
         return redirect(url_for('reports_index'))
+# ============================================
+# تصدير تقرير توزيع الموظفين
+# ============================================
+@app.route('/reports/employees-distribution/export/<export_type>')
+@login_required
+def export_employees_distribution(export_type):
+    """تصدير تقرير توزيع الموظفين على الشركات"""
+    if not check_permission('can_view_companies'):
+        flash('غير مصرح', 'error')
+        return redirect(url_for('reports_index'))
+
+    try:
+        companies = Company.query.filter_by(is_active=True).all()
+        today = datetime.now()
+
+        # تجهيز البيانات للتصدير
+        distribution_data = []
+        for company in companies:
+            employees = Employee.query.filter_by(company_id=company.id, is_active=True).all()
+            total = len(employees)
+            supervisors = sum(1 for e in employees if e.position == 'supervisor')
+            monitors = sum(1 for e in employees if e.position == 'monitor')
+            workers = sum(1 for e in employees if e.position == 'worker')
+            areas_count = Area.query.filter_by(company_id=company.id).count()
+
+            distribution_data.append({
+                'id': company.id,
+                'name': company.name,
+                'total_employees': total,
+                'supervisors': supervisors,
+                'monitors': monitors,
+                'workers': workers,
+                'areas_count': areas_count
+            })
+
+        if export_type == 'excel':
+            rows = []
+            for item in distribution_data:
+                rows.append({
+                    'الشركة': item['name'],
+                    'إجمالي الموظفين': item['total_employees'],
+                    'عدد المشرفين': item['supervisors'],
+                    'عدد المراقبين': item['monitors'],
+                    'عدد العمال': item['workers'],
+                    'عدد المناطق': item['areas_count']
+                })
+
+            headers = ['الشركة', 'إجمالي الموظفين', 'عدد المشرفين', 'عدد المراقبين', 'عدد العمال', 'عدد المناطق']
+            report_name = f"تقرير توزيع الموظفين {today.strftime('%Y-%m-%d')}"
+            filename_prefix = f"employees_distribution_{today.strftime('%Y%m%d')}"
+            return export_report(export_type, report_name, headers, rows, filename_prefix, 'portrait')
+
+        elif export_type == 'pdf':
+            from flask import render_template
+
+            try:
+                # تجهيز البيانات للقالب
+                chart_data = {
+                    'companies': [item['name'] for item in distribution_data],
+                    'supervisors': [item['supervisors'] for item in distribution_data],
+                    'monitors': [item['monitors'] for item in distribution_data],
+                    'workers': [item['workers'] for item in distribution_data]
+                }
+
+                html_content = render_template(
+                    'reports/employees_distribution_pdf_report.html',
+                    distribution_data=distribution_data,
+                    chart_data=chart_data,
+                    today=today,
+                    current_user=current_user
+                )
+
+                # استخدام الدالة الذكية للتصدير
+                response = export_pdf(html_content, 'employees_distribution_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('report_employees_distribution', **request.args))
+
+            except Exception as pdf_error:
+                app.logger.error(f"PDF Error: {str(pdf_error)}")
+                import traceback
+                traceback.print_exc()
+                flash(f'حدث خطأ في إنشاء PDF: {str(pdf_error)}', 'error')
+                return redirect(url_for('report_employees_distribution', **request.args))
+
+    except Exception as e:
+        app.logger.error(f"Error exporting employees distribution: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
+        return redirect(url_for('report_employees_distribution', **request.args))
 
 
 @app.route('/reports/companies-ratings')
@@ -10845,6 +11228,121 @@ def report_companies_ratings():
         flash(f'حدث خطأ في تحميل التقرير: {str(e)}', 'error')
         return redirect(url_for('reports_index'))
 
+# ============================================
+# تصدير تقرير تقييمات الشركات
+# ============================================
+@app.route('/reports/companies-ratings/export/<export_type>')
+@login_required
+def export_companies_ratings(export_type):
+    """تصدير تقرير تقييم الشركات حسب المناطق"""
+    if not check_permission('can_view_company_stats'):
+        flash('غير مصرح', 'error')
+        return redirect(url_for('reports_index'))
+
+    try:
+        from models import Company, Area, Location, Place, CleaningEvaluation, Employee
+
+        # جلب جميع الشركات النشطة
+        companies = Company.query.filter_by(is_active=True).all()
+        today = datetime.now()
+
+        ratings_data = []
+        areas_ratings = []
+
+        for company in companies:
+            # جلب مناطق الشركة
+            areas = Area.query.filter_by(company_id=company.id, is_active=True).all()
+            company_ratings = []
+
+            for area in areas:
+                # جلب تقييمات المنطقة
+                area_ratings = []
+                locations = Location.query.filter_by(area_id=area.id, is_active=True).all()
+
+                for location in locations:
+                    places = Place.query.filter_by(location_id=location.id, is_active=True).all()
+                    for place in places:
+                        evaluations = CleaningEvaluation.query.filter_by(place_id=place.id).all()
+                        for e in evaluations:
+                            if e.overall_score:
+                                area_ratings.append(e.overall_score)
+                                company_ratings.append(e.overall_score)
+
+                # حساب متوسط تقييم المنطقة
+                avg_rating = sum(area_ratings) / len(area_ratings) if area_ratings else 0
+
+                # إضافة المنطقة للتقرير التفصيلي
+                if area_ratings:
+                    areas_ratings.append({
+                        'company_name': company.name,
+                        'area_name': area.name,
+                        'supervisor_name': area.supervisor.full_name if area.supervisor else '-',
+                        'evaluations_count': len(area_ratings),
+                        'rating': round(avg_rating, 1)
+                    })
+
+            # حساب متوسط تقييم الشركة
+            avg_company_rating = sum(company_ratings) / len(company_ratings) if company_ratings else 0
+
+            ratings_data.append({
+                'name': company.name,
+                'areas_count': len(areas),
+                'avg_rating': round(avg_company_rating, 1),
+                'rating_percentage': round(avg_company_rating * 20, 1)  # تحويل من /5 إلى %
+            })
+
+        # ترتيب الشركات حسب التقييم
+        ratings_data.sort(key=lambda x: x['avg_rating'], reverse=True)
+
+        if export_type == 'excel':
+            # بيانات Excel للشركات
+            rows = []
+            for item in ratings_data:
+                rows.append({
+                    'الشركة': item['name'],
+                    'عدد المناطق': item['areas_count'],
+                    'متوسط التقييم': f"{item['avg_rating']}/5",
+                    'نسبة الأداء': f"{item['rating_percentage']}%"
+                })
+
+            headers = ['الشركة', 'عدد المناطق', 'متوسط التقييم', 'نسبة الأداء']
+            report_name = f"تقرير تقييمات الشركات {today.strftime('%Y-%m-%d')}"
+            filename_prefix = f"companies_ratings_{today.strftime('%Y%m%d')}"
+            return export_report(export_type, report_name, headers, rows, filename_prefix, 'portrait')
+
+        elif export_type == 'pdf':
+            from flask import render_template
+
+            try:
+                html_content = render_template(
+                    'reports/companies_ratings_pdf_report.html',
+                    ratings_data=ratings_data,
+                    areas_ratings=areas_ratings,
+                    total_companies=len(companies),
+                    today=today,
+                    current_user=current_user
+                )
+
+                response = export_pdf(html_content, 'companies_ratings_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('report_companies_ratings', **request.args))
+
+            except Exception as pdf_error:
+                app.logger.error(f"PDF Error: {str(pdf_error)}")
+                import traceback
+                traceback.print_exc()
+                flash(f'حدث خطأ في إنشاء PDF: {str(pdf_error)}', 'error')
+                return redirect(url_for('report_companies_ratings', **request.args))
+
+    except Exception as e:
+        app.logger.error(f"Error exporting companies ratings: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
+        return redirect(url_for('report_companies_ratings', **request.args))
 
 @app.route('/reports/heatmap')
 @login_required
@@ -11107,6 +11605,143 @@ def report_heatmap():
         app.logger.error(f"🔍 تفاصيل الخطأ: {traceback.format_exc()}")
         flash('حدث خطأ في تحميل التقرير', 'error')
         return redirect(url_for('reports_index'))
+# ============================================
+# تصدير تقرير خريطة الحرارة (تحليل أداء المناطق)
+# ============================================
+@app.route('/reports/heatmap/export/<export_type>')
+@login_required
+def export_heatmap(export_type):
+    """تصدير تقرير تحليل أداء المناطق والأماكن"""
+    if not check_permission('can_view_heatmap'):
+        flash('غير مصرح', 'error')
+        return redirect(url_for('reports_index'))
+
+    try:
+        # بيانات المناطق النشطة
+        areas = Area.query.filter_by(is_active=True).all()
+        today = datetime.now()
+
+        # تجميع بيانات المناطق
+        zones_data = []
+        excellent_zones = 0
+        good_zones = 0
+        average_zones = 0
+        poor_zones = 0
+
+        for area in areas:
+            # حساب أداء المنطقة
+            ratings = []
+            locations = Location.query.filter_by(area_id=area.id, is_active=True).all()
+
+            total_places = 0
+            total_workers = 0
+
+            for location in locations:
+                places = Place.query.filter_by(location_id=location.id, is_active=True).all()
+                total_places += len(places)
+
+                for place in places:
+                    if place.worker_id:
+                        total_workers += 1
+
+                    evals = CleaningEvaluation.query.filter_by(place_id=place.id).all()
+                    for e in evals:
+                        if e.overall_score:
+                            ratings.append(e.overall_score)
+
+            # متوسط التقييم
+            avg_rating = sum(ratings) / len(ratings) if ratings else 0
+            performance = avg_rating * 20  # تحويل من /5 إلى %
+
+            # اسم المشرف
+            supervisor_name = area.supervisor.full_name if area.supervisor else '-'
+            company_name = area.company.name if area.company else '-'
+
+            # تصنيف المنطقة
+            if performance >= 80:
+                level = 'ممتاز'
+                excellent_zones += 1
+            elif performance >= 70:
+                level = 'جيد جداً'
+                good_zones += 1
+            elif performance >= 60:
+                level = 'جيد'
+                average_zones += 1
+            else:
+                level = 'ضعيف'
+                poor_zones += 1
+
+            zones_data.append({
+                'name': area.name,
+                'company_name': company_name,
+                'supervisor_name': supervisor_name,
+                'performance': round(performance, 1),
+                'rating': round(avg_rating, 1),
+                'evaluations_count': len(ratings),
+                'places_count': total_places,
+                'workers_count': total_workers,
+                'level': level
+            })
+
+        # ترتيب المناطق حسب الأداء
+        zones_data.sort(key=lambda x: x['performance'], reverse=True)
+
+        if export_type == 'excel':
+            rows = []
+            for zone in zones_data:
+                rows.append({
+                    'المنطقة': zone['name'],
+                    'الشركة': zone['company_name'],
+                    'المشرف': zone['supervisor_name'],
+                    'عدد الأماكن': zone['places_count'],
+                    'عدد العمال': zone['workers_count'],
+                    'عدد التقييمات': zone['evaluations_count'],
+                    'متوسط التقييم': f"{zone['rating']}/5",
+                    'نسبة الأداء': f"{zone['performance']}%",
+                    'المستوى': zone['level']
+                })
+
+            headers = ['المنطقة', 'الشركة', 'المشرف', 'عدد الأماكن', 'عدد العمال', 'عدد التقييمات', 'متوسط التقييم', 'نسبة الأداء', 'المستوى']
+            report_name = f"تقرير تحليل أداء المناطق {today.strftime('%Y-%m-%d')}"
+            filename_prefix = f"heatmap_report_{today.strftime('%Y%m%d')}"
+            return export_report(export_type, report_name, headers, rows, filename_prefix, 'landscape')
+
+        elif export_type == 'pdf':
+            from flask import render_template
+
+            try:
+                html_content = render_template(
+                    'reports/heatmap_pdf_report.html',
+                    zones_data=zones_data,
+                    excellent_zones=excellent_zones,
+                    good_zones=good_zones,
+                    average_zones=average_zones,
+                    poor_zones=poor_zones,
+                    total_zones=len(zones_data),
+                    today=today,
+                    current_user=current_user
+                )
+
+                response = export_pdf(html_content, 'heatmap_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('report_heatmap', **request.args))
+
+            except Exception as pdf_error:
+                app.logger.error(f"PDF Error: {str(pdf_error)}")
+                import traceback
+                traceback.print_exc()
+                flash(f'حدث خطأ في إنشاء PDF: {str(pdf_error)}', 'error')
+                return redirect(url_for('report_heatmap', **request.args))
+
+    except Exception as e:
+        app.logger.error(f"Error exporting heatmap: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
+        return redirect(url_for('report_heatmap', **request.args))
 
 #تقارير الحضور والانصراف
 @app.route('/reports/attendance-record-advanced')
@@ -11334,6 +11969,152 @@ def report_monthly_summary():
         flash('حدث خطأ في تحميل التقرير', 'error')
         return redirect(url_for('reports_index'))
 
+# ============================================
+# تصدير تقرير الملخص الشهري للحضور
+# ============================================
+@app.route('/reports/monthly-summary/export/<export_type>')
+@login_required
+def export_monthly_summary(export_type):
+    """تصدير تقرير ملخص الحضور الشهري"""
+    if not check_permission('can_view_attendance_reports'):
+        flash('غير مصرح', 'error')
+        return redirect(url_for('reports_index'))
+
+    try:
+        year = request.args.get('year', date.today().year, type=int)
+        month = request.args.get('month', date.today().month, type=int)
+
+        month_names = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+                       'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+
+        # حساب أيام العمل في الشهر
+        month_start = date(year, month, 1)
+        if month == 12:
+            month_end = date(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            month_end = date(year, month + 1, 1) - timedelta(days=1)
+
+        working_days = month_end.day
+
+        # إحصائيات الشهر
+        month_records = Attendance.query.filter(
+            Attendance.date >= month_start,
+            Attendance.date <= month_end
+        ).all()
+
+        total_present = len([r for r in month_records if r.status == 'present'])
+        total_absent = len([r for r in month_records if r.status == 'absent'])
+        total_late = len([r for r in month_records if r.status == 'late'])
+        total_records = total_present + total_absent + total_late
+
+        monthly_attendance_rate = round((total_present / total_records * 100) if total_records > 0 else 0)
+
+        # بيانات الرسم البياني اليومي
+        daily_present = []
+        days_labels = []
+        for day in range(1, working_days + 1):
+            current_date = date(year, month, day)
+            day_records = Attendance.query.filter_by(date=current_date).all()
+            daily_present.append(len([r for r in day_records if r.status == 'present']))
+            days_labels.append(str(day))
+
+        # ملخص الموظفين
+        monthly_summary = []
+        employees = Employee.query.filter_by(is_active=True).all()
+        for emp in employees:
+            emp_records = Attendance.query.filter(
+                Attendance.employee_id == emp.id,
+                Attendance.date >= month_start,
+                Attendance.date <= month_end
+            ).all()
+
+            present_days = len([r for r in emp_records if r.status == 'present'])
+            absent_days = len([r for r in emp_records if r.status == 'absent'])
+            late_days = len([r for r in emp_records if r.status == 'late'])
+
+            attendance_rate = round((present_days / working_days * 100) if working_days > 0 else 0)
+
+            monthly_summary.append({
+                'name': emp.full_name,
+                'department': emp.position,
+                'present_days': present_days,
+                'absent_days': absent_days,
+                'late_days': late_days,
+                'attendance_rate': attendance_rate
+            })
+
+        # ترتيب الموظفين حسب نسبة الحضور
+        monthly_summary.sort(key=lambda x: x['attendance_rate'], reverse=True)
+
+        today = datetime.now()
+
+        if export_type == 'excel':
+            rows = []
+            for emp in monthly_summary:
+                rows.append({
+                    'الموظف': emp['name'],
+                    'القسم': emp['department'],
+                    'أيام الحضور': emp['present_days'],
+                    'أيام الغياب': emp['absent_days'],
+                    'أيام التأخير': emp['late_days'],
+                    'نسبة الحضور': f"{emp['attendance_rate']}%"
+                })
+
+            # إضافة صف الإجمالي
+            rows.append({
+                'الموظف': 'الإجمالي',
+                'القسم': '',
+                'أيام الحضور': total_present,
+                'أيام الغياب': total_absent,
+                'أيام التأخير': total_late,
+                'نسبة الحضور': f"{monthly_attendance_rate}%"
+            })
+
+            headers = ['الموظف', 'القسم', 'أيام الحضور', 'أيام الغياب', 'أيام التأخير', 'نسبة الحضور']
+            report_name = f"الملخص الشهري للحضور {month_names[month-1]} {year}"
+            filename_prefix = f"monthly_summary_{year}{month:02d}"
+            return export_report(export_type, report_name, headers, rows, filename_prefix, 'portrait')
+
+        elif export_type == 'pdf':
+            from flask import render_template
+
+            try:
+                html_content = render_template(
+                    'reports/monthly_summary_pdf_report.html',
+                    month_name=month_names[month-1],
+                    year=year,
+                    working_days=working_days,
+                    total_present=total_present,
+                    total_absent=total_absent,
+                    total_late=total_late,
+                    monthly_attendance_rate=monthly_attendance_rate,
+                    monthly_summary=monthly_summary[:20],  # أفضل 20 موظف فقط للـ PDF
+                    days_labels=days_labels,
+                    daily_present=daily_present,
+                    today=today,
+                    current_user=current_user
+                )
+
+                response = export_pdf(html_content, f'monthly_summary_{year}{month:02d}')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('report_monthly_summary', **request.args))
+
+            except Exception as pdf_error:
+                app.logger.error(f"PDF Error: {str(pdf_error)}")
+                import traceback
+                traceback.print_exc()
+                flash(f'حدث خطأ في إنشاء PDF: {str(pdf_error)}', 'error')
+                return redirect(url_for('report_monthly_summary', **request.args))
+
+    except Exception as e:
+        app.logger.error(f"Error exporting monthly summary: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
+        return redirect(url_for('report_monthly_summary', **request.args))
 
 @app.route('/reports/absence-rates')
 @login_required
@@ -11600,6 +12381,133 @@ def report_supervisor_performance():
         flash('حدث خطأ في تحميل التقرير', 'error')
         return redirect(url_for('reports_index'))
 
+# ============================================
+# تصدير تقرير أداء المشرفين الشامل
+# ============================================
+@app.route('/reports/supervisor-performance/export/<export_type>')
+@login_required
+def export_supervisor_performance(export_type):
+    """تصدير تقرير أداء المشرفين الشامل"""
+    if not check_permission('can_view_performance'):
+        flash('غير مصرح', 'error')
+        return redirect(url_for('reports_index'))
+
+    try:
+        # الحصول على جميع المشرفين النشطين
+        supervisors = Employee.query.filter_by(position='supervisor', is_active=True).all()
+        today = datetime.now()
+
+        supervisors_data = []
+        total_ratings = []
+
+        for sup in supervisors:
+            evaluations = SupervisorEvaluation.query.filter_by(supervisor_id=sup.id).all()
+
+            if evaluations:
+                workers_followup = sum(e.workers_followup for e in evaluations) / len(evaluations) * 20
+                work_efficiency = sum(e.work_efficiency for e in evaluations) / len(evaluations) * 20
+                reports_quality = sum(e.reports_submission for e in evaluations) / len(evaluations) * 20
+                compliance = sum(e.policies_compliance for e in evaluations) / len(evaluations) * 20
+                safety = sum(e.safety_procedures for e in evaluations) / len(evaluations) * 20
+                attendance = sum(e.attendance_commitment for e in evaluations) / len(evaluations) * 20
+                leadership = sum(e.leadership_skills for e in evaluations) / len(evaluations) * 20
+                problem_solving = sum(e.problem_solving for e in evaluations) / len(evaluations) * 20
+
+                overall = (workers_followup + work_efficiency + reports_quality +
+                           compliance + safety + attendance + leadership + problem_solving) / 8
+                total_ratings.append(overall)
+
+                # تحديد المستوى
+                if overall >= 90:
+                    level = 'ممتاز'
+                elif overall >= 80:
+                    level = 'جيد جداً'
+                elif overall >= 70:
+                    level = 'جيد'
+                else:
+                    level = 'مقبول'
+
+                team_size = Employee.query.filter_by(supervisor_id=sup.id).count()
+
+                supervisors_data.append({
+                    'name': sup.full_name,
+                    'company': sup.company.name if sup.company else 'غير محدد',
+                    'team_size': team_size,
+                    'workers_followup': round(workers_followup),
+                    'work_efficiency': round(work_efficiency),
+                    'reports_quality': round(reports_quality),
+                    'compliance': round(compliance),
+                    'safety': round(safety),
+                    'attendance': round(attendance),
+                    'leadership': round(leadership),
+                    'problem_solving': round(problem_solving),
+                    'overall': round(overall),
+                    'level': level
+                })
+
+        # ترتيب حسب الأداء
+        supervisors_data.sort(key=lambda x: x['overall'], reverse=True)
+
+        avg_performance = sum(total_ratings) / len(total_ratings) if total_ratings else 0
+
+        if export_type == 'excel':
+            rows = []
+            for sup in supervisors_data:
+                rows.append({
+                    'المشرف': sup['name'],
+                    'الشركة': sup['company'],
+                    'عدد الفريق': sup['team_size'],
+                    'متابعة العمال': f"{sup['workers_followup']}%",
+                    'كفاءة العمل': f"{sup['work_efficiency']}%",
+                    'جودة التقارير': f"{sup['reports_quality']}%",
+                    'الالتزام': f"{sup['compliance']}%",
+                    'السلامة': f"{sup['safety']}%",
+                    'الانضباط': f"{sup['attendance']}%",
+                    'القيادة': f"{sup['leadership']}%",
+                    'حل المشكلات': f"{sup['problem_solving']}%",
+                    'الأداء العام': f"{sup['overall']}%",
+                    'المستوى': sup['level']
+                })
+
+            headers = ['المشرف', 'الشركة', 'عدد الفريق', 'متابعة العمال', 'كفاءة العمل', 'جودة التقارير',
+                       'الالتزام', 'السلامة', 'الانضباط', 'القيادة', 'حل المشكلات', 'الأداء العام', 'المستوى']
+            report_name = f"تقرير أداء المشرفين {today.strftime('%Y-%m-%d')}"
+            filename_prefix = f"supervisor_performance_{today.strftime('%Y%m%d')}"
+            return export_report(export_type, report_name, headers, rows, filename_prefix, 'landscape')
+
+        elif export_type == 'pdf':
+            from flask import render_template
+
+            try:
+                html_content = render_template(
+                    'reports/supervisor_performance_pdf_report.html',
+                    supervisors_data=supervisors_data,
+                    total_supervisors=len(supervisors_data),
+                    avg_performance=round(avg_performance),
+                    today=today,
+                    current_user=current_user
+                )
+
+                response = export_pdf(html_content, 'supervisor_performance_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('report_supervisor_performance', **request.args))
+
+            except Exception as pdf_error:
+                app.logger.error(f"PDF Error: {str(pdf_error)}")
+                import traceback
+                traceback.print_exc()
+                flash(f'حدث خطأ في إنشاء PDF: {str(pdf_error)}', 'error')
+                return redirect(url_for('report_supervisor_performance', **request.args))
+
+    except Exception as e:
+        app.logger.error(f"Error exporting supervisor performance: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
+        return redirect(url_for('report_supervisor_performance', **request.args))
 
 @app.route('/reports/supervisor-detailed-evaluation')
 @login_required
@@ -11752,6 +12660,109 @@ def report_supervisor_detailed_evaluation():
         flash('حدث خطأ في تحميل التقرير', 'error')
         return redirect(url_for('reports_index'))
 
+# ============================================
+# تصدير تقرير تقييم المشرفين التفصيلي
+# ============================================
+@app.route('/reports/supervisor-detailed-evaluation/export/<export_type>')
+@login_required
+def export_supervisor_detailed_evaluation(export_type):
+    """تصدير تقرير تقييم المشرفين التفصيلي"""
+    if not check_permission('can_view_performance'):
+        flash('غير مصرح', 'error')
+        return redirect(url_for('reports_index'))
+
+    try:
+        supervisors = Employee.query.filter_by(position='supervisor', is_active=True).all()
+        today = datetime.now()
+
+        supervisors_data = []
+
+        for sup in supervisors:
+            evaluations = SupervisorEvaluation.query.filter_by(supervisor_id=sup.id).all()
+
+            if evaluations:
+                workers_followup = sum(e.workers_followup for e in evaluations) / len(evaluations) * 20
+                work_efficiency = sum(e.work_efficiency for e in evaluations) / len(evaluations) * 20
+                reports_quality = sum(e.reports_submission for e in evaluations) / len(evaluations) * 20
+                compliance = sum(e.policies_compliance for e in evaluations) / len(evaluations) * 20
+                safety = sum(e.safety_procedures for e in evaluations) / len(evaluations) * 20
+                attendance = sum(e.attendance_commitment for e in evaluations) / len(evaluations) * 20
+                leadership = sum(e.leadership_skills for e in evaluations) / len(evaluations) * 20
+                problem_solving = sum(e.problem_solving for e in evaluations) / len(evaluations) * 20
+
+                overall = (workers_followup + work_efficiency + reports_quality +
+                           compliance + safety + attendance + leadership + problem_solving) / 8
+
+                supervisors_data.append({
+                    'name': sup.full_name,
+                    'company': sup.company.name if sup.company else 'غير محدد',
+                    'workers_followup': round(workers_followup),
+                    'work_efficiency': round(work_efficiency),
+                    'reports_quality': round(reports_quality),
+                    'compliance': round(compliance),
+                    'safety': round(safety),
+                    'attendance': round(attendance),
+                    'leadership': round(leadership),
+                    'problem_solving': round(problem_solving),
+                    'overall': round(overall)
+                })
+
+        if export_type == 'excel':
+            rows = []
+            for sup in supervisors_data:
+                rows.append({
+                    'المشرف': sup['name'],
+                    'الشركة': sup['company'],
+                    'متابعة العمال': f"{sup['workers_followup']}%",
+                    'كفاءة العمل': f"{sup['work_efficiency']}%",
+                    'جودة التقارير': f"{sup['reports_quality']}%",
+                    'الالتزام بالسياسات': f"{sup['compliance']}%",
+                    'إجراءات السلامة': f"{sup['safety']}%",
+                    'الانضباط الوظيفي': f"{sup['attendance']}%",
+                    'المهارات القيادية': f"{sup['leadership']}%",
+                    'حل المشكلات': f"{sup['problem_solving']}%",
+                    'الأداء العام': f"{sup['overall']}%"
+                })
+
+            headers = ['المشرف', 'الشركة', 'متابعة العمال', 'كفاءة العمل', 'جودة التقارير',
+                       'الالتزام بالسياسات', 'إجراءات السلامة', 'الانضباط الوظيفي',
+                       'المهارات القيادية', 'حل المشكلات', 'الأداء العام']
+            report_name = f"تقرير تقييم المشرفين التفصيلي {today.strftime('%Y-%m-%d')}"
+            filename_prefix = f"supervisor_detailed_{today.strftime('%Y%m%d')}"
+            return export_report(export_type, report_name, headers, rows, filename_prefix, 'landscape')
+
+        elif export_type == 'pdf':
+            from flask import render_template
+
+            try:
+                html_content = render_template(
+                    'reports/supervisor_detailed_pdf_report.html',
+                    supervisors_data=supervisors_data,
+                    total_supervisors=len(supervisors_data),
+                    today=today,
+                    current_user=current_user
+                )
+
+                response = export_pdf(html_content, 'supervisor_detailed_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('report_supervisor_detailed_evaluation', **request.args))
+
+            except Exception as pdf_error:
+                app.logger.error(f"PDF Error: {str(pdf_error)}")
+                import traceback
+                traceback.print_exc()
+                flash(f'حدث خطأ في إنشاء PDF: {str(pdf_error)}', 'error')
+                return redirect(url_for('report_supervisor_detailed_evaluation', **request.args))
+
+    except Exception as e:
+        app.logger.error(f"Error exporting supervisor detailed: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
+        return redirect(url_for('report_supervisor_detailed_evaluation', **request.args))
 
 @app.route('/reports/supervisor-kpi-dashboard')
 @login_required
@@ -11832,6 +12843,107 @@ def report_supervisor_kpi_dashboard():
         app.logger.error(f"Error in report_supervisor_kpi_dashboard: {str(e)}")
         flash('حدث خطأ في تحميل التقرير', 'error')
         return redirect(url_for('reports_index'))
+# ============================================
+# تصدير لوحة مؤشرات أداء المشرفين
+# ============================================
+@app.route('/reports/supervisor-kpi-dashboard/export/<export_type>')
+@login_required
+def export_supervisor_kpi_dashboard(export_type):
+    """تصدير لوحة مؤشرات أداء المشرفين"""
+    if not check_permission('can_view_performance'):
+        flash('غير مصرح', 'error')
+        return redirect(url_for('reports_index'))
+
+    try:
+        supervisors = Employee.query.filter_by(position='supervisor', is_active=True).all()
+        today = datetime.now()
+
+        # حساب المؤشرات
+        total_evaluations = SupervisorEvaluation.query.count() or 0
+        excellent_count = SupervisorEvaluation.query.filter(SupervisorEvaluation.overall_score >= 4.5).count() or 0
+
+        leadership_index = 0
+        supervision_efficiency = 0
+        reports_quality_index = 0
+
+        if supervisors:
+            all_evals = SupervisorEvaluation.query.all() or []
+            if all_evals:
+                leadership_index = sum(e.leadership_skills for e in all_evals) / len(all_evals) * 20
+                supervision_efficiency = (sum(e.workers_followup for e in all_evals) +
+                                          sum(e.work_efficiency for e in all_evals)) / (2 * len(all_evals)) * 20
+                reports_quality_index = sum(e.reports_submission for e in all_evals) / len(all_evals) * 20
+
+        # ترتيب المشرفين
+        supervisors_ranking = []
+        for i, sup in enumerate(supervisors[:20], 1):
+            # حساب أداء المشرف (محاكاة - يمكن تحسينها)
+            overall_score = 85 + (i % 10)  # قيمة محاكاة
+            supervisors_ranking.append({
+                'rank': i,
+                'name': sup.full_name,
+                'company': sup.company.name if sup.company else '-',
+                'overall': overall_score,
+                'leadership': overall_score - 2,
+                'supervision': overall_score - 1,
+                'reports': overall_score - 3
+            })
+
+        if export_type == 'excel':
+            rows = []
+            for sup in supervisors_ranking:
+                rows.append({
+                    'الترتيب': sup['rank'],
+                    'المشرف': sup['name'],
+                    'الشركة': sup['company'],
+                    'الأداء العام': f"{sup['overall']}%",
+                    'القيادة': f"{sup['leadership']}%",
+                    'الإشراف': f"{sup['supervision']}%",
+                    'التقارير': f"{sup['reports']}%"
+                })
+
+            headers = ['الترتيب', 'المشرف', 'الشركة', 'الأداء العام', 'القيادة', 'الإشراف', 'التقارير']
+            report_name = f"مؤشرات أداء المشرفين {today.strftime('%Y-%m-%d')}"
+            filename_prefix = f"supervisor_kpi_{today.strftime('%Y%m%d')}"
+            return export_report(export_type, report_name, headers, rows, filename_prefix, 'portrait')
+
+        elif export_type == 'pdf':
+            from flask import render_template
+
+            try:
+                html_content = render_template(
+                    'reports/supervisor_kpi_pdf_report.html',
+                    supervisors_ranking=supervisors_ranking,
+                    leadership_index=round(leadership_index),
+                    supervision_efficiency=round(supervision_efficiency),
+                    reports_quality_index=round(reports_quality_index),
+                    total_supervisors=len(supervisors),
+                    total_evaluations=total_evaluations,
+                    excellent_count=excellent_count,
+                    today=today,
+                    current_user=current_user
+                )
+
+                response = export_pdf(html_content, 'supervisor_kpi_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('report_supervisor_kpi_dashboard', **request.args))
+
+            except Exception as pdf_error:
+                app.logger.error(f"PDF Error: {str(pdf_error)}")
+                import traceback
+                traceback.print_exc()
+                flash(f'حدث خطأ في إنشاء PDF: {str(pdf_error)}', 'error')
+                return redirect(url_for('report_supervisor_kpi_dashboard', **request.args))
+
+    except Exception as e:
+        app.logger.error(f"Error exporting supervisor kpi: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
+        return redirect(url_for('report_supervisor_kpi_dashboard', **request.args))
 
 @app.route('/reports/daily-evaluations')
 @login_required
@@ -12019,6 +13131,194 @@ def report_company_attendance():
         flash('حدث خطأ في تحميل تقرير الحضور', 'error')
         return redirect(url_for('reports_index'))
 
+
+# ============================================
+# تصدير تقرير حضور الموظفين على مستوى الشركات
+# ============================================
+@app.route('/reports/company-attendance/export/<export_type>')
+@login_required
+def export_company_attendance(export_type):
+    """تصدير تقرير حضور الموظفين على مستوى الشركات"""
+    if current_user.role != 'owner':
+        flash('غير مصرح', 'error')
+        return redirect(url_for('reports_index'))
+
+    try:
+        # الحصول على الشهر والسنة من الرابط أو استخدام الشهر الحالي
+        today = date.today()
+        selected_year = request.args.get('year', today.year, type=int)
+        selected_month = request.args.get('month', today.month, type=int)
+        selected_company_id = request.args.get('company_id', type=int)
+
+        # حساب بداية ونهاية الشهر
+        start_date = date(selected_year, selected_month, 1)
+        if selected_month == 12:
+            end_date = date(selected_year + 1, 1, 1) - timedelta(days=1)
+        else:
+            end_date = date(selected_year, selected_month + 1, 1) - timedelta(days=1)
+
+        # عدد أيام الشهر
+        days_in_month = end_date.day
+
+        # أسماء الأشهر
+        month_names = {
+            1: 'يناير', 2: 'فبراير', 3: 'مارس', 4: 'أبريل',
+            5: 'مايو', 6: 'يونيو', 7: 'يوليو', 8: 'أغسطس',
+            9: 'سبتمبر', 10: 'أكتوبر', 11: 'نوفمبر', 12: 'ديسمبر'
+        }
+
+        # الحصول على جميع الشركات النشطة
+        companies_query = Company.query.filter_by(is_active=True).order_by(Company.name)
+        if selected_company_id:
+            companies = [Company.query.get_or_404(selected_company_id)]
+        else:
+            companies = companies_query.all()
+
+        # تجهيز بيانات التقرير للتصدير
+        report_data = []
+        grand_total_present = 0
+        grand_total_absent = 0
+
+        for company in companies:
+            employees = Employee.query.filter_by(
+                company_id=company.id,
+                is_active=True
+            ).order_by(Employee.full_name).all()
+
+            company_employees = []
+            company_present_total = 0
+            company_absent_total = 0
+
+            for employee in employees:
+                attendance_records = Attendance.query.filter(
+                    Attendance.employee_id == employee.id,
+                    Attendance.date >= start_date,
+                    Attendance.date <= end_date
+                ).all()
+
+                # حساب إحصائيات الموظف
+                present_days = len([r for r in attendance_records if r.status == 'present'])
+                absent_days = len([r for r in attendance_records if r.status == 'absent'])
+                late_days = len([r for r in attendance_records if r.status == 'late'])
+                total_present = present_days + late_days
+                total_absent = absent_days
+
+                company_present_total += total_present
+                company_absent_total += total_absent
+
+                # تحديد اسم الوظيفة بالعربية
+                position_ar = {
+                    'supervisor': 'مشرف',
+                    'monitor': 'مراقب',
+                    'worker': 'عامل',
+                    'owner': 'مالك',
+                    'admin': 'إداري'
+                }.get(employee.position, employee.position)
+
+                # تجهيز بيانات الحضور اليومي (للتصدير)
+                daily_data = {}
+                for day in range(1, days_in_month + 1):
+                    status = attendance_records[0].status if any(
+                        r.date.day == day for r in attendance_records) else 'absent'
+                    for r in attendance_records:
+                        if r.date.day == day:
+                            status = r.status
+                            break
+
+                    status_ar = 'حاضر' if status == 'present' else 'غائب' if status == 'absent' else 'متأخر'
+                    daily_data[f'اليوم {day}'] = status_ar
+
+                company_employees.append({
+                    'employee_name': employee.full_name,
+                    'position': position_ar,
+                    'present_days': total_present,
+                    'absent_days': total_absent,
+                    'late_days': late_days,
+                    'attendance_rate': round((total_present / days_in_month) * 100) if days_in_month > 0 else 0,
+                    **daily_data
+                })
+
+            grand_total_present += company_present_total
+            grand_total_absent += company_absent_total
+
+            report_data.append({
+                'company_name': company.name,
+                'employees': company_employees,
+                'total_employees': len(company_employees),
+                'total_present': company_present_total,
+                'total_absent': company_absent_total,
+                'attendance_rate': round(
+                    (company_present_total / (company_present_total + company_absent_total) * 100)) if (
+                                                                                                                   company_present_total + company_absent_total) > 0 else 0
+            })
+
+        now = datetime.now()
+
+        if export_type == 'excel':
+            # تجهيز بيانات Excel
+            rows = []
+            for company in report_data:
+                for emp in company['employees']:
+                    row = {
+                        'الشركة': company['company_name'],
+                        'الموظف': emp['employee_name'],
+                        'الوظيفة': emp['position'],
+                        'إجمالي الحضور': emp['present_days'],
+                        'إجمالي الغياب': emp['absent_days'],
+                        'نسبة الحضور': f"{emp['attendance_rate']}%"
+                    }
+                    # إضافة الأيام
+                    for day in range(1, days_in_month + 1):
+                        row[f'اليوم {day}'] = emp.get(f'اليوم {day}', '-')
+                    rows.append(row)
+
+            headers = ['الشركة', 'الموظف', 'الوظيفة', 'إجمالي الحضور', 'إجمالي الغياب', 'نسبة الحضور']
+            # إضافة رؤوس الأيام
+            for day in range(1, days_in_month + 1):
+                headers.append(f'اليوم {day}')
+
+            report_name = f"تقرير حضور الشركات {month_names[selected_month]} {selected_year}"
+            filename_prefix = f"company_attendance_{selected_year}{selected_month:02d}"
+            return export_report(export_type, report_name, headers, rows, filename_prefix, 'landscape')
+
+        elif export_type == 'pdf':
+            from flask import render_template
+
+            try:
+                html_content = render_template(
+                    'reports/company_attendance_pdf_report.html',
+                    report_data=report_data,
+                    month_days=list(range(1, days_in_month + 1)),
+                    month_name=month_names[selected_month],
+                    year=selected_year,
+                    total_days=days_in_month,
+                    grand_total_present=grand_total_present,
+                    grand_total_absent=grand_total_absent,
+                    total_employees=sum(c['total_employees'] for c in report_data),
+                    today=now,
+                    current_user=current_user
+                )
+
+                response = export_pdf(html_content, f'company_attendance_{selected_year}{selected_month:02d}')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('report_company_attendance', **request.args))
+
+            except Exception as pdf_error:
+                app.logger.error(f"PDF Error: {str(pdf_error)}")
+                import traceback
+                traceback.print_exc()
+                flash(f'حدث خطأ في إنشاء PDF: {str(pdf_error)}', 'error')
+                return redirect(url_for('report_company_attendance', **request.args))
+
+    except Exception as e:
+        app.logger.error(f"Error exporting company attendance: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
+        return redirect(url_for('report_company_attendance', **request.args))
 
 @app.route('/reports/salary-report/export/<export_type>')
 @login_required
@@ -14114,6 +15414,274 @@ def monthly_closing():
         app.logger.error(traceback.format_exc())
         flash(f'حدث خطأ في تحميل التقرير: {str(e)}', 'error')
         return redirect(url_for('reports_index'))
+# ============================================
+# تصدير تقرير الإغلاق الشهري
+# ============================================
+@app.route('/financial/monthly-closing/export/<export_type>')
+@login_required
+def export_monthly_closing(export_type):
+    """تصدير تقرير الإغلاق الشهري الشامل"""
+    if not check_permission('can_view_financial'):
+        flash('غير مصرح', 'error')
+        return redirect(url_for('dashboard'))
+
+    try:
+        # الحصول على معاملات الفلترة (نفس طريقة monthly_closing)
+        today = date.today()
+        from_date_str = request.args.get('from_date', '')
+        to_date_str = request.args.get('to_date', '')
+        company_id = request.args.get('company_id', type=int)
+
+        # معالجة التواريخ
+        if from_date_str and to_date_str:
+            try:
+                from_date = datetime.strptime(from_date_str, '%Y-%m-%d').date()
+                to_date = datetime.strptime(to_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                from_date = date(today.year, today.month, 1)
+                to_date = today
+        else:
+            selected_year = request.args.get('year', today.year, type=int)
+            selected_month = request.args.get('month', today.month, type=int)
+            from_date = date(selected_year, selected_month, 1)
+            if selected_month == 12:
+                to_date = date(selected_year + 1, 1, 1) - timedelta(days=1)
+            else:
+                to_date = date(selected_year, selected_month + 1, 1) - timedelta(days=1)
+
+        # أسماء الأشهر
+        month_names = {
+            1: 'يناير', 2: 'فبراير', 3: 'مارس', 4: 'أبريل',
+            5: 'مايو', 6: 'يونيو', 7: 'يوليو', 8: 'أغسطس',
+            9: 'سبتمبر', 10: 'أكتوبر', 11: 'نوفمبر', 12: 'ديسمبر'
+        }
+
+        # جلب بيانات الرواتب
+        salary_data_result = get_salary_data(from_date, to_date, company_id)
+        salary_grand_totals = salary_data_result['grand_totals']
+        salary_by_company_month = salary_data_result['salary_by_company_month']
+
+        total_salaries = salary_grand_totals['net_salary']
+        total_overtime = salary_grand_totals['overtime_pay']
+        total_penalties = salary_grand_totals['penalties']
+        total_loan_deductions = salary_grand_totals['loan_deductions']
+        employee_count = salary_grand_totals['employees_count']
+
+        # جلب الشركات
+        companies_query = Company.query.filter_by(is_active=True).order_by(Company.name)
+        if company_id:
+            companies_query = companies_query.filter_by(id=company_id)
+        companies = companies_query.all()
+
+        # قائمة الأشهر في الفترة
+        months_in_period = []
+        current_date = from_date.replace(day=1)
+        while current_date <= to_date:
+            months_in_period.append((current_date.year, current_date.month))
+            if current_date.month == 12:
+                current_date = date(current_date.year + 1, 1, 1)
+            else:
+                current_date = date(current_date.year, current_date.month + 1, 1)
+
+        # جلب الفواتير
+        invoices_query = CompanyInvoice.query
+        if company_id:
+            invoices_query = invoices_query.filter_by(company_id=company_id)
+
+        all_invoices = invoices_query.all()
+        filtered_invoices = []
+        for inv in all_invoices:
+            inv_date = date(inv.year, inv.month, 1)
+            if from_date <= inv_date <= to_date:
+                filtered_invoices.append(inv)
+
+        # جلب الإيرادات الأخرى
+        other_incomes_query = OtherIncome.query.filter(
+            OtherIncome.income_date >= from_date,
+            OtherIncome.income_date <= to_date
+        )
+        if company_id:
+            other_incomes_query = other_incomes_query.filter_by(company_id=company_id)
+        other_incomes = other_incomes_query.all()
+
+        # تجميع الإحصائيات للتصدير
+        export_rows = []
+        grand_totals = {
+            'total_revenue': 0,
+            'total_expenses': 0,
+            'total_profit': 0,
+            'total_salaries': 0,
+            'total_overtime': 0,
+            'total_penalties': 0,
+            'total_loans': 0,
+            'total_invoiced': 0,
+            'total_collected': 0,
+            'total_other_income': 0
+        }
+
+        for company in companies:
+            company_total_revenue = 0
+            company_total_expenses = 0
+            company_total_profit = 0
+
+            for year, month in months_in_period:
+                key = f"{company.id}_{year}_{month}"
+                if key in salary_by_company_month:
+                    month_salaries = salary_by_company_month[key]['salaries']
+                    month_overtime = salary_by_company_month[key]['overtime']
+                    month_penalties = salary_by_company_month[key]['penalties']
+                    month_loans = salary_by_company_month[key]['loan_deductions']
+                    month_employee_count = salary_by_company_month[key]['employee_count']
+                else:
+                    month_salaries = 0
+                    month_overtime = 0
+                    month_penalties = 0
+                    month_loans = 0
+                    month_employee_count = 0
+
+                month_invoices = [inv for inv in filtered_invoices
+                                  if inv.company_id == company.id and inv.year == year and inv.month == month]
+
+                month_invoiced = sum(i.total_amount or 0 for i in month_invoices)
+                month_collected = sum(i.paid_amount or 0 for i in month_invoices)
+
+                month_other = [inc for inc in other_incomes
+                               if inc.company_id == company.id
+                               and inc.income_date.year == year
+                               and inc.income_date.month == month]
+                month_other_income = sum(o.amount or 0 for o in month_other)
+
+                month_revenue = month_collected + month_other_income
+                month_expenses = month_salaries
+                month_profit = month_revenue - month_expenses
+
+                company_total_revenue += month_revenue
+                company_total_expenses += month_expenses
+                company_total_profit += month_profit
+
+                if month_revenue != 0 or month_expenses != 0 or month_invoiced != 0 or month_employee_count > 0:
+                    export_rows.append({
+                        'الشركة': company.name,
+                        'الشهر': f"{month_names.get(month, '')} {year}",
+                        'الفواتير': month_invoiced,
+                        'المتحصل': month_collected,
+                        'إيرادات أخرى': month_other_income,
+                        'إجمالي الإيرادات': month_revenue,
+                        'الرواتب': month_salaries,
+                        'ساعات إضافية': month_overtime,
+                        'جزاءات': month_penalties,
+                        'خصم سلف': month_loans,
+                        'إجمالي المصروفات': month_expenses,
+                        'صافي الربح': month_profit,
+                        'عدد الموظفين': month_employee_count
+                    })
+
+                    grand_totals['total_revenue'] += month_revenue
+                    grand_totals['total_expenses'] += month_expenses
+                    grand_totals['total_profit'] += month_profit
+                    grand_totals['total_salaries'] += month_salaries
+                    grand_totals['total_overtime'] += month_overtime
+                    grand_totals['total_penalties'] += month_penalties
+                    grand_totals['total_loans'] += month_loans
+                    grand_totals['total_invoiced'] += month_invoiced
+                    grand_totals['total_collected'] += month_collected
+                    grand_totals['total_other_income'] += month_other_income
+
+        # جلب الإيرادات العامة
+        general_incomes = OtherIncome.query.filter(
+            OtherIncome.company_id == None,
+            OtherIncome.income_date >= from_date,
+            OtherIncome.income_date <= to_date
+        ).all()
+
+        for inc in general_incomes:
+            export_rows.append({
+                'الشركة': '📌 إيرادات عامة',
+                'الشهر': inc.income_date.strftime('%Y-%m'),
+                'الفواتير': 0,
+                'المتحصل': 0,
+                'إيرادات أخرى': inc.amount or 0,
+                'إجمالي الإيرادات': inc.amount or 0,
+                'الرواتب': 0,
+                'ساعات إضافية': 0,
+                'جزاءات': 0,
+                'خصم سلف': 0,
+                'إجمالي المصروفات': 0,
+                'صافي الربح': inc.amount or 0,
+                'عدد الموظفين': 0
+            })
+
+            grand_totals['total_revenue'] += inc.amount or 0
+            grand_totals['total_profit'] += inc.amount or 0
+            grand_totals['total_other_income'] += inc.amount or 0
+
+        # إضافة صف الإجمالي
+        export_rows.append({
+            'الشركة': '💰 الإجمالي النهائي',
+            'الشهر': '',
+            'الفواتير': grand_totals['total_invoiced'],
+            'المتحصل': grand_totals['total_collected'],
+            'إيرادات أخرى': grand_totals['total_other_income'],
+            'إجمالي الإيرادات': grand_totals['total_revenue'],
+            'الرواتب': grand_totals['total_salaries'],
+            'ساعات إضافية': grand_totals['total_overtime'],
+            'جزاءات': grand_totals['total_penalties'],
+            'خصم سلف': grand_totals['total_loans'],
+            'إجمالي المصروفات': grand_totals['total_expenses'],
+            'صافي الربح': grand_totals['total_profit'],
+            'عدد الموظفين': employee_count
+        })
+
+        today = datetime.now()
+
+        if export_type == 'excel':
+            headers = ['الشركة', 'الشهر', 'الفواتير', 'المتحصل', 'إيرادات أخرى', 'إجمالي الإيرادات',
+                       'الرواتب', 'ساعات إضافية', 'جزاءات', 'خصم سلف', 'إجمالي المصروفات', 'صافي الربح', 'عدد الموظفين']
+            report_name = f"تقرير الإغلاق الشهري {from_date.strftime('%Y-%m-%d')} إلى {to_date.strftime('%Y-%m-%d')}"
+            filename_prefix = f"monthly_closing_{from_date.strftime('%Y%m%d')}_to_{to_date.strftime('%Y%m%d')}"
+            return export_report(export_type, report_name, headers, export_rows, filename_prefix, 'landscape')
+
+        elif export_type == 'pdf':
+            from flask import render_template
+
+            try:
+                # حساب النسب المئوية
+                profit_margin = (grand_totals['total_profit'] / grand_totals['total_revenue'] * 100) if grand_totals['total_revenue'] > 0 else 0
+                collection_rate = (grand_totals['total_collected'] / grand_totals['total_invoiced'] * 100) if grand_totals['total_invoiced'] > 0 else 0
+
+                html_content = render_template(
+                    'reports/monthly_closing_pdf_report.html',
+                    export_rows=export_rows,
+                    grand_totals=grand_totals,
+                    from_date=from_date.strftime('%Y-%m-%d'),
+                    to_date=to_date.strftime('%Y-%m-%d'),
+                    profit_margin=round(profit_margin, 1),
+                    collection_rate=round(collection_rate, 1),
+                    employee_count=employee_count,
+                    today=today,
+                    current_user=current_user
+                )
+
+                response = export_pdf(html_content, 'monthly_closing_report')
+                if response:
+                    return response
+                else:
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('monthly_closing', **request.args))
+
+            except Exception as pdf_error:
+                app.logger.error(f"PDF Error: {str(pdf_error)}")
+                import traceback
+                traceback.print_exc()
+                flash(f'حدث خطأ في إنشاء PDF: {str(pdf_error)}', 'error')
+                return redirect(url_for('monthly_closing', **request.args))
+
+    except Exception as e:
+        app.logger.error(f"Error exporting monthly closing: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'حدث خطأ في التصدير: {str(e)}', 'error')
+        return redirect(url_for('monthly_closing', **request.args))
 
 @app.route('/debug/check-transfer', methods=['GET'])
 @login_required

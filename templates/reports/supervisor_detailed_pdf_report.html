@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>تقرير تقييم المشرفين التفصيلي</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 2cm 1.5cm 1.8cm 1.5cm;
+
+            @top-center {
+                content: "أرض الجوهرة للخدمات - تقييم المشرفين التفصيلي";
+                color: #36b9cc;
+                font-size: 9pt;
+                font-family: Arial, sans-serif;
+                border-bottom: 1px solid #36b9cc50;
+                padding-bottom: 3px;
+            }
+
+            @bottom-center {
+                content: "الحديدة - اليمن | هاتف: 776605949 | بريد: info@jewel-land.com | الصفحة " counter(page) " من " counter(pages);
+                color: #666;
+                font-size: 8pt;
+                font-family: Arial, sans-serif;
+                border-top: 1px solid #36b9cc50;
+                padding-top: 3px;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .main-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #36b9cc;
+            border-radius: 10px;
+            background-color: #f8f9fc;
+        }
+
+        .logo {
+            width: 70px;
+            height: 70px;
+            background-color: #36b9cc;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            color: white;
+            font-size: 28px;
+        }
+
+        .app-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #36b9cc;
+            margin: 3px 0;
+        }
+
+        .report-title {
+            font-size: 16px;
+            color: #666;
+            margin: 3px 0;
+        }
+
+        .meta {
+            text-align: center;
+            margin: 15px 0;
+            padding: 8px;
+            background-color: #f8f9fc;
+            border-radius: 5px;
+            font-size: 11px;
+            border: 1px solid #e3e6f0;
+        }
+
+        /* إحصائيات سريعة */
+        .stats-container {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            flex: 1;
+            color: white;
+            padding: 12px 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-card:nth-child(1) { background: linear-gradient(135deg, #36b9cc, #258391); }
+        .stat-card:nth-child(2) { background: linear-gradient(135deg, #4e73df, #224abe); }
+
+        .stat-card h4 {
+            margin: 0 0 5px 0;
+            font-size: 12px;
+            font-weight: normal;
+        }
+
+        .stat-card .value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        /* الجدول */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 8px;
+        }
+
+        th {
+            background-color: #36b9cc;
+            color: white;
+            padding: 6px 2px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        td {
+            padding: 4px 2px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fc;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding: 20px;
+            border-top: 3px solid #36b9cc;
+            background-color: #f8f9fc;
+            border-radius: 8px;
+            page-break-inside: avoid;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .designer-info {
+            border-right: 3px solid #36b9cc;
+            padding-right: 15px;
+        }
+
+        .designer-badge {
+            background-color: #36b9cc;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 10px;
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+
+        .footer-logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #36b9cc, #258391);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .copyright {
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 8px;
+            border-top: 1px solid #ddd;
+            font-size: 9px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-header">
+        <div class="logo">📊</div>
+        <div class="app-name">أرض الجوهرة للخدمات</div>
+        <div class="report-title">تقرير تقييم المشرفين التفصيلي</div>
+    </div>
+
+    <div class="meta">
+        <strong>تاريخ التقرير:</strong> {{ today.strftime('%Y-%m-%d') }} |
+        <strong>عدد المشرفين:</strong> {{ total_supervisors }}
+    </div>
+
+    <!-- إحصائيات سريعة -->
+    <div class="stats-container">
+        <div class="stat-card">
+            <h4>إجمالي المشرفين</h4>
+            <div class="value">{{ total_supervisors }}</div>
+        </div>
+        <div class="stat-card">
+            <h4>متوسط الأداء</h4>
+            <div class="value">{{ "%.1f"|format(supervisors_data|map(attribute='overall')|sum / supervisors_data|length if supervisors_data else 0) }}%</div>
+        </div>
+    </div>
+
+    <!-- جدول تقييم المشرفين التفصيلي -->
+    <table>
+        <thead>
+            <tr>
+                <th>المشرف</th>
+                <th>الشركة</th>
+                <th>متابعة العمال</th>
+                <th>كفاءة العمل</th>
+                <th>جودة التقارير</th>
+                <th>الالتزام</th>
+                <th>السلامة</th>
+                <th>الانضباط</th>
+                <th>القيادة</th>
+                <th>حل المشكلات</th>
+                <th>الأداء العام</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sup in supervisors_data %}
+            <tr>
+                <td><strong>{{ sup.name }}</strong></td>
+                <td>{{ sup.company }}</td>
+                <td>{{ sup.workers_followup }}%</td>
+                <td>{{ sup.work_efficiency }}%</td>
+                <td>{{ sup.reports_quality }}%</td>
+                <td>{{ sup.compliance }}%</td>
+                <td>{{ sup.safety }}%</td>
+                <td>{{ sup.attendance }}%</td>
+                <td>{{ sup.leadership }}%</td>
+                <td>{{ sup.problem_solving }}%</td>
+                <td><strong>{{ sup.overall }}%</strong></td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="11" style="text-align: center; padding: 30px; color: #666;">
+                    <strong>لا توجد بيانات</strong>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- تذييل التقرير -->
+    <div class="footer">
+        <div class="footer-content">
+            <div>
+                <div class="footer-logo">💎</div>
+                <strong style="color: #36b9cc; font-size: 12px;">أرض الجوهرة للخدمات</strong><br>
+                <span style="font-size: 9px; color: #666;">الحديدة - مدينة العمال</span>
+            </div>
+
+            <div class="designer-info">
+                <div class="designer-badge">👨‍💻 معلومات المصمم</div>
+                <div style="font-size: 9px;">
+                    <div><strong>إعداد وتصميم: غيث العنزي</strong></div>
+                    <div>المستخدم: {{ current_user.full_name or current_user.username }}</div>
+                    <div>تاريخ التقرير: {{ today.strftime('%Y-%m-%d') }}</div>
+                    <div>وقت الطباعة: {{ today.strftime('%H:%M:%S') }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="copyright">
+            © {{ today.year }} جميع الحقوق محفوظة - تصميم وبرمجة: الغيث لتصميم البرامج
+        </div>
+    </div>
+</body>
+</html>

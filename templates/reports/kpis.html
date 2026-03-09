@@ -113,12 +113,45 @@
             margin-bottom: 15px;
         }
     }
+
+    /* أنماط أزرار التصدير */
+    .btn-modern {
+        border-radius: 25px;
+        padding: 0.5rem 1.2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: all 0.3s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 3px;
+        font-weight: 500;
+        font-size: 0.85rem;
+    }
+
+    .btn-modern:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+    }
+
+    .btn-group {
+        direction: ltr;
+    }
+
+    a.btn-modern {
+        color: white;
+    }
+
+    a.btn-modern:hover {
+        color: white;
+        text-decoration: none;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <!-- رأس الصفحة مع خيارات التصدير -->
+    <!-- رأس الصفحة مع أزرار التصدير -->
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
         <div>
             <h2 class="text-primary fw-bold">
@@ -128,14 +161,19 @@
             <p class="text-muted">نظرة شاملة على أداء المؤسسة والموظفين</p>
         </div>
         <div class="btn-group">
-            <button class="btn btn-primary btn-export" onclick="exportReport('pdf')">
-                <i class="fas fa-file-pdf me-2"></i>PDF
-            </button>
-            <button class="btn btn-success btn-export" onclick="exportReport('excel')">
-                <i class="fas fa-file-excel me-2"></i>Excel
-            </button>
-            <button class="btn btn-info btn-export" onclick="exportReport('print')">
-                <i class="fas fa-print me-2"></i>طباعة
+            <!-- أزرار التصدير -->
+            <a href="{{ url_for('export_kpis_report', export_type='pdf', **request.args) }}"
+               class="btn btn-danger btn-modern"
+               title="تصدير PDF">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </a>
+            <a href="{{ url_for('export_kpis_report', export_type='excel', **request.args) }}"
+               class="btn btn-success btn-modern"
+               title="تصدير Excel">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </a>
+            <button class="btn btn-primary btn-modern" onclick="window.print()" title="طباعة">
+                <i class="fas fa-print me-1"></i>طباعة
             </button>
         </div>
     </div>
@@ -713,10 +751,12 @@ function changeChartType(type) {
 
 // تصدير التقرير
 function exportReport(format) {
-    if (format === 'print') {
+    if (format === 'pdf') {
+        window.location.href = "{{ url_for('export_kpis_report', export_type='pdf', **request.args) }}";
+    } else if (format === 'excel') {
+        window.location.href = "{{ url_for('export_kpis_report', export_type='excel', **request.args) }}";
+    } else if (format === 'print') {
         window.print();
-    } else {
-        alert(`سيتم تفعيل تصدير ${format.toUpperCase()} قريباً`);
     }
 }
 

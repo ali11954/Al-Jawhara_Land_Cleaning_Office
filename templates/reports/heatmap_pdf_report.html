@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>تقرير تحليل أداء المناطق</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 2cm 1.5cm 1.8cm 1.5cm;
+
+            @top-center {
+                content: "أرض الجوهرة للخدمات - تحليل أداء المناطق";
+                color: #e74a3b;
+                font-size: 9pt;
+                font-family: Arial, sans-serif;
+                border-bottom: 1px solid #e74a3b50;
+                padding-bottom: 3px;
+            }
+
+            @bottom-center {
+                content: "الحديدة - اليمن | هاتف: 776605949 | بريد: info@jewel-land.com | الصفحة " counter(page) " من " counter(pages);
+                color: #666;
+                font-size: 8pt;
+                font-family: Arial, sans-serif;
+                border-top: 1px solid #e74a3b50;
+                padding-top: 3px;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        .main-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #e74a3b;
+            border-radius: 10px;
+            background-color: #f8f9fc;
+        }
+
+        .logo {
+            width: 70px;
+            height: 70px;
+            background-color: #e74a3b;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            color: white;
+            font-size: 28px;
+        }
+
+        .app-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #e74a3b;
+        }
+
+        .meta {
+            text-align: center;
+            margin: 15px 0;
+            padding: 8px;
+            background-color: #f8f9fc;
+            border-radius: 5px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            flex: 1;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-card.excellent { background: #1cc88a; }
+        .stat-card.good { background: #36b9cc; }
+        .stat-card.average { background: #f6c23e; }
+        .stat-card.poor { background: #e74a3b; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9px;
+        }
+
+        th {
+            background-color: #e74a3b;
+            color: white;
+            padding: 6px;
+        }
+
+        td {
+            padding: 4px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .level-excellent { color: #1cc88a; font-weight: bold; }
+        .level-good { color: #36b9cc; font-weight: bold; }
+        .level-average { color: #f6c23e; font-weight: bold; }
+        .level-poor { color: #e74a3b; font-weight: bold; }
+
+        .footer {
+            margin-top: 30px;
+            padding: 20px;
+            border-top: 3px solid #e74a3b;
+            background-color: #f8f9fc;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-header">
+        <div class="logo">🔥</div>
+        <div class="app-name">أرض الجوهرة للخدمات</div>
+        <div>تقرير تحليل أداء المناطق</div>
+    </div>
+
+    <div class="meta">
+        <strong>تاريخ التقرير:</strong> {{ today.strftime('%Y-%m-%d') }} |
+        <strong>إجمالي المناطق:</strong> {{ total_zones }}
+    </div>
+
+    <div class="stats">
+        <div class="stat-card excellent">
+            <h4>ممتاز</h4>
+            <h2>{{ excellent_zones }}</h2>
+        </div>
+        <div class="stat-card good">
+            <h4>جيد جداً</h4>
+            <h2>{{ good_zones }}</h2>
+        </div>
+        <div class="stat-card average">
+            <h4>جيد</h4>
+            <h2>{{ average_zones }}</h2>
+        </div>
+        <div class="stat-card poor">
+            <h4>ضعيف</h4>
+            <h2>{{ poor_zones }}</h2>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>المنطقة</th>
+                <th>الشركة</th>
+                <th>المشرف</th>
+                <th>عدد الأماكن</th>
+                <th>عدد العمال</th>
+                <th>عدد التقييمات</th>
+                <th>متوسط التقييم</th>
+                <th>نسبة الأداء</th>
+                <th>المستوى</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for zone in zones_data %}
+            <tr>
+                <td><strong>{{ zone.name }}</strong></td>
+                <td>{{ zone.company_name }}</td>
+                <td>{{ zone.supervisor_name }}</td>
+                <td>{{ zone.places_count }}</td>
+                <td>{{ zone.workers_count }}</td>
+                <td>{{ zone.evaluations_count }}</td>
+                <td>{{ zone.rating }}/5</td>
+                <td>{{ zone.performance }}%</td>
+                <td class="level-{{ 'excellent' if zone.performance >= 80 else 'good' if zone.performance >= 70 else 'average' if zone.performance >= 60 else 'poor' }}">
+                    {{ zone.level }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <div style="display:flex; justify-content:space-between;">
+            <div><strong>أرض الجوهرة للخدمات</strong><br><small>الحديدة - اليمن</small></div>
+            <div style="border-right: 3px solid #e74a3b; padding-right: 10px;">
+                <div><strong>المستخدم:</strong> {{ current_user.full_name or current_user.username }}</div>
+                <div><strong>التاريخ:</strong> {{ today.strftime('%Y-%m-%d') }}</div>
+            </div>
+        </div>
+        <div style="text-align:center; margin-top:10px;">© {{ today.year }} جميع الحقوق محفوظة</div>
+    </div>
+</body>
+</html>

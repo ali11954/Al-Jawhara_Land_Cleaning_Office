@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <!-- رأس الصفحة مع فلترة -->
+    <!-- رأس الصفحة مع أزرار التصدير -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="text-primary mb-1">
@@ -21,16 +21,27 @@
             {% endif %}
         </div>
         <div class="btn-group">
-            <a href="{{ url_for('company_invoices_list') }}" class="btn btn-outline-primary">
+            <!-- أزرار التصدير -->
+            <a href="{{ url_for('export_monthly_closing', export_type='pdf', **request.args) }}"
+               class="btn btn-danger btn-modern"
+               title="تصدير PDF">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </a>
+            <a href="{{ url_for('export_monthly_closing', export_type='excel', **request.args) }}"
+               class="btn btn-success btn-modern"
+               title="تصدير Excel">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </a>
+            <button class="btn btn-primary btn-modern" onclick="window.print()" title="طباعة">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
+            <a href="{{ url_for('company_invoices_list') }}" class="btn btn-outline-primary btn-modern">
                 <i class="fas fa-file-invoice me-1"></i>الفواتير
             </a>
-            <a href="{{ url_for('other_income') }}" class="btn btn-outline-success">
+            <a href="{{ url_for('other_income') }}" class="btn btn-outline-success btn-modern">
                 <i class="fas fa-plus-circle me-1"></i>إيرادات أخرى
             </a>
-            <button class="btn btn-outline-info" onclick="exportToExcel()">
-                <i class="fas fa-file-excel me-1"></i>تصدير
-            </button>
-            <a href="{{ url_for('monthly_closing') }}" class="btn btn-outline-secondary">
+            <a href="{{ url_for('monthly_closing') }}" class="btn btn-outline-secondary btn-modern">
                 <i class="fas fa-redo me-1"></i>إعادة تعيين
             </a>
         </div>
@@ -515,6 +526,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// دوال التصدير
+function exportToExcel() {
+    window.location.href = "{{ url_for('export_monthly_closing', export_type='excel', **request.args) }}";
+}
+
 // رسم بياني للإيرادات الشهرية
 document.addEventListener('DOMContentLoaded', function() {
     // رسم بياني تطور الإيرادات
@@ -752,32 +768,6 @@ if (companyMonthlyCtx) {
     });
 }
 {% endif %}
-
-// دالة تصدير إلى Excel
-function exportToExcel() {
-    let excelContent = 'تقرير الإغلاق الشهري - تحليل متقدم\n';
-    excelContent += 'الفترة: {{ from_date.strftime("%Y-%m-%d") if from_date else "" }} إلى {{ to_date.strftime("%Y-%m-%d") if to_date else "" }}\n\n';
-
-    excelContent += 'المؤشرات العامة\n';
-    excelContent += 'إجمالي الإيرادات\t{{ "{:,.2f}".format(total_revenue) }}\n';
-    excelContent += 'صافي الربح\t{{ "{:,.2f}".format(net_profit) }}\n';
-    excelContent += 'إجمالي المصروفات\t{{ "{:,.2f}".format(total_expenses) }}\n';
-    excelContent += 'هامش الربح\t{{ "%.1f"|format(profit_margin) }}%\n\n';
-
-    excelContent += 'تفاصيل الشركات (شهري)\n';
-    excelContent += 'الشهر\tالشركة\tفواتير\tمحصل\tإيرادات أخرى\tإجمالي الإيرادات\tرواتب\tساعات إضافية\tجزاءات\tخصم سلف\tالربح\tهامش الربح\tموظفين\n';
-
-    {% for stat in company_stats %}
-    excelContent += '{{ stat.month_name if stat.month_name else month_name }}\t{{ stat.name }}\t{{ "{:,.0f}".format(stat.invoiced) }}\t{{ "{:,.0f}".format(stat.collected) }}\t{{ "{:,.0f}".format(stat.other_income) }}\t{{ "{:,.0f}".format(stat.total_revenue) }}\t{{ "{:,.0f}".format(stat.salaries) }}\t{{ "{:,.0f}".format(stat.overtime or 0) }}\t{{ "{:,.0f}".format(stat.penalties or 0) }}\t{{ "{:,.0f}".format(stat.loan_deductions or 0) }}\t{{ "{:,.0f}".format(stat.profit) }}\t{{ "%.1f"|format(stat.profit_margin) }}%\t{{ stat.employee_count }}\n';
-    {% endfor %}
-
-    const blob = new Blob([excelContent], { type: 'text/plain;charset=utf-8' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'تقرير_اغلاق_تحليل_شهري.xls';
-    a.click();
-}
 </script>
 
 <style>
@@ -828,6 +818,65 @@ tfoot.table-dark th {
 
 .gap-2 {
     gap: 0.5rem;
+}
+
+/* أنماط أزرار التصدير */
+.btn-modern {
+    border-radius: 25px;
+    padding: 0.5rem 1.2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 3px;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+}
+
+.btn-group {
+    direction: ltr;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+a.btn-modern {
+    color: white;
+}
+
+a.btn-modern:hover {
+    color: white;
+    text-decoration: none;
+}
+
+a.btn-outline-primary.btn-modern {
+    color: #4e73df;
+}
+
+a.btn-outline-primary.btn-modern:hover {
+    color: white;
+}
+
+a.btn-outline-success.btn-modern {
+    color: #1cc88a;
+}
+
+a.btn-outline-success.btn-modern:hover {
+    color: white;
+}
+
+a.btn-outline-secondary.btn-modern {
+    color: #858796;
+}
+
+a.btn-outline-secondary.btn-modern:hover {
+    color: white;
 }
 </style>
 {% endblock %}

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>تقرير الإغلاق الشهري</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 2cm 1.5cm 1.8cm 1.5cm;
+
+            @top-center {
+                content: "أرض الجوهرة للخدمات - تقرير الإغلاق الشهري";
+                color: #1cc88a;
+                font-size: 9pt;
+                font-family: Arial, sans-serif;
+                border-bottom: 1px solid #1cc88a50;
+                padding-bottom: 3px;
+            }
+
+            @bottom-center {
+                content: "الحديدة - اليمن | هاتف: 776605949 | بريد: info@jewel-land.com | الصفحة " counter(page) " من " counter(pages);
+                color: #666;
+                font-size: 8pt;
+                font-family: Arial, sans-serif;
+                border-top: 1px solid #1cc88a50;
+                padding-top: 3px;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .main-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #1cc88a;
+            border-radius: 10px;
+            background-color: #f8f9fc;
+        }
+
+        .logo {
+            width: 70px;
+            height: 70px;
+            background-color: #1cc88a;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            color: white;
+            font-size: 28px;
+        }
+
+        .app-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1cc88a;
+            margin: 3px 0;
+        }
+
+        .report-title {
+            font-size: 16px;
+            color: #666;
+            margin: 3px 0;
+        }
+
+        .meta {
+            text-align: center;
+            margin: 15px 0;
+            padding: 8px;
+            background-color: #f8f9fc;
+            border-radius: 5px;
+            font-size: 11px;
+            border: 1px solid #e3e6f0;
+        }
+
+        /* بطاقات المؤشرات */
+        .stats-container {
+            display: flex;
+            gap: 8px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            flex: 1;
+            color: white;
+            padding: 10px 8px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-card:nth-child(1) { background: linear-gradient(135deg, #1cc88a, #169b6b); }
+        .stat-card:nth-child(2) { background: linear-gradient(135deg, #4e73df, #224abe); }
+        .stat-card:nth-child(3) { background: linear-gradient(135deg, #36b9cc, #258391); }
+        .stat-card:nth-child(4) { background: linear-gradient(135deg, #f6c23e, #dda20a); }
+        .stat-card:nth-child(5) { background: linear-gradient(135deg, #e74a3b, #c92112); }
+        .stat-card:nth-child(6) { background: linear-gradient(135deg, #858796, #6c757d); }
+
+        .stat-card h4 {
+            margin: 0 0 3px 0;
+            font-size: 9px;
+            font-weight: normal;
+            opacity: 0.9;
+        }
+
+        .stat-card .value {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        /* الجدول */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 7px;
+        }
+
+        th {
+            background-color: #1cc88a;
+            color: white;
+            padding: 5px 2px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        td {
+            padding: 4px 2px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fc;
+        }
+
+        .grand-total {
+            background-color: #1cc88a20;
+            font-weight: bold;
+        }
+
+        .general-income {
+            background-color: #f6c23e20;
+        }
+
+        .positive {
+            color: #1cc88a;
+            font-weight: bold;
+        }
+
+        .negative {
+            color: #e74a3b;
+            font-weight: bold;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding: 20px;
+            border-top: 3px solid #1cc88a;
+            background-color: #f8f9fc;
+            border-radius: 8px;
+            page-break-inside: avoid;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .designer-info {
+            border-right: 3px solid #1cc88a;
+            padding-right: 15px;
+        }
+
+        .designer-badge {
+            background-color: #1cc88a;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 10px;
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+
+        .footer-logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #1cc88a, #169b6b);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .copyright {
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 8px;
+            border-top: 1px solid #ddd;
+            font-size: 9px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-header">
+        <div class="logo">💰</div>
+        <div class="app-name">أرض الجوهرة للخدمات</div>
+        <div class="report-title">تقرير الإغلاق الشهري</div>
+    </div>
+
+    <div class="meta">
+        <strong>الفترة:</strong> {{ from_date }} إلى {{ to_date }} |
+        <strong>تاريخ التقرير:</strong> {{ today.strftime('%Y-%m-%d') }}
+    </div>
+
+    <!-- بطاقات المؤشرات -->
+    <div class="stats-container">
+        <div class="stat-card">
+            <h4>إجمالي الإيرادات</h4>
+            <div class="value">{{ "{:,.2f}".format(grand_totals.total_revenue) }}</div>
+        </div>
+        <div class="stat-card">
+            <h4>إجمالي المصروفات</h4>
+            <div class="value">{{ "{:,.2f}".format(grand_totals.total_expenses) }}</div>
+        </div>
+        <div class="stat-card">
+            <h4>صافي الربح</h4>
+            <div class="value">{{ "{:,.2f}".format(grand_totals.total_profit) }}</div>
+        </div>
+        <div class="stat-card">
+            <h4>هامش الربح</h4>
+            <div class="value">{{ profit_margin }}%</div>
+        </div>
+        <div class="stat-card">
+            <h4>نسبة التحصيل</h4>
+            <div class="value">{{ collection_rate }}%</div>
+        </div>
+        <div class="stat-card">
+            <h4>عدد الموظفين</h4>
+            <div class="value">{{ employee_count }}</div>
+        </div>
+    </div>
+
+    <!-- جدول الإغلاق الشهري -->
+    <table>
+        <thead>
+            <tr>
+                <th>الشركة</th>
+                <th>الشهر</th>
+                <th>الفواتير</th>
+                <th>المتحصل</th>
+                <th>إيرادات أخرى</th>
+                <th>إجمالي الإيرادات</th>
+                <th>الرواتب</th>
+                <th>ساعات إضافية</th>
+                <th>جزاءات</th>
+                <th>خصم سلف</th>
+                <th>إجمالي المصروفات</th>
+                <th>صافي الربح</th>
+                <th>عدد الموظفين</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in export_rows %}
+            <tr class="{% if 'الإجمالي النهائي' in row['الشركة'] %}grand-total{% elif 'إيرادات عامة' in row['الشركة'] %}general-income{% endif %}">
+                <td><strong>{{ row['الشركة'] }}</strong></td>
+                <td>{{ row['الشهر'] }}</td>
+                <td>{{ "{:,.2f}".format(row['الفواتير']) }}</td>
+                <td>{{ "{:,.2f}".format(row['المتحصل']) }}</td>
+                <td>{{ "{:,.2f}".format(row['إيرادات أخرى']) }}</td>
+                <td class="{% if row['إجمالي الإيرادات'] > 0 %}positive{% endif %}">{{ "{:,.2f}".format(row['إجمالي الإيرادات']) }}</td>
+                <td>{{ "{:,.2f}".format(row['الرواتب']) }}</td>
+                <td>{{ "{:,.2f}".format(row['ساعات إضافية']) }}</td>
+                <td>{{ "{:,.2f}".format(row['جزاءات']) }}</td>
+                <td>{{ "{:,.2f}".format(row['خصم سلف']) }}</td>
+                <td class="negative">{{ "{:,.2f}".format(row['إجمالي المصروفات']) }}</td>
+                <td class="{% if row['صافي الربح'] >= 0 %}positive{% else %}negative{% endif %}">
+                    {{ "{:,.2f}".format(row['صافي الربح']) }}
+                </td>
+                <td>{{ row['عدد الموظفين'] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- ملخص إضافي -->
+    <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fc; border-radius: 5px;">
+        <div style="display: flex; justify-content: space-around; text-align: center;">
+            <div>
+                <div style="font-size: 11px; color: #1cc88a;">إجمالي الإيرادات</div>
+                <div style="font-size: 16px; font-weight: bold;">{{ "{:,.2f}".format(grand_totals.total_revenue) }}</div>
+            </div>
+            <div>
+                <div style="font-size: 11px; color: #e74a3b;">إجمالي المصروفات</div>
+                <div style="font-size: 16px; font-weight: bold;">{{ "{:,.2f}".format(grand_totals.total_expenses) }}</div>
+            </div>
+            <div>
+                <div style="font-size: 11px; color: #f6c23e;">إجمالي الرواتب</div>
+                <div style="font-size: 16px; font-weight: bold;">{{ "{:,.2f}".format(grand_totals.total_salaries) }}</div>
+            </div>
+            <div>
+                <div style="font-size: 11px; color: #4e73df;">صافي الربح</div>
+                <div style="font-size: 16px; font-weight: bold;">{{ "{:,.2f}".format(grand_totals.total_profit) }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تذييل التقرير -->
+    <div class="footer">
+        <div class="footer-content">
+            <div>
+                <div class="footer-logo">💎</div>
+                <strong style="color: #1cc88a; font-size: 12px;">أرض الجوهرة للخدمات</strong><br>
+                <span style="font-size: 9px; color: #666;">الحديدة - مدينة العمال</span>
+            </div>
+
+            <div class="designer-info">
+                <div class="designer-badge">👨‍💻 معلومات المصمم</div>
+                <div style="font-size: 9px;">
+                    <div><strong>إعداد وتصميم: غيث العنزي</strong></div>
+                    <div>المستخدم: {{ current_user.full_name or current_user.username }}</div>
+                    <div>تاريخ التقرير: {{ today.strftime('%Y-%m-%d') }}</div>
+                    <div>وقت الطباعة: {{ today.strftime('%H:%M:%S') }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="copyright">
+            © {{ today.year }} جميع الحقوق محفوظة - تصميم وبرمجة: الغيث لتصميم البرامج
+        </div>
+    </div>
+</body>
+</html>

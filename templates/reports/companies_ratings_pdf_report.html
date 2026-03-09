@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>تقرير تقييمات الشركات</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 2cm 1.5cm 1.8cm 1.5cm;
+
+            @top-center {
+                content: "أرض الجوهرة للخدمات - تقييمات الشركات";
+                color: #f6c23e;
+                font-size: 9pt;
+                font-family: Arial, sans-serif;
+                border-bottom: 1px solid #f6c23e50;
+                padding-bottom: 3px;
+            }
+
+            @bottom-center {
+                content: "الحديدة - اليمن | هاتف: 776605949 | بريد: info@jewel-land.com | الصفحة " counter(page) " من " counter(pages);
+                color: #666;
+                font-size: 8pt;
+                font-family: Arial, sans-serif;
+                border-top: 1px solid #f6c23e50;
+                padding-top: 3px;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        .main-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #f6c23e;
+            border-radius: 10px;
+            background-color: #f8f9fc;
+        }
+
+        .logo {
+            width: 70px;
+            height: 70px;
+            background-color: #f6c23e;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            color: white;
+            font-size: 28px;
+        }
+
+        .app-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #f6c23e;
+        }
+
+        .meta {
+            text-align: center;
+            margin: 15px 0;
+            padding: 8px;
+            background-color: #f8f9fc;
+            border-radius: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 11px;
+        }
+
+        th {
+            background-color: #f6c23e;
+            color: white;
+            padding: 8px;
+        }
+
+        td {
+            padding: 6px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .excellent { background-color: #d4edda; color: #155724; }
+        .good { background-color: #d1ecf1; color: #0c5460; }
+        .average { background-color: #fff3cd; color: #856404; }
+        .poor { background-color: #f8d7da; color: #721c24; }
+
+        .footer {
+            margin-top: 30px;
+            padding: 20px;
+            border-top: 3px solid #f6c23e;
+            background-color: #f8f9fc;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-header">
+        <div class="logo">⭐</div>
+        <div class="app-name">أرض الجوهرة للخدمات</div>
+        <div>تقرير تقييمات الشركات</div>
+    </div>
+
+    <div class="meta">
+        <strong>تاريخ التقرير:</strong> {{ today.strftime('%Y-%m-%d') }} |
+        <strong>عدد الشركات:</strong> {{ total_companies }}
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>الشركة</th>
+                <th>عدد المناطق</th>
+                <th>متوسط التقييم</th>
+                <th>نسبة الأداء</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for company in ratings_data %}
+            <tr>
+                <td><strong>{{ company.name }}</strong></td>
+                <td>{{ company.areas_count }}</td>
+                <td>{{ company.avg_rating }}/5</td>
+                <td>{{ company.rating_percentage }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if areas_ratings %}
+    <h4 style="margin-top: 30px;">تفاصيل تقييم المناطق</h4>
+    <table>
+        <thead>
+            <tr>
+                <th>الشركة</th>
+                <th>المنطقة</th>
+                <th>المشرف</th>
+                <th>عدد التقييمات</th>
+                <th>متوسط التقييم</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for area in areas_ratings %}
+            <tr>
+                <td>{{ area.company_name }}</td>
+                <td>{{ area.area_name }}</td>
+                <td>{{ area.supervisor_name }}</td>
+                <td>{{ area.evaluations_count }}</td>
+                <td>{{ area.rating }}/5</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <div class="footer">
+        <div style="display:flex; justify-content:space-between;">
+            <div><strong>أرض الجوهرة للخدمات</strong><br><small>الحديدة - اليمن</small></div>
+            <div style="border-right: 3px solid #f6c23e; padding-right: 10px;">
+                <div><strong>المستخدم:</strong> {{ current_user.full_name or current_user.username }}</div>
+                <div><strong>التاريخ:</strong> {{ today.strftime('%Y-%m-%d') }}</div>
+            </div>
+        </div>
+        <div style="text-align:center; margin-top:10px;">© {{ today.year }} جميع الحقوق محفوظة</div>
+    </div>
+</body>
+</html>

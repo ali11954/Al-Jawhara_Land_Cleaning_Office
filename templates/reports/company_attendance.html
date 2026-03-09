@@ -1,10 +1,11 @@
+<!-- templates/reports/company_attendance.html -->
 {% extends "base.html" %}
 
 {% block title %}تقرير حضور الموظفين - {{ month_name }} {{ selected_year }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <!-- عنوان الصفحة -->
+    <!-- عنوان الصفحة مع أزرار التصدير -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="text-primary mb-1">
@@ -14,10 +15,18 @@
             <p class="text-muted mb-0">عرض تفصيلي لحضور الموظفين على مستوى الشركات مع تمييز الأيام بالألوان</p>
         </div>
         <div class="btn-group">
-            <button class="btn btn-outline-primary" onclick="exportToExcel()">
-                <i class="fas fa-file-excel me-1"></i>تصدير Excel
-            </button>
-            <button class="btn btn-outline-success" onclick="window.print()">
+            <!-- أزرار التصدير -->
+            <a href="{{ url_for('export_company_attendance', export_type='pdf', **request.args) }}"
+               class="btn btn-danger btn-modern"
+               title="تصدير PDF">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </a>
+            <a href="{{ url_for('export_company_attendance', export_type='excel', **request.args) }}"
+               class="btn btn-success btn-modern"
+               title="تصدير Excel">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </a>
+            <button class="btn btn-primary btn-modern" onclick="window.print()" title="طباعة">
                 <i class="fas fa-print me-1"></i>طباعة
             </button>
         </div>
@@ -300,35 +309,14 @@ function toggleCompany(companyId) {
     }
 }
 
-// دالة تصدير إلى Excel
+// دالة تصدير إلى Excel (محجوزة - سيتم استخدام الرابط المباشر)
 function exportToExcel() {
-    // جمع كل الجداول في الصفحة
-    const tables = document.querySelectorAll('table');
-    let excelContent = '';
+    window.location.href = "{{ url_for('export_company_attendance', export_type='excel', **request.args) }}";
+}
 
-    tables.forEach((table, index) => {
-        excelContent += 'شركة ' + (index + 1) + '\n';
-        const rows = table.querySelectorAll('tr');
-        rows.forEach(row => {
-            const cells = row.querySelectorAll('th, td');
-            const rowData = [];
-            cells.forEach(cell => {
-                // تنظيف البيانات من الرموز
-                let text = cell.innerText.replace('✔', 'حاضر').replace('✘', 'غائب').replace('⏰', 'متأخر').replace('-', '');
-                rowData.push(text.trim());
-            });
-            excelContent += rowData.join('\t') + '\n';
-        });
-        excelContent += '\n';
-    });
-
-    // إنشاء ملف للتحميل
-    const blob = new Blob([excelContent], { type: 'text/plain' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'تقرير_الحضور_{{ month_name }}_{{ selected_year }}.xls';
-    a.click();
+// دالة تصدير PDF (محجوزة - سيتم استخدام الرابط المباشر)
+function exportToPDF() {
+    window.location.href = "{{ url_for('export_company_attendance', export_type='pdf', **request.args) }}";
 }
 
 // دالة الطباعة - إظهار جميع الأقسام قبل الطباعة
@@ -389,6 +377,39 @@ document.addEventListener('DOMContentLoaded', function() {
     border-radius: 10px;
     font-size: 0.75rem;
     line-height: 20px;
+}
+
+/* أنماط أزرار التصدير */
+.btn-modern {
+    border-radius: 25px;
+    padding: 0.5rem 1.2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 3px;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+}
+
+.btn-group {
+    direction: ltr;
+}
+
+a.btn-modern {
+    color: white;
+}
+
+a.btn-modern:hover {
+    color: white;
+    text-decoration: none;
 }
 
 /* تنسيق للطباعة */

@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <!-- شريط العنوان -->
+    <!-- شريط العنوان مع أزرار التصدير -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="text-gradient-warning mb-1">
@@ -15,13 +15,21 @@
             <p class="text-muted mb-0">تحليل متقدم لساعات العمل الإضافية والتكاليف</p>
         </div>
         <div class="btn-group">
-            <button class="btn btn-modern btn-primary" onclick="exportReport('pdf')">
+            <!-- أزرار التصدير -->
+            <a href="{{ url_for('export_overtime', export_type='pdf', **request.args) }}"
+               class="btn btn-danger btn-modern"
+               title="تصدير PDF">
                 <i class="fas fa-file-pdf me-1"></i>PDF
-            </button>
-            <button class="btn btn-modern btn-success" onclick="exportToExcel()">
+            </a>
+            <a href="{{ url_for('export_overtime', export_type='excel', **request.args) }}"
+               class="btn btn-success btn-modern"
+               title="تصدير Excel">
                 <i class="fas fa-file-excel me-1"></i>Excel
+            </a>
+            <button class="btn btn-primary btn-modern" onclick="window.print()" title="طباعة">
+                <i class="fas fa-print me-1"></i>طباعة
             </button>
-            <button class="btn btn-modern btn-warning" onclick="transferToPayroll()">
+            <button class="btn btn-warning btn-modern" onclick="transferToPayroll()">
                 <i class="fas fa-exchange-alt me-1"></i>ترحيل إلى المرتبات
             </button>
         </div>
@@ -35,7 +43,7 @@
             </h6>
         </div>
         <div class="card-body">
-            <form method="GET" action="{{ url_for('report_overtime') }}" class="row g-3">
+            <form method="GET" action="{{ url_for('overtime_list') }}" class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label">من تاريخ</label>
                     <input type="date" name="from_date" class="form-control"
@@ -46,7 +54,7 @@
                     <input type="date" name="to_date" class="form-control"
                            value="{{ to_date_str if to_date_str else '' }}">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label">الموظف</label>
                     <select name="employee_id" class="form-select">
                         <option value="">جميع الموظفين</option>
@@ -57,9 +65,17 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-search me-1"></i>عرض
+                <div class="col-md-3">
+                    <label class="form-label">الحالة</label>
+                    <select name="status" class="form-select">
+                        <option value="">الكل</option>
+                        <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>غير مرحل</option>
+                        <option value="transferred" {% if selected_status == 'transferred' %}selected{% endif %}>مرحل</option>
+                    </select>
+                </div>
+                <div class="col-12 d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>بحث
                     </button>
                 </div>
             </form>
@@ -172,12 +188,12 @@
                                 <input type="checkbox" id="selectAllCheckbox" onclick="toggleAllCheckboxes()">
                             </th>
                             <th>الموظف</th>
-                            <th>القسم</th>
+                            <th>التاريخ</th>
                             <th>الشهر</th>
+                            <th>السنة</th>
                             <th>الساعات الإضافية</th>
-                            <th>المعدل/ساعة</th>
                             <th>التكلفة</th>
-                            <th>نسبة من الراتب</th>
+                            <th>السبب</th>
                             <th>الحالة</th>
                             <th>إجراءات</th>
                         </tr>
@@ -190,8 +206,6 @@
                                        data-employee="{{ overtime.employee_id }}"
                                        data-hours="{{ overtime.hours }}"
                                        data-cost="{{ overtime.cost }}"
-                                       data-month="{{ overtime.month_num }}"
-                                       data-year="{{ overtime.year }}"
                                        {% if overtime.is_transferred %}disabled{% endif %}>
                             </td>
                             <td>
@@ -202,28 +216,14 @@
                                     {{ overtime.employee_name }}
                                 </div>
                             </td>
-                            <td>{{ overtime.department }}</td>
-                            <td>
-                                {% set month_names = {
-                                    1: 'يناير', 2: 'فبراير', 3: 'مارس', 4: 'أبريل',
-                                    5: 'مايو', 6: 'يونيو', 7: 'يوليو', 8: 'أغسطس',
-                                    9: 'سبتمبر', 10: 'أكتوبر', 11: 'نوفمبر', 12: 'ديسمبر'
-                                } %}
-                                {{ month_names[overtime.month_num] if overtime.month_num in month_names else overtime.month_num }}
-                            </td>
+                            <td>{{ overtime.overtime_date }}</td>
+                            <td>{{ overtime.month }}</td>
+                            <td>{{ overtime.year }}</td>
                             <td>
                                 <span class="fw-bold">{{ overtime.hours }}</span>
                             </td>
-                            <td>{{ overtime.hourly_rate }} ر.ي</td>
-                            <td class="fw-bold text-success">{{ overtime.cost }} ر.ي</td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <span class="me-2">{{ overtime.percentage }}%</span>
-                                    <div class="progress flex-grow-1" style="height: 5px;">
-                                        <div class="progress-bar bg-warning" style="width: {{ overtime.percentage }}%;"></div>
-                                    </div>
-                                </div>
-                            </td>
+                            <td class="fw-bold text-success">{{ "%.2f"|format(overtime.cost) }} ر.ي</td>
+                            <td>{{ overtime.reason or '-' }}</td>
                             <td>
                                 {% if overtime.is_transferred %}
                                 <span class="badge bg-success">تم الترحيل</span>
@@ -380,10 +380,12 @@ function initializeButtons() {
     document.querySelectorAll('.btn-sm.btn-success').forEach(btn => {
         btn.onclick = function(e) {
             e.preventDefault();
-            const id = this.getAttribute('data-id') ||
-                      this.getAttribute('onclick')?.match(/\d+/)?.[0];
-            if (id) {
-                transferSingle(parseInt(id));
+            const onclickAttr = this.getAttribute('onclick');
+            if (onclickAttr) {
+                const match = onclickAttr.match(/\d+/);
+                if (match) {
+                    transferSingle(parseInt(match[0]));
+                }
             }
         };
     });
@@ -753,14 +755,14 @@ function executeTransfer(ids) {
 // ============================================
 
 function exportToExcel() {
-    alert('ميزة تصدير Excel ستكون متاحة قريباً');
+    window.location.href = "{{ url_for('export_overtime', export_type='excel', **request.args) }}";
 }
 
 function exportReport(type) {
     if (type === 'pdf') {
-        alert('ميزة تصدير PDF ستكون متاحة قريباً');
+        window.location.href = "{{ url_for('export_overtime', export_type='pdf', **request.args) }}";
     } else if (type === 'excel') {
-        exportToExcel();
+        window.location.href = "{{ url_for('export_overtime', export_type='excel', **request.args) }}";
     }
 }
 </script>
@@ -802,11 +804,29 @@ function exportReport(type) {
     padding: 0.5rem 1.5rem;
     font-weight: 500;
     transition: all 0.3s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 3px;
 }
 
 .btn-modern:hover {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.btn-group {
+    direction: ltr;
+}
+
+a.btn-modern {
+    color: white;
+}
+
+a.btn-modern:hover {
+    color: white;
+    text-decoration: none;
 }
 
 .progress {
