@@ -766,33 +766,32 @@ def export_report(export_type, report_name, headers, rows, filename_prefix=None,
             'message': f'حدث خطأ في التصدير: {str(e)}'
         }), 500
 
-# دالة موحدة لتصدير PDF (تعمل في كل مكان)
+
 def export_pdf(html_content, filename_prefix):
     """
-    دالة موحدة لتصدير PDF:
-    - محلياً: تستخدم WeasyPrint (الأسهل)
-    - على السيرفر: تستخدم PDFKit مع wkhtmltopdf
+    دالة ذكية لتصدير PDF:
+    - محلياً: تستخدم WeasyPrint
+    - على السيرفر: تستخدم wkhtmltopdf عبر PDFKit
     """
     import os
     from flask import make_response
     from datetime import datetime
-    import tempfile
-    import subprocess
 
     # التحقق من البيئة
     is_production = os.environ.get('FLASK_ENV') == 'production'
 
     try:
         if is_production:
-            # على السيرفر: استخدام wkhtmltopdf مباشرة (الأكثر استقراراً)
-            app.logger.info("📄 استخدام wkhtmltopdf على السيرفر")
+            # على السيرفر: استخدام PDFKit مع wkhtmltopdf
+            import pdfkit
+            import tempfile
+            import subprocess
 
-            # إنشاء ملف HTML مؤقت
+            # طريقة بديلة باستخدام الأمر المباشر
             with tempfile.NamedTemporaryFile(suffix='.html', mode='w', encoding='utf-8', delete=False) as f:
                 f.write(html_content)
                 temp_html = f.name
 
-            # إنشاء ملف PDF مؤقت
             temp_pdf = tempfile.NamedTemporaryFile(suffix='.pdf', delete=False)
             temp_pdf.close()
 
@@ -815,27 +814,17 @@ def export_pdf(html_content, filename_prefix):
 
             if result.returncode != 0:
                 app.logger.error(f"wkhtmltopdf error: {result.stderr}")
-                # محاولة استخدام PDFKit كبديل
-                try:
-                    import pdfkit
-                    pdf = pdfkit.from_string(html_content, False)
-                except:
-                    return None
-            else:
-                # قراءة ملف PDF
-                with open(temp_pdf.name, 'rb') as f:
-                    pdf = f.read()
+                return None
 
-            # حذف الملفات المؤقتة
-            try:
-                os.unlink(temp_html)
-                os.unlink(temp_pdf.name)
-            except:
-                pass
+            with open(temp_pdf.name, 'rb') as f:
+                pdf = f.read()
+
+            # تنظيف الملفات المؤقتة
+            os.unlink(temp_html)
+            os.unlink(temp_pdf.name)
 
         else:
-            # محلياً: استخدام WeasyPrint (الأسهل)
-            app.logger.info("📄 استخدام WeasyPrint محلياً")
+            # محلياً: استخدام WeasyPrint
             from weasyprint import HTML
             html = HTML(string=html_content)
             pdf = html.write_pdf()
@@ -850,8 +839,6 @@ def export_pdf(html_content, filename_prefix):
 
     except Exception as e:
         app.logger.error(f"PDF Generation Error: {str(e)}")
-        import traceback
-        traceback.print_exc()
         return None
 
 def export_pdf_with_pdfkit(html_content, filename_prefix):
@@ -3467,7 +3454,6 @@ def export_employees_financial(export_type):
             report_name = f"البيانات المالية للموظفين {month}-{year}"
             filename_prefix = f"employees_financial_{year}{month:02d}"
             return export_report(export_type, report_name, headers, rows, filename_prefix, 'landscape')
-
         elif export_type == 'pdf':
             from flask import render_template
 
@@ -3492,25 +3478,16 @@ def export_employees_financial(export_type):
                     current_user=current_user
                 )
 
-                # ✅ استخدام الدالة الذكية بدلاً من WeasyPrint مباشرة
+                # ✅ استخدام الدالة المساعدة
                 response = export_pdf(html_content, f'employees_financial_{year}{month:02d}')
                 if response:
                     return response
                 else:
-                    # إذا فشلت الدالة الذكية، استخدم WeasyPrint مباشرة كخطة احتياطية
-                    from weasyprint import HTML
-                    from flask import make_response
-                    html = HTML(string=html_content)
-                    pdf = html.write_pdf()
-                    response = make_response(pdf)
-                    response.headers['Content-Type'] = 'application/pdf'
-                    response.headers['Content-Disposition'] = f'attachment; filename=employees_financial_{year}{month:02d}_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
-                    return response
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('employees_financial', **request.args))
 
             except Exception as pdf_error:
                 app.logger.error(f"PDF Error: {str(pdf_error)}")
-                import traceback
-                traceback.print_exc()
                 flash(f'حدث خطأ في إنشاء PDF: {str(pdf_error)}', 'error')
                 return redirect(url_for('employees_financial', **request.args))
 
@@ -3723,24 +3700,16 @@ def export_employees_list(export_type):
                     current_user=current_user
                 )
 
-                # ✅ استخدام الدالة الذكية بدلاً من WeasyPrint مباشرة
+                # ✅ استخدام الدالة المساعدة
                 response = export_pdf(html_content, 'employees_list')
                 if response:
                     return response
                 else:
-                    # إذا فشلت الدالة الذكية، استخدم WeasyPrint مباشرة كخطة احتياطية
-                    from weasyprint import HTML
-                    html = HTML(string=html_content)
-                    pdf = html.write_pdf()
-                    response = make_response(pdf)
-                    response.headers['Content-Type'] = 'application/pdf'
-                    response.headers['Content-Disposition'] = f'attachment; filename=employees_list_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
-                    return response
+                    flash('حدث خطأ في إنشاء PDF', 'error')
+                    return redirect(url_for('employees_list', **request.args))
 
             except Exception as pdf_error:
                 app.logger.error(f"PDF Error: {str(pdf_error)}")
-                import traceback
-                traceback.print_exc()
                 flash(f'حدث خطأ في إنشاء PDF: {str(pdf_error)}', 'error')
                 return redirect(url_for('employees_list', **request.args))
 
