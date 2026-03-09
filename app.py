@@ -548,6 +548,54 @@ def inject_stats():
     return dict(stats=stats, now=datetime.now)
 
 
+# دالة ذكية لتصدير PDF (تعمل محلياً وبعيداً)
+def export_pdf(html_content, filename_prefix):
+    """
+    دالة ذكية لتصدير PDF:
+    - محلياً: تستخدم WeasyPrint
+    - على السيرفر: تستخدم PDFKit
+    """
+    import os
+    from flask import make_response
+    from datetime import datetime
+
+    # التحقق من البيئة
+    is_production = os.environ.get('FLASK_ENV') == 'production'
+
+    try:
+        if is_production:
+            # على السيرفر: استخدام PDFKit
+            import pdfkit
+            options = {
+                'page-size': 'A4',
+                'orientation': 'Landscape',
+                'encoding': 'UTF-8',
+                'no-outline': None,
+                'margin-top': '20mm',
+                'margin-right': '15mm',
+                'margin-bottom': '20mm',
+                'margin-left': '15mm',
+                'enable-local-file-access': None
+            }
+            pdf = pdfkit.from_string(html_content, False, options=options)
+        else:
+            # محلياً: استخدام WeasyPrint
+            from weasyprint import HTML
+            html = HTML(string=html_content)
+            pdf = html.write_pdf()
+
+        # تجهيز الاستجابة
+        today = datetime.now()
+        response = make_response(pdf)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers[
+            'Content-Disposition'] = f'attachment; filename={filename_prefix}_{today.strftime("%Y%m%d_%H%M%S")}.pdf'
+        return response
+
+    except Exception as e:
+        app.logger.error(f"PDF Generation Error: {str(e)}")
+        return None
+
 def export_pdf_with_pdfkit(html_content, filename_prefix):
     """
     دالة لإنشاء PDF باستخدام PDFKit مع تحديد المسار الكامل
@@ -15930,7 +15978,6 @@ def export_employees_performance(export_type):
 
         elif export_type == 'pdf':
             from flask import render_template
-            from flask import make_response
 
             try:
                 # تجهيز البيانات للقالب
@@ -15953,8 +16000,8 @@ def export_employees_performance(export_type):
                     current_user=current_user
                 )
 
-                # ✅ استخدام PDFKit بدلاً من WeasyPrint
-                response = export_pdf_with_pdfkit(html_content, 'performance_report')
+                # ✅ استخدام الدالة الذكية
+                response = export_pdf(html_content, 'performance_report')
                 if response:
                     return response
                 else:
@@ -15963,8 +16010,6 @@ def export_employees_performance(export_type):
 
             except Exception as pdf_error:
                 app.logger.error(f"PDF Error: {str(pdf_error)}")
-                import traceback
-                traceback.print_exc()
                 flash(f'حدث خطأ في إنشاء PDF: {str(pdf_error)}', 'error')
                 return redirect(url_for('report_employees_performance', **request.args))
 
