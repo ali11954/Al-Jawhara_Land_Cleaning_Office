@@ -2197,24 +2197,6 @@ def generate_password():
         'password': password
     })
 
-@app.route('/api/dashboard/data')
-def api_dashboard_data():
-    """API لجلب بيانات لوحة التحكم"""
-
-    view = request.args.get('view', 'day')
-    department = request.args.get('department', 'all')
-
-    # يمكنك هنا جلب البيانات حسب view و department
-    stats = get_dashboard_data()
-    evaluation_data = get_evaluation_chart_data()
-    attendance_data = get_attendance_chart_data()
-
-    return jsonify({
-        'stats': stats,
-        'evaluationData': evaluation_data,
-        'attendanceData': attendance_data
-    })
-
 
 # Dashboard - النسخة المحسنة
 @app.route('/')
@@ -2376,6 +2358,408 @@ def dashboard():
                            top_performers=formatted_performers,
                            today=date.today,
                            defaultData=defaultData)
+
+
+# ============================================
+# دوال مساعدة للرسوم البيانية - باستخدام البيانات الحقيقية
+# ============================================
+
+def get_evaluation_chart_data():
+    """جلب بيانات الرسم البياني للتقييمات من قاعدة البيانات"""
+    try:
+        today = date.today()
+        # بيانات اليوم الحالي
+        hours = ['8:00', '10:00', '12:00', '14:00', '16:00', '18:00']
+
+        # جلب جميع تقييمات اليوم
+        evaluations = CleaningEvaluation.query.filter_by(date=today).all()
+
+        if not evaluations:
+            # إذا لم توجد تقييمات لليوم، جلب آخر 6 تقييمات
+            evaluations = CleaningEvaluation.query \
+                .order_by(CleaningEvaluation.date.desc()) \
+                .limit(6) \
+                .all()
+
+        if evaluations:
+            # تجميع التقييمات حسب الوقت
+            data = []
+            for hour in [8, 10, 12, 14, 16, 18]:
+                # تصفية التقييمات حسب الساعة
+                hour_evaluations = []
+                for e in evaluations:
+                    if e.created_at and e.created_at.hour == hour:
+                        hour_evaluations.append(e)
+
+                if hour_evaluations:
+                    avg = sum(e.overall_score for e in hour_evaluations) / len(hour_evaluations) * 20
+                else:
+                    # استخدام آخر تقييم كمرجع
+                    if evaluations:
+                        avg = evaluations[-1].overall_score * 20
+                    else:
+                        avg = 85
+                data.append(round(avg, 1))
+        else:
+            # إذا لم توجد أي تقييمات نهائياً
+            data = [0, 0, 0, 0, 0, 0]
+
+        return {
+            'labels': hours,
+            'datasets': [{
+                'label': 'متوسط التقييم',
+                'data': data,
+                'borderColor': '#4e73df',
+                'backgroundColor': 'rgba(78, 115, 223, 0.1)',
+                'tension': 0.4,
+                'fill': True
+            }]
+        }
+    except Exception as e:
+        app.logger.error(f"Error in get_evaluation_chart_data: {str(e)}")
+        return {
+            'labels': ['8:00', '10:00', '12:00', '14:00', '16:00', '18:00'],
+            'datasets': [{
+                'label': 'متوسط التقييم',
+                'data': [0, 0, 0, 0, 0, 0],
+                'borderColor': '#4e73df',
+                'backgroundColor': 'rgba(78, 115, 223, 0.1)',
+                'tension': 0.4,
+                'fill': True
+            }]
+        }
+
+
+def get_attendance_chart_data():
+    """جلب بيانات الرسم البياني للحضور من قاعدة البيانات"""
+    try:
+        today = date.today()
+        attendance_records = Attendance.query.filter_by(date=today).all()
+
+        present = len([a for a in attendance_records if a.status == 'present'])
+        absent = len([a for a in attendance_records if a.status == 'absent'])
+        late = len([a for a in attendance_records if a.status == 'late'])
+
+        # إذا كانت جميع القيم صفر، جلب آخر يوم فيه حضور
+        if present == 0 and absent == 0 and late == 0:
+            last_attendance = Attendance.query \
+                .order_by(Attendance.date.desc()) \
+                .first()
+            if last_attendance:
+                # جلب جميع سجلات ذلك اليوم
+                attendance_records = Attendance.query.filter_by(date=last_attendance.date).all()
+                present = len([a for a in attendance_records if a.status == 'present'])
+                absent = len([a for a in attendance_records if a.status == 'absent'])
+                late = len([a for a in attendance_records if a.status == 'late'])
+
+        return {
+            'labels': ['حاضرون', 'غائبون', 'متأخرون'],
+            'datasets': [{
+                'data': [present, absent, late],
+                'backgroundColor': ['#1cc88a', '#e74a3b', '#f6c23e']
+            }]
+        }
+    except Exception as e:
+        app.logger.error(f"Error in get_attendance_chart_data: {str(e)}")
+        return {
+            'labels': ['حاضرون', 'غائبون', 'متأخرون'],
+            'datasets': [{
+                'data': [0, 0, 0],
+                'backgroundColor': ['#1cc88a', '#e74a3b', '#f6c23e']
+            }]
+        }
+
+
+def get_companies_chart_data():
+    """جلب بيانات الرسم البياني للشركات من قاعدة البيانات"""
+    try:
+        companies = Company.query.filter_by(is_active=True).all()
+
+        if not companies:
+            return {
+                'labels': ['لا توجد شركات'],
+                'datasets': [{
+                    'label': 'متوسط التقييم',
+                    'data': [0],
+                    'backgroundColor': ['#4e73df']
+                }]
+            }
+
+        labels = []
+        data = []
+        colors = ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#6610f2', '#fd7e14', '#20c997']
+
+        for i, company in enumerate(companies[:8]):  # حد أقصى 8 شركات
+            labels.append(company.name)
+
+            # حساب متوسط تقييم الشركة
+            avg_score = 0
+            try:
+                # جلب تقييمات هذه الشركة
+                evaluations = db.session.query(CleaningEvaluation) \
+                    .join(Place) \
+                    .join(Location) \
+                    .join(Area) \
+                    .filter(Area.company_id == company.id) \
+                    .all()
+
+                if evaluations:
+                    avg_score = sum(e.overall_score for e in evaluations) / len(evaluations) * 20
+            except Exception as e:
+                app.logger.error(f"Error calculating company score: {str(e)}")
+
+            data.append(round(avg_score, 1))
+
+        return {
+            'labels': labels,
+            'datasets': [{
+                'label': 'متوسط التقييم',
+                'data': data,
+                'backgroundColor': colors[:len(labels)]
+            }]
+        }
+    except Exception as e:
+        app.logger.error(f"Error in get_companies_chart_data: {str(e)}")
+        return {
+            'labels': ['خطأ في تحميل البيانات'],
+            'datasets': [{
+                'label': 'متوسط التقييم',
+                'data': [0],
+                'backgroundColor': ['#dc3545']
+            }]
+        }
+
+
+def get_areas_chart_data():
+    """جلب بيانات الرسم البياني للمناطق من قاعدة البيانات"""
+    try:
+        areas = Area.query.filter_by(is_active=True).all()
+
+        if not areas:
+            return {
+                'labels': ['لا توجد مناطق'],
+                'datasets': [{
+                    'label': 'التقييمات',
+                    'data': [0],
+                    'backgroundColor': ['rgba(78, 115, 223, 0.7)']
+                }]
+            }
+
+        labels = []
+        data = []
+
+        for area in areas[:8]:  # حد أقصى 8 مناطق
+            labels.append(area.name)
+
+            # حساب متوسط تقييم المنطقة
+            avg_score = 0
+            try:
+                # جلب تقييمات هذه المنطقة
+                evaluations = db.session.query(CleaningEvaluation) \
+                    .join(Place) \
+                    .join(Location) \
+                    .filter(Location.area_id == area.id) \
+                    .all()
+
+                if evaluations:
+                    avg_score = sum(e.overall_score for e in evaluations) / len(evaluations) * 20
+            except Exception as e:
+                app.logger.error(f"Error calculating area score: {str(e)}")
+
+            data.append(round(avg_score, 1))
+
+        colors = [
+            'rgba(78, 115, 223, 0.7)',
+            'rgba(28, 200, 138, 0.7)',
+            'rgba(54, 185, 204, 0.7)',
+            'rgba(246, 194, 62, 0.7)',
+            'rgba(231, 74, 59, 0.7)',
+            'rgba(102, 16, 242, 0.7)',
+            'rgba(253, 126, 20, 0.7)',
+            'rgba(32, 201, 151, 0.7)'
+        ]
+
+        return {
+            'labels': labels,
+            'datasets': [{
+                'label': 'التقييمات',
+                'data': data,
+                'backgroundColor': colors[:len(labels)]
+            }]
+        }
+    except Exception as e:
+        app.logger.error(f"Error in get_areas_chart_data: {str(e)}")
+        return {
+            'labels': ['خطأ في تحميل البيانات'],
+            'datasets': [{
+                'label': 'التقييمات',
+                'data': [0],
+                'backgroundColor': ['rgba(220, 53, 69, 0.7)']
+            }]
+        }
+
+
+def get_performance_data():
+    """جلب بيانات مؤشرات الأداء من قاعدة البيانات"""
+    try:
+        today = date.today()
+        evaluations = CleaningEvaluation.query.filter_by(date=today).all()
+
+        # حساب رضا العملاء من التقييمات
+        if evaluations:
+            avg_score = sum(e.overall_score for e in evaluations) / len(evaluations) * 20
+            customer_satisfaction = avg_score
+            quality_score = avg_score
+        else:
+            # جلب آخر التقييمات
+            last_evaluations = CleaningEvaluation.query \
+                .order_by(CleaningEvaluation.date.desc()) \
+                .limit(10) \
+                .all()
+            if last_evaluations:
+                avg_score = sum(e.overall_score for e in last_evaluations) / len(last_evaluations) * 20
+                customer_satisfaction = avg_score
+                quality_score = avg_score
+            else:
+                customer_satisfaction = 0
+                quality_score = 0
+
+        # حساب إنجاز المهام من الحضور
+        attendance_records = Attendance.query.filter_by(date=today).all()
+        total_employees = Employee.query.filter_by(is_active=True).count()
+
+        if attendance_records and total_employees > 0:
+            present = len([a for a in attendance_records if a.status == 'present'])
+            task_completion = (present / total_employees) * 100
+            time_utilization = task_completion
+        else:
+            # جلب آخر يوم حضور
+            last_attendance = Attendance.query \
+                .order_by(Attendance.date.desc()) \
+                .first()
+            if last_attendance:
+                last_attendance_records = Attendance.query.filter_by(date=last_attendance.date).all()
+                present = len([a for a in last_attendance_records if a.status == 'present'])
+                task_completion = (present / total_employees) * 100 if total_employees > 0 else 0
+                time_utilization = task_completion
+            else:
+                task_completion = 0
+                time_utilization = 0
+
+        return {
+            'customer_satisfaction': round(customer_satisfaction, 1),
+            'task_completion': round(task_completion, 1),
+            'quality_score': round(quality_score, 1),
+            'time_utilization': round(time_utilization, 1)
+        }
+    except Exception as e:
+        app.logger.error(f"Error in get_performance_data: {str(e)}")
+        return {
+            'customer_satisfaction': 0,
+            'task_completion': 0,
+            'quality_score': 0,
+            'time_utilization': 0
+        }
+
+
+# ============================================
+# API محسن للحصول على بيانات لوحة التحكم ديناميكياً
+# ============================================
+
+@app.route('/api/dashboard/data')
+@login_required
+def api_dashboard_data():
+    """API لجلب بيانات لوحة التحكم حسب العرض - باستخدام البيانات الحقيقية"""
+    try:
+        view = request.args.get('view', 'day')
+        department = request.args.get('department', 'all')
+
+        if view == 'day':
+            # بيانات اليوم
+            evaluation_data = get_evaluation_chart_data()
+            attendance_data = get_attendance_chart_data()
+
+        elif view == 'week':
+            # بيانات الأسبوع - آخر 7 أيام
+            week_data = []
+            week_labels = []
+            today = date.today()
+
+            for i in range(6, -1, -1):
+                day = today - timedelta(days=i)
+                week_labels.append(
+                    ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'][day.weekday()])
+
+                day_evaluations = CleaningEvaluation.query.filter_by(date=day).all()
+                if day_evaluations:
+                    avg = sum(e.overall_score for e in day_evaluations) / len(day_evaluations) * 20
+                else:
+                    avg = 0
+                week_data.append(round(avg, 1))
+
+            evaluation_data = {
+                'labels': week_labels,
+                'datasets': [{
+                    'label': 'متوسط التقييم',
+                    'data': week_data,
+                    'borderColor': '#4e73df',
+                    'backgroundColor': 'rgba(78, 115, 223, 0.1)',
+                    'tension': 0.4,
+                    'fill': True
+                }]
+            }
+            attendance_data = get_attendance_chart_data()
+
+        else:  # month - آخر 4 أسابيع
+            month_data = []
+            month_labels = ['الأسبوع 1', 'الأسبوع 2', 'الأسبوع 3', 'الأسبوع 4']
+            today = date.today()
+
+            for week in range(4):
+                week_start = today - timedelta(days=(3 - week) * 7)
+                week_end = week_start + timedelta(days=6)
+
+                week_evaluations = CleaningEvaluation.query.filter(
+                    CleaningEvaluation.date >= week_start,
+                    CleaningEvaluation.date <= week_end
+                ).all()
+
+                if week_evaluations:
+                    avg = sum(e.overall_score for e in week_evaluations) / len(week_evaluations) * 20
+                else:
+                    avg = 0
+                month_data.append(round(avg, 1))
+
+            evaluation_data = {
+                'labels': month_labels,
+                'datasets': [{
+                    'label': 'متوسط التقييم',
+                    'data': month_data,
+                    'borderColor': '#4e73df',
+                    'backgroundColor': 'rgba(78, 115, 223, 0.1)',
+                    'tension': 0.4,
+                    'fill': True
+                }]
+            }
+            attendance_data = get_attendance_chart_data()
+
+        # تصفية حسب القسم إذا تم تحديده
+        if department != 'all':
+            # يمكن إضافة منطق التصفية هنا
+            pass
+
+        return jsonify({
+            'success': True,
+            'evaluationData': evaluation_data,
+            'attendanceData': attendance_data
+        })
+
+    except Exception as e:
+        app.logger.error(f"Error in api_dashboard_data: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
 
 # Employee Management (Owner only)
 from datetime import datetime, date
@@ -4515,20 +4899,141 @@ def add_attendance():
                 'code': 'INTERNAL_ERROR'
             }), 500
 
-@app.route('/attendance/prepare')
+
+@app.route('/attendance/prepare', methods=['GET', 'POST'])
 @login_required
 def prepare_attendance_enhanced():
-    """نظام التحضير المتطور (يدعم الفلترة المتقدمة)"""
+    """نظام التحضير المتطور (يدعم الفلترة المتقدمة وحفظ البيانات)"""
+
+    # التحقق من الصلاحيات
     if current_user.role not in ['owner', 'supervisor', 'monitor']:
+        if request.method == 'POST':
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         flash('غير مصرح', 'error')
         return redirect(url_for('dashboard'))
 
+    # معالجة طلب POST (حفظ البيانات)
+    if request.method == 'POST':
+        return handle_attendance_save()
+
+    # معالجة طلب GET (عرض الصفحة مع الفلترة)
+    return display_attendance_prepare()
+
+
+def handle_attendance_save():
+    """معالجة حفظ بيانات الحضور"""
     try:
-        # الحصول على معاملات الفلترة (مدمجة من النظام القديم)
+        print("📥 استقبال طلب POST إلى /attendance/prepare")
+
+        # استقبال البيانات
+        data = request.get_json()
+        print(f"📦 نوع البيانات المستلمة: {type(data)}")
+
+        # تحويل البيانات إلى قائمة
+        if not isinstance(data, list):
+            if isinstance(data, dict) and 'attendance' in data:
+                data = data['attendance']
+            else:
+                data = [data] if isinstance(data, dict) else []
+
+        print(f"📊 عدد سجلات الحضور: {len(data)}")
+
+        saved_count = 0
+        errors = []
+
+        for item in data:
+            try:
+                employee_id = item.get('employee_id')
+                date_str = item.get('date')
+                status = item.get('status')
+                shift_type = item.get('shift_type', 'morning')
+                check_in = item.get('check_in')
+                check_out = item.get('check_out')
+                notes = item.get('notes', '')
+
+                # التحقق من البيانات الأساسية
+                if not employee_id or not date_str or not status:
+                    errors.append(f"بيانات غير مكتملة: {item}")
+                    continue
+
+                # تحويل التاريخ
+                try:
+                    attendance_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    errors.append(f"تاريخ غير صالح: {date_str}")
+                    continue
+
+                # البحث عن سجل موجود
+                attendance = Attendance.query.filter_by(
+                    employee_id=int(employee_id),
+                    date=attendance_date
+                ).first()
+
+                # معالجة الأوقات
+                check_in_time = parse_time(check_in)
+                check_out_time = parse_time(check_out)
+
+                if attendance:
+                    # تحديث السجل الموجود
+                    attendance.status = status
+                    attendance.shift_type = shift_type
+                    attendance.check_in = check_in_time
+                    attendance.check_out = check_out_time
+                    attendance.notes = notes
+                else:
+                    # إنشاء سجل جديد
+                    attendance = Attendance(
+                        employee_id=int(employee_id),
+                        date=attendance_date,
+                        status=status,
+                        shift_type=shift_type,
+                        check_in=check_in_time,
+                        check_out=check_out_time,
+                        notes=notes
+                    )
+                    db.session.add(attendance)
+
+                saved_count += 1
+
+            except Exception as e:
+                errors.append(f"خطأ في السجل: {str(e)}")
+
+        db.session.commit()
+
+        message = f'✅ تم حفظ {saved_count} سجل بنجاح'
+        if errors:
+            message += f' مع {len(errors)} خطأ'
+
+        return jsonify({
+            'success': True,
+            'message': message,
+            'count': saved_count,
+            'errors': errors[:5]
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ خطأ في حفظ الحضور: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'حدث خطأ: {str(e)}'
+        }), 500
+
+
+def display_attendance_prepare():
+    """عرض صفحة التحضير مع الفلترة المحسنة"""
+    try:
+        # الحصول على معاملات الفلترة
         company_id = request.args.get('company_id', type=int)
         area_id = request.args.get('area_id', type=int)
         location_id = request.args.get('location_id', type=int)
         date_str = request.args.get('date', date.today().isoformat())
+
+        # معاملات إضافية للفلترة
+        show_only_company = request.args.get('show_only_company', type=bool, default=False)
+        filter_by_preparation = request.args.get('filter_by_preparation', default='all')
 
         # التحقق من صحة التاريخ
         try:
@@ -4547,39 +5052,113 @@ def prepare_attendance_enhanced():
             selected_date = date.today()
             can_select_date = False
 
-        # الحصول على الموظفين حسب الصلاحيات والفلترة (مدمجة من النظام القديم)
-        employees = get_employees_for_attendance(
+        # الحصول على الموظفين حسب الصلاحيات والفلترة
+        employees_result = get_employees_for_attendance(
             current_user,
             company_id,
             area_id,
             location_id
         )
 
+        # التحقق من نوع النتيجة (Query أو list)
+        if hasattr(employees_result, 'all'):
+            # إذا كان Query object
+            employees_query = employees_result
+            if show_only_company and company_id:
+                employees_query = employees_query.filter(Employee.company_id == company_id)
+            employees = employees_query.all()
+        else:
+            # إذا كان list
+            employees = employees_result
+            if show_only_company and company_id:
+                employees = [e for e in employees if e.company_id == company_id]
+
         # الحصول على سجلات الحضور الحالية
         attendance_records = Attendance.query.filter_by(date=selected_date).all()
 
         # تجهيز بيانات الحضور الحالية
         existing_attendance = {}
-        for record in attendance_records:
-            existing_attendance[record.employee_id] = {
-                'status': record.status,
-                'check_in': record.check_in.strftime('%H:%M') if record.check_in else '',
-                'check_out': record.check_out.strftime('%H:%M') if record.check_out else '',
-                'notes': record.notes or ''
-            }
+        prepared_employee_ids = set()
+        employee_ids = [e.id for e in employees]
 
-        # إحصائيات
+        for record in attendance_records:
+            if record.employee_id in employee_ids:  # فقط سجلات الموظفين الظاهرين
+                existing_attendance[record.employee_id] = {
+                    'status': record.status,
+                    'check_in': record.check_in.strftime('%H:%M') if record.check_in else '',
+                    'check_out': record.check_out.strftime('%H:%M') if record.check_out else '',
+                    'notes': record.notes or ''
+                }
+                prepared_employee_ids.add(record.employee_id)
+
+        # تطبيق فلتر حسب حالة التحضير
+        if filter_by_preparation == 'prepared':
+            employees = [e for e in employees if e.id in prepared_employee_ids]
+        elif filter_by_preparation == 'not_prepared':
+            employees = [e for e in employees if e.id not in prepared_employee_ids]
+
+        # إحصائيات عامة
+        total_employees = len(employees)
+
+        # حساب الإحصائيات بناءً على الموظفين الحاليين فقط
+        present_count = 0
+        absent_count = 0
+        late_count = 0
+
+        for record in attendance_records:
+            if record.employee_id in employee_ids:
+                if record.status == 'present':
+                    present_count += 1
+                elif record.status == 'absent':
+                    absent_count += 1
+                elif record.status == 'late':
+                    late_count += 1
+
+        prepared_count = len(prepared_employee_ids.intersection(employee_ids))
+
         stats = {
-            'total_employees': len(employees),
-            'present_count': len([r for r in attendance_records if r.status == 'present']),
-            'absent_count': len([r for r in attendance_records if r.status == 'absent']),
-            'late_count': len([r for r in attendance_records if r.status == 'late'])
+            'total_employees': total_employees,
+            'present_count': present_count,
+            'absent_count': absent_count,
+            'late_count': late_count,
+            'prepared_count': prepared_count,
+            'not_prepared_count': total_employees - prepared_count
         }
 
-        # الحصول على قائمة الشركات والمناطق والمواقع للفلترة (مدمجة من النظام القديم)
+        # إحصائيات حسب الشركة (إذا تم اختيار شركة)
+        if company_id:
+            company_employees = [e for e in employees if e.company_id == company_id]
+            company_employee_ids = [e.id for e in company_employees]
+            company_records = [r for r in attendance_records if r.employee_id in company_employee_ids]
+            company_stats = {
+                'total': len(company_employees),
+                'present': len([r for r in company_records if r.status == 'present']),
+                'absent': len([r for r in company_records if r.status == 'absent']),
+                'late': len([r for r in company_records if r.status == 'late']),
+                'prepared': len([r for r in company_records])
+            }
+            stats['company'] = company_stats
+
+        # الحصول على قائمة الشركات والمناطق والمواقع للفلترة
         companies = Company.query.filter_by(is_active=True).all()
         areas = Area.query.filter_by(is_active=True).all()
         locations = Location.query.filter_by(is_active=True).all()
+
+        # إضافة إحصائية عدد الموظفين لكل شركة
+        companies_with_counts = []
+        for comp in companies:
+            employee_count = Employee.query.filter_by(company_id=comp.id, is_active=True).count()
+            # عدد الموظفين الذين تم تحضيرهم من هذه الشركة
+            prepared_count = len([r for r in attendance_records
+                                  if
+                                  r.employee_id in [e.id for e in Employee.query.filter_by(company_id=comp.id).all()]])
+            companies_with_counts.append({
+                'id': comp.id,
+                'name': comp.name,
+                'employee_count': employee_count,
+                'prepared_count': prepared_count,
+                'prepared_percentage': (prepared_count / employee_count * 100) if employee_count > 0 else 0
+            })
 
         return render_template('attendance/prepare_enhanced.html',
                                employees=employees,
@@ -4590,19 +5169,31 @@ def prepare_attendance_enhanced():
                                existing_attendance=existing_attendance,
                                stats=stats,
                                companies=companies,
+                               companies_with_counts=companies_with_counts,
                                areas=areas,
                                locations=locations,
                                selected_company_id=company_id,
                                selected_area_id=area_id,
-                               selected_location_id=location_id)
+                               selected_location_id=location_id,
+                               filter_by_preparation=filter_by_preparation,
+                               show_only_company=show_only_company)
 
     except Exception as e:
-        app.logger.error(f"Error in prepare_attendance_enhanced: {str(e)}")
+        app.logger.error(f"Error in display_attendance_prepare: {str(e)}")
         import traceback
         app.logger.error(traceback.format_exc())
         flash('حدث خطأ في تحميل صفحة التحضير', 'error')
         return redirect(url_for('attendance_index'))
 
+
+def parse_time(time_str):
+    """دالة مساعدة لتحويل النص الزمني"""
+    if time_str and time_str.strip():
+        try:
+            return datetime.strptime(time_str, '%H:%M').time()
+        except ValueError:
+            pass
+    return None
 
 @app.route('/attendance/prepare', methods=['GET', 'POST'])
 @login_required
@@ -7494,6 +8085,118 @@ def overtime_list():
         flash(f'حدث خطأ: {str(e)}', 'error')
         return redirect(url_for('reports_index'))
 
+@app.route('/overtime/edit/<int:overtime_id>', methods=['POST'])
+@login_required
+def edit_overtime(overtime_id):
+    """تعديل ساعة إضافية"""
+    if current_user.role != 'owner':
+        return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+
+    try:
+        from models import Overtime
+
+        overtime = Overtime.query.get_or_404(overtime_id)
+
+        # لا يمكن تعديل ساعة إضافية تم ترحيلها
+        if overtime.is_transferred:
+            return jsonify({
+                'success': False,
+                'message': 'لا يمكن تعديل ساعة إضافية تم ترحيلها'
+            }), 400
+
+        # الحصول على القيم من النموذج
+        hours_str = request.form.get('hours', str(overtime.hours))
+        rate_str = request.form.get('rate', str(overtime.rate))
+        reason = request.form.get('reason', overtime.reason or '')
+        notes = request.form.get('notes', overtime.notes or '')
+
+        # التحقق من صحة القيم
+        try:
+            hours = float(hours_str)
+            rate = float(rate_str)
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'message': 'قيم غير صحيحة للساعات أو السعر'
+            }), 400
+
+        # التحقق من أن الساعات موجبة
+        if hours <= 0:
+            return jsonify({
+                'success': False,
+                'message': 'عدد الساعات يجب أن يكون أكبر من 0'
+            }), 400
+
+        if hours > 24:
+            return jsonify({
+                'success': False,
+                'message': 'عدد الساعات لا يمكن أن يتجاوز 24 ساعة في اليوم'
+            }), 400
+
+        if rate <= 0:
+            return jsonify({
+                'success': False,
+                'message': 'سعر الساعة يجب أن يكون أكبر من 0'
+            }), 400
+
+        # تحديث البيانات
+        overtime.hours = hours
+        overtime.rate = rate
+        overtime.reason = reason
+        overtime.notes = notes
+        overtime.cost = round(hours * rate, 2)
+
+        db.session.commit()
+
+        app.logger.info(f"✅ تم تعديل الساعة الإضافية {overtime_id} بواسطة {current_user.username}")
+
+        return jsonify({
+            'success': True,
+            'message': '✅ تم تعديل الساعة الإضافية بنجاح',
+            'data': {
+                'id': overtime.id,
+                'hours': overtime.hours,
+                'rate': overtime.rate,
+                'cost': overtime.cost
+            }
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error in edit_overtime: {str(e)}")
+        return jsonify({'success': False, 'message': f'حدث خطأ: {str(e)}'}), 500
+
+@app.route('/overtime/delete/<int:overtime_id>', methods=['POST'])
+@login_required
+def delete_overtime(overtime_id):
+    """حذف سجل ساعة إضافية"""
+    if current_user.role != 'owner':
+        return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+
+    try:
+        from models import Overtime
+
+        overtime = Overtime.query.get_or_404(overtime_id)
+
+        if overtime.is_transferred:
+            return jsonify({
+                'success': False,
+                'message': 'لا يمكن حذف ساعة إضافية تم ترحيلها بالفعل'
+            }), 400
+
+        db.session.delete(overtime)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': '✅ تم حذف الساعة الإضافية بنجاح'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error in delete_overtime: {str(e)}")
+        return jsonify({'success': False, 'message': f'حدث خطأ: {str(e)}'}), 500
+
 # ============================================
 # تصدير تقرير الساعات الإضافية
 # ============================================
@@ -7993,40 +8696,6 @@ def debug_overtime_transfer():
 
     except Exception as e:
         return f"<h1>خطأ: {str(e)}</h1>"
-
-@app.route('/overtime/delete/<int:overtime_id>', methods=['POST'])
-@login_required
-def delete_overtime(overtime_id):
-    """حذف سجل ساعة إضافية"""
-    if current_user.role != 'owner':
-        return jsonify({'success': False, 'message': 'غير مصرح'}), 403
-
-    try:
-        from models import Overtime
-
-        overtime = Overtime.query.get_or_404(overtime_id)
-
-        if overtime.is_transferred:
-            return jsonify({
-                'success': False,
-                'message': 'لا يمكن حذف ساعة إضافية تم ترحيلها بالفعل'
-            }), 400
-
-        db.session.delete(overtime)
-        db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'message': '✅ تم حذف الساعة الإضافية بنجاح'
-        })
-
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Error in delete_overtime: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': f'حدث خطأ: {str(e)}'
-        }), 500
 
 
 # ============================================
@@ -14320,6 +14989,43 @@ def add_penalty():
             'message': f'حدث خطأ: {str(e)}'
         }), 500
 
+@app.route('/penalties/delete/<int:penalty_id>', methods=['POST'])
+@login_required
+def delete_penalty(penalty_id):
+    """حذف جزاء"""
+    if current_user.role != 'owner':
+        return jsonify({
+            'success': False,
+            'message': 'غير مصرح بهذا الإجراء'
+        }), 403
+
+    try:
+        penalty = Penalty.query.get_or_404(penalty_id)
+
+        # التحقق من أن الجزاء لم يتم ترحيله بعد
+        if penalty.is_deducted:
+            return jsonify({
+                'success': False,
+                'message': 'لا يمكن حذف جزاء تم ترحيله إلى كشف الراتب'
+            }), 400
+
+        # حذف الجزاء
+        db.session.delete(penalty)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': '✅ تم حذف الجزاء بنجاح'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error deleting penalty: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'حدث خطأ: {str(e)}'
+        }), 500
+
 @app.route('/penalties')
 @login_required
 def penalties_list():
@@ -14395,6 +15101,7 @@ def penalties_list():
         app.logger.error(traceback.format_exc())
         flash('حدث خطأ في تحميل قائمة الجزاءات', 'error')
         return redirect(url_for('dashboard'))
+
 
 @app.route('/penalties/bulk-transfer', methods=['POST'])
 @login_required

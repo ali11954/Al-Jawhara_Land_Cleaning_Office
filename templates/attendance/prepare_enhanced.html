@@ -14,7 +14,110 @@
         --warning-gradient: linear-gradient(135deg, #f6c23e, #dda20a);
     }
 
-    /* Header */
+    /* نفس الـ CSS السابق مع إضافة أنماط جديدة للفلاتر */
+    .filter-section {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+    }
+
+    .company-filter-card {
+        background: linear-gradient(135deg, #f8f9fc, #ffffff);
+        border-radius: 12px;
+        padding: 1rem;
+        border: 1px solid #e3e6f0;
+        transition: all 0.3s;
+    }
+
+    .company-filter-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .company-filter-card.selected {
+        border: 2px solid #4e73df;
+        background: linear-gradient(135deg, #f8f9fc, #eef2ff);
+    }
+
+    .company-progress {
+        height: 6px;
+        border-radius: 3px;
+        background: #e3e6f0;
+        overflow: hidden;
+    }
+
+    .company-progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #4e73df, #224abe);
+        transition: width 0.5s;
+    }
+
+    .filter-tabs {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+
+    .filter-tab {
+        padding: 0.5rem 1.5rem;
+        border-radius: 25px;
+        background: #f8f9fc;
+        color: #858796;
+        cursor: pointer;
+        transition: all 0.3s;
+        border: 1px solid #e3e6f0;
+        font-weight: 500;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .filter-tab:hover {
+        background: #4e73df;
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .filter-tab.active {
+        background: #4e73df;
+        color: white;
+        border-color: #4e73df;
+    }
+
+    .filter-tab i {
+        margin-left: 0.5rem;
+    }
+
+    .company-stats-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border-right: 4px solid #4e73df;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+
+    .company-stat-item {
+        text-align: center;
+        padding: 0.75rem;
+        border-radius: 10px;
+        background: #f8f9fc;
+    }
+
+    .company-stat-number {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #4e73df;
+    }
+
+    .company-stat-label {
+        font-size: 0.85rem;
+        color: #858796;
+    }
+
+    /* باقي الأنماط السابقة */
     .preparation-header {
         background: var(--primary-gradient);
         color: white;
@@ -39,7 +142,6 @@
         transform: rotate(15deg);
     }
 
-    /* Date Navigation */
     .date-nav {
         background: white;
         border-radius: 50px;
@@ -68,7 +170,6 @@
         color: #4e73df;
     }
 
-    /* Stats Cards */
     .stat-card {
         background: white;
         border-radius: 15px;
@@ -109,15 +210,6 @@
         color: #858796;
         font-size: 0.9rem;
         font-weight: 500;
-    }
-
-    /* Filter Section */
-    .filter-section {
-        background: white;
-        border-radius: 15px;
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.05);
     }
 
     .search-box {
@@ -163,7 +255,6 @@
         border-color: #4e73df;
     }
 
-    /* Employee Grid */
     .employee-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -236,7 +327,6 @@
         color: #858796;
     }
 
-    /* Status Buttons */
     .status-buttons {
         display: flex;
         gap: 0.5rem;
@@ -299,7 +389,6 @@
         border-color: #f6c23e;
     }
 
-    /* Time Inputs */
     .time-inputs {
         display: flex;
         gap: 0.5rem;
@@ -326,7 +415,6 @@
         cursor: not-allowed;
     }
 
-    /* Notes Button */
     .notes-btn {
         width: 100%;
         padding: 0.5rem;
@@ -354,7 +442,6 @@
         border-color: #4e73df;
     }
 
-    /* Action Bar */
     .action-bar {
         position: sticky;
         bottom: 20px;
@@ -401,7 +488,6 @@
         color: white;
     }
 
-    /* Progress Bar */
     .progress-bar-container {
         background: #f8f9fc;
         border-radius: 10px;
@@ -416,7 +502,6 @@
         transition: width 0.5s;
     }
 
-    /* Loading Spinner */
     .loading-spinner {
         display: none;
         position: fixed;
@@ -450,7 +535,6 @@
         100% { transform: rotate(360deg); }
     }
 
-    /* Animations */
     @keyframes slideIn {
         from {
             opacity: 0;
@@ -466,7 +550,6 @@
         animation: slideIn 0.5s ease forwards;
     }
 
-    /* Responsive */
     @media (max-width: 768px) {
         .employee-grid {
             grid-template-columns: 1fr;
@@ -523,7 +606,7 @@
     <!-- Date Navigation -->
     <div class="text-center animate-slide-in" style="animation-delay: 0.1s">
         <div class="date-nav">
-            <a href="{{ url_for('prepare_attendance_enhanced', date=prev_date.isoformat()) }}"
+            <a href="{{ url_for('prepare_attendance_enhanced', date=prev_date.isoformat(), company_id=selected_company_id) }}"
                class="btn btn-outline-primary">
                 <i class="fas fa-chevron-right me-1"></i>
                 اليوم السابق
@@ -532,7 +615,7 @@
                 <i class="fas fa-calendar-alt me-2 text-primary"></i>
                 {{ selected_date.strftime('%Y-%m-%d') }}
             </span>
-            <a href="{{ url_for('prepare_attendance_enhanced', date=next_date.isoformat()) }}"
+            <a href="{{ url_for('prepare_attendance_enhanced', date=next_date.isoformat(), company_id=selected_company_id) }}"
                class="btn btn-outline-primary">
                 اليوم التالي
                 <i class="fas fa-chevron-left ms-1"></i>
@@ -540,14 +623,152 @@
         </div>
     </div>
 
+    <!-- Company Filter Section -->
+    <div class="filter-section animate-slide-in" style="animation-delay: 0.15s">
+        <form method="GET" action="{{ url_for('prepare_attendance_enhanced') }}" id="companyFilterForm">
+            <div class="row align-items-end">
+                <div class="col-md-8">
+                    <label class="form-label fw-bold text-primary">
+                        <i class="fas fa-building me-1"></i>
+                        تصفية حسب الشركة
+                    </label>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <a href="{{ url_for('prepare_attendance_enhanced', date=selected_date.isoformat()) }}"
+                           class="filter-tab {% if not selected_company_id %}active{% endif %}">
+                            <i class="fas fa-globe"></i>
+                            جميع الشركات
+                        </a>
+                        {% for company in companies %}
+                        <a href="{{ url_for('prepare_attendance_enhanced', company_id=company.id, date=selected_date.isoformat()) }}"
+                           class="filter-tab {% if company.id == selected_company_id %}active{% endif %}">
+                            <i class="fas fa-building"></i>
+                            {{ company.name }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check mt-4">
+                        <input type="checkbox" name="show_only_company" class="form-check-input"
+                               id="showOnlyCompany" value="1" {% if show_only_company %}checked{% endif %}
+                               onchange="document.getElementById('companyFilterForm').submit()">
+                        <label class="form-check-label fw-bold" for="showOnlyCompany">
+                            عرض موظفي هذه الشركة فقط
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" name="date" value="{{ selected_date.isoformat() }}">
+        </form>
+    </div>
+
+    <!-- Preparation Status Filter -->
+    <div class="filter-section animate-slide-in" style="animation-delay: 0.2s">
+        <form method="GET" action="{{ url_for('prepare_attendance_enhanced') }}" id="preparationFilterForm">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold text-primary">
+                        <i class="fas fa-clipboard-check me-1"></i>
+                        حالة التحضير
+                    </label>
+                    <select name="filter_by_preparation" class="form-select" onchange="this.form.submit()">
+                        <option value="all" {% if filter_by_preparation == 'all' %}selected{% endif %}>الكل</option>
+                        <option value="prepared" {% if filter_by_preparation == 'prepared' %}selected{% endif %}>تم التحضير</option>
+                        <option value="not_prepared" {% if filter_by_preparation == 'not_prepared' %}selected{% endif %}>لم يتم التحضير</option>
+                    </select>
+                </div>
+                <div class="col-md-8">
+                    <!-- Statistics moved here -->
+                    <div class="d-flex justify-content-around">
+                        <div class="text-center">
+                            <span class="badge bg-info p-2">تم التحضير: {{ stats.prepared_count }}</span>
+                        </div>
+                        <div class="text-center">
+                            <span class="badge bg-secondary p-2">لم يتم التحضير: {{ stats.not_prepared_count }}</span>
+                        </div>
+                        <div class="text-center">
+                            <span class="badge bg-primary p-2">نسبة الإنجاز: {{ (stats.prepared_count / stats.total_employees * 100)|round|int if stats.total_employees > 0 else 0 }}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" name="company_id" value="{{ selected_company_id }}">
+            <input type="hidden" name="date" value="{{ selected_date.isoformat() }}">
+            <input type="hidden" name="show_only_company" value="1" {% if show_only_company %}checked{% endif %}>
+        </form>
+    </div>
+
+    <!-- Company Statistics (if company selected) -->
+    {% if stats.company %}
+    <div class="company-stats-card animate-slide-in" style="animation-delay: 0.25s">
+        <div class="d-flex align-items-center mb-3">
+            <div class="bg-primary bg-opacity-10 p-3 rounded-circle me-3">
+                <i class="fas fa-building text-primary fa-2x"></i>
+            </div>
+            <div>
+                <h4 class="mb-1">إحصائيات الشركة المحددة</h4>
+                <p class="text-muted mb-0">ملخص حضور موظفي الشركة اليوم</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-2 col-6 mb-3">
+                <div class="company-stat-item">
+                    <div class="company-stat-number">{{ stats.company.total }}</div>
+                    <div class="company-stat-label">إجمالي الموظفين</div>
+                </div>
+            </div>
+            <div class="col-md-2 col-6 mb-3">
+                <div class="company-stat-item" style="border-bottom: 3px solid #1cc88a;">
+                    <div class="company-stat-number" style="color: #1cc88a;">{{ stats.company.present }}</div>
+                    <div class="company-stat-label">حاضر</div>
+                </div>
+            </div>
+            <div class="col-md-2 col-6 mb-3">
+                <div class="company-stat-item" style="border-bottom: 3px solid #e74a3b;">
+                    <div class="company-stat-number" style="color: #e74a3b;">{{ stats.company.absent }}</div>
+                    <div class="company-stat-label">غائب</div>
+                </div>
+            </div>
+            <div class="col-md-2 col-6 mb-3">
+                <div class="company-stat-item" style="border-bottom: 3px solid #f6c23e;">
+                    <div class="company-stat-number" style="color: #f6c23e;">{{ stats.company.late }}</div>
+                    <div class="company-stat-label">متأخر</div>
+                </div>
+            </div>
+            <div class="col-md-2 col-6 mb-3">
+                <div class="company-stat-item" style="border-bottom: 3px solid #4e73df;">
+                    <div class="company-stat-number" style="color: #4e73df;">{{ stats.company.prepared }}</div>
+                    <div class="company-stat-label">تم تحضيرهم</div>
+                </div>
+            </div>
+            <div class="col-md-2 col-6 mb-3">
+                <div class="company-stat-item" style="border-bottom: 3px solid #858796;">
+                    <div class="company-stat-number" style="color: #858796;">{{ stats.company.total - stats.company.prepared }}</div>
+                    <div class="company-stat-label">لم يتم تحضيرهم</div>
+                </div>
+            </div>
+        </div>
+        <div class="company-progress mt-2">
+            <div class="company-progress-bar" style="width: {{ (stats.company.prepared / stats.company.total * 100) if stats.company.total > 0 else 0 }}%"></div>
+        </div>
+        <div class="d-flex justify-content-between mt-2">
+            <span class="small text-muted">نسبة التحضير</span>
+            <span class="small fw-bold text-primary">{{ (stats.company.prepared / stats.company.total * 100)|round if stats.company.total > 0 else 0 }}%</span>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Statistics -->
-    <div class="row mb-4 animate-slide-in" style="animation-delay: 0.2s">
+    <div class="row mb-4 animate-slide-in" style="animation-delay: 0.3s">
         <div class="col-md-3 mb-3">
             <div class="stat-card total">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <div class="stat-label">إجمالي الموظفين</div>
                         <div class="stat-number">{{ stats.total_employees }}</div>
+                        {% if selected_company_id %}
+                        <small class="text-primary">({{ stats.company.total }} في الشركة)</small>
+                        {% endif %}
                     </div>
                     <div class="bg-primary bg-opacity-10 p-3 rounded-circle">
                         <i class="fas fa-users text-primary fa-2x"></i>
@@ -564,6 +785,7 @@
                     <div>
                         <div class="stat-label">حاضر</div>
                         <div class="stat-number" style="color: #1cc88a;">{{ stats.present_count }}</div>
+                        <small class="text-success">من أصل {{ stats.total_employees }}</small>
                     </div>
                     <div class="bg-success bg-opacity-10 p-3 rounded-circle">
                         <i class="fas fa-check-circle text-success fa-2x"></i>
@@ -581,6 +803,7 @@
                     <div>
                         <div class="stat-label">غائب</div>
                         <div class="stat-number" style="color: #e74a3b;">{{ stats.absent_count }}</div>
+                        <small class="text-danger">من أصل {{ stats.total_employees }}</small>
                     </div>
                     <div class="bg-danger bg-opacity-10 p-3 rounded-circle">
                         <i class="fas fa-times-circle text-danger fa-2x"></i>
@@ -598,6 +821,7 @@
                     <div>
                         <div class="stat-label">متأخر</div>
                         <div class="stat-number" style="color: #f6c23e;">{{ stats.late_count }}</div>
+                        <small class="text-warning">من أصل {{ stats.total_employees }}</small>
                     </div>
                     <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
                         <i class="fas fa-clock text-warning fa-2x"></i>
@@ -611,8 +835,8 @@
         </div>
     </div>
 
-    <!-- Filter Section -->
-    <div class="filter-section animate-slide-in" style="animation-delay: 0.3s">
+    <!-- Search Filter -->
+    <div class="filter-section animate-slide-in" style="animation-delay: 0.35s">
         <div class="row">
             <div class="col-md-6 mb-3 mb-md-0">
                 <div class="search-box">
@@ -640,13 +864,28 @@
         </div>
     </div>
 
+    <!-- No employees message -->
+    {% if not employees %}
+    <div class="text-center py-5 animate-slide-in">
+        <i class="fas fa-users-slash fa-4x text-muted mb-3"></i>
+        <h5 class="text-muted">لا يوجد موظفون لعرضهم</h5>
+        <p class="text-muted">حاول تغيير معايير الفلترة</p>
+        {% if selected_company_id %}
+        <a href="{{ url_for('prepare_attendance_enhanced', date=selected_date.isoformat()) }}" class="btn btn-primary mt-3">
+            <i class="fas fa-times me-1"></i>
+            إزالة فلتر الشركة
+        </a>
+        {% endif %}
+    </div>
+    {% else %}
     <!-- Employee Grid -->
     <div class="employee-grid" id="employeeGrid">
         {% for employee in employees %}
         <div class="employee-card {% if existing_attendance.get(employee.id) %}{{ existing_attendance[employee.id].status }}{% endif %}"
              data-employee-id="{{ employee.id }}"
              data-employee-name="{{ employee.full_name }}"
-             data-status="{% if existing_attendance.get(employee.id) %}{{ existing_attendance[employee.id].status }}{% endif %}">
+             data-status="{% if existing_attendance.get(employee.id) %}{{ existing_attendance[employee.id].status }}{% endif %}"
+             data-company="{{ employee.company.name if employee.company else 'بدون شركة' }}">
 
             <div class="d-flex align-items-start gap-3">
                 <!-- Avatar -->
@@ -657,14 +896,24 @@
                 <!-- Info -->
                 <div class="flex-grow-1">
                     <div class="employee-info">
-                        <h5>{{ employee.full_name }}</h5>
-                        <small>
-                            <i class="fas fa-briefcase me-1"></i>
-                            {% if employee.position == 'supervisor' %}مشرف
-                            {% elif employee.position == 'monitor' %}مراقب
-                            {% else %}عامل
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5>{{ employee.full_name }}</h5>
+                                <small>
+                                    <i class="fas fa-briefcase me-1"></i>
+                                    {% if employee.position == 'supervisor' %}مشرف
+                                    {% elif employee.position == 'monitor' %}مراقب
+                                    {% else %}عامل
+                                    {% endif %}
+                                </small>
+                            </div>
+                            {% if employee.company %}
+                            <span class="badge bg-primary bg-opacity-10 text-primary">
+                                <i class="fas fa-building me-1"></i>
+                                {{ employee.company.name }}
+                            </span>
                             {% endif %}
-                        </small>
+                        </div>
                     </div>
 
                     <!-- Status Buttons -->
@@ -691,11 +940,13 @@
                         <input type="time" class="time-input" id="check_in_{{ employee.id }}"
                                value="{{ existing_attendance[employee.id].check_in if existing_attendance.get(employee.id) else '' }}"
                                placeholder="حضور"
-                               onchange="updateTime({{ employee.id }}, 'check_in', this.value)">
+                               onchange="updateTime({{ employee.id }}, 'check_in', this.value)"
+                               {% if not existing_attendance.get(employee.id) or existing_attendance[employee.id].status == 'absent' %}disabled{% endif %}>
                         <input type="time" class="time-input" id="check_out_{{ employee.id }}"
                                value="{{ existing_attendance[employee.id].check_out if existing_attendance.get(employee.id) else '' }}"
                                placeholder="انصراف"
-                               onchange="updateTime({{ employee.id }}, 'check_out', this.value)">
+                               onchange="updateTime({{ employee.id }}, 'check_out', this.value)"
+                               {% if not existing_attendance.get(employee.id) or existing_attendance[employee.id].status == 'absent' %}disabled{% endif %}>
                     </div>
 
                     <!-- Notes Button -->
@@ -713,6 +964,7 @@
         </div>
         {% endfor %}
     </div>
+    {% endif %}
 
     <!-- Action Bar -->
     <div class="action-bar">
@@ -806,7 +1058,15 @@ function filterEmployees() {
 function filterByStatus(status) {
     // Update active filter
     document.querySelectorAll('.filter-badge').forEach(badge => badge.classList.remove('active'));
-    document.getElementById(`filter${status.charAt(0).toUpperCase() + status.slice(1)}`).classList.add('active');
+    if (status === 'all') {
+        document.getElementById('filterAll').classList.add('active');
+    } else if (status === 'present') {
+        document.getElementById('filterPresent').classList.add('active');
+    } else if (status === 'absent') {
+        document.getElementById('filterAbsent').classList.add('active');
+    } else if (status === 'late') {
+        document.getElementById('filterLate').classList.add('active');
+    }
 
     const cards = document.querySelectorAll('.employee-card');
 
@@ -888,6 +1148,7 @@ function saveNotes() {
 
     notesModal.hide();
 }
+
 // Save all data
 function saveAll() {
     const spinner = document.getElementById('loadingSpinner');
@@ -920,7 +1181,7 @@ function saveAll() {
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data)  // إرسال المصفوفة مباشرة
+        body: JSON.stringify(data)
     })
     .then(response => {
         console.log('📥 استجابة الحالة:', response.status);
@@ -1014,17 +1275,22 @@ function updateStats() {
     const total = document.querySelectorAll('.employee-card').length;
 
     // Update numbers
-    document.querySelector('.stat-card.present .stat-number').textContent = present;
-    document.querySelector('.stat-card.absent .stat-number').textContent = absent;
-    document.querySelector('.stat-card.late .stat-number').textContent = late;
+    const presentElement = document.querySelector('.stat-card.present .stat-number');
+    const absentElement = document.querySelector('.stat-card.absent .stat-number');
+    const lateElement = document.querySelector('.stat-card.late .stat-number');
+
+    if (presentElement) presentElement.textContent = present;
+    if (absentElement) absentElement.textContent = absent;
+    if (lateElement) lateElement.textContent = late;
 
     // Update progress bars
-    document.querySelector('.stat-card.present .progress-bar-fill').style.width =
-        total > 0 ? `${(present/total*100).toFixed(1)}%` : '0%';
-    document.querySelector('.stat-card.absent .progress-bar-fill').style.width =
-        total > 0 ? `${(absent/total*100).toFixed(1)}%` : '0%';
-    document.querySelector('.stat-card.late .progress-bar-fill').style.width =
-        total > 0 ? `${(late/total*100).toFixed(1)}%` : '0%';
+    const presentProgress = document.querySelector('.stat-card.present .progress-bar-fill');
+    const absentProgress = document.querySelector('.stat-card.absent .progress-bar-fill');
+    const lateProgress = document.querySelector('.stat-card.late .progress-bar-fill');
+
+    if (presentProgress) presentProgress.style.width = total > 0 ? `${(present/total*100).toFixed(1)}%` : '0%';
+    if (absentProgress) absentProgress.style.width = total > 0 ? `${(absent/total*100).toFixed(1)}%` : '0%';
+    if (lateProgress) lateProgress.style.width = total > 0 ? `${(late/total*100).toFixed(1)}%` : '0%';
 }
 </script>
 

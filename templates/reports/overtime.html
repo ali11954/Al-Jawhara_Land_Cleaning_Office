@@ -195,7 +195,7 @@
                             <th>التكلفة</th>
                             <th>السبب</th>
                             <th>الحالة</th>
-                            <th>إجراءات</th>
+                            <th width="120">الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -232,11 +232,19 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if not overtime.is_transferred %}
-                                <button class="btn btn-sm btn-success" onclick="transferSingle({{ overtime.id }})">
-                                    <i class="fas fa-exchange-alt me-1"></i>ترحيل
-                                </button>
-                                {% endif %}
+                                <div class="btn-group btn-group-sm" role="group">
+                                    {% if not overtime.is_transferred %}
+                                    <button class="btn btn-warning" onclick="transferSingle({{ overtime.id }})" title="ترحيل">
+                                        <i class="fas fa-exchange-alt"></i>
+                                    </button>
+                                    <button class="btn btn-primary" onclick="editOvertime({{ overtime.id }})" title="تعديل" data-bs-toggle="modal" data-bs-target="#editModal">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    {% endif %}
+                                    <button class="btn btn-danger" onclick="deleteOvertime({{ overtime.id }})" title="حذف">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         {% else %}
@@ -260,6 +268,63 @@
                     <i class="fas fa-forward me-1"></i>ترحيل الكل
                 </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة تعديل الساعة الإضافية -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>
+                    تعديل الساعة الإضافية
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editForm">
+                <div class="modal-body">
+                    <input type="hidden" id="edit_id" name="overtime_id">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">عدد الساعات</label>
+                        <input type="number" id="edit_hours" name="hours" class="form-control"
+                               step="0.5" min="0.5" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">سعر الساعة (ريال)</label>
+                        <div class="input-group">
+                            <input type="number" id="edit_rate" name="rate" class="form-control"
+                                   step="0.5" min="0" required>
+                            <span class="input-group-text">ر.ي</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">السبب</label>
+                        <select id="edit_reason" name="reason" class="form-select">
+                            <option value="">اختر السبب</option>
+                            <option value="عمل إضافي">عمل إضافي</option>
+                            <option value="إجازة">إجازة</option>
+                            <option value="مهمة خاصة">مهمة خاصة</option>
+                            <option value="بديل">بديل</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ملاحظات</label>
+                        <input type="text" id="edit_notes" name="notes" class="form-control"
+                               placeholder="أي ملاحظات إضافية...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -302,6 +367,8 @@ const overtimeChartData = {{ overtime_chart_data|tojson if overtime_chart_data e
 const monthsLabels = {{ months_labels|tojson if months_labels else '[]' }};
 
 let overtimeChart = null;
+let currentOvertimeId = null;
+let transferIds = [];
 
 // تهيئة الصفحة
 document.addEventListener('DOMContentLoaded', function() {
@@ -311,7 +378,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeButtons();
 
     // تهيئة الرسم البياني
-    setTimeout(initializeChart, 100); // تأخير بسيط للتأكد من تحميل المكتبة
+    setTimeout(initializeChart, 100);
 
     // تحديث عداد المحددات
     updateSelectedCount();
@@ -331,69 +398,313 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // تهيئة الأزرار
 function initializeButtons() {
-    // زر تحديد الكل
-    const selectAllBtn = document.querySelector('button[onclick="selectAll()"]');
-    if (selectAllBtn) {
-        selectAllBtn.onclick = function(e) {
-            e.preventDefault();
-            selectAll();
-        };
-    }
-
-    // زر إلغاء التحديد
-    const deselectAllBtn = document.querySelector('button[onclick="deselectAll()"]');
-    if (deselectAllBtn) {
-        deselectAllBtn.onclick = function(e) {
-            e.preventDefault();
-            deselectAll();
-        };
-    }
-
-    // زر ترحيل المحدد
-    const transferSelectedBtn = document.getElementById('transferSelectedBtn');
-    if (transferSelectedBtn) {
-        transferSelectedBtn.onclick = function(e) {
-            e.preventDefault();
-            transferSelected();
-        };
-    }
-
-    // زر ترحيل الكل
-    const transferAllBtn = document.querySelector('button[onclick="transferAll()"]');
-    if (transferAllBtn) {
-        transferAllBtn.onclick = function(e) {
-            e.preventDefault();
-            transferAll();
-        };
-    }
-
-    // زر الترحيل الرئيسي
-    const transferToPayrollBtn = document.querySelector('button[onclick="transferToPayroll()"]');
-    if (transferToPayrollBtn) {
-        transferToPayrollBtn.onclick = function(e) {
-            e.preventDefault();
-            transferToPayroll();
-        };
-    }
-
-    // أزرار ترحيل فردية
-    document.querySelectorAll('.btn-sm.btn-success').forEach(btn => {
-        btn.onclick = function(e) {
-            e.preventDefault();
-            const onclickAttr = this.getAttribute('onclick');
-            if (onclickAttr) {
-                const match = onclickAttr.match(/\d+/);
-                if (match) {
-                    transferSingle(parseInt(match[0]));
-                }
-            }
-        };
+    // إضافة مستمعات للشيك بوكسات
+    document.querySelectorAll('.row-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateSelectedCount);
     });
-
-    console.log('✅ تم تهيئة جميع الأزرار');
 }
 
+// ============================================
+// دوال تحديد السجلات
+// ============================================
+
+function selectAll() {
+    document.querySelectorAll('.row-checkbox:not(:disabled)').forEach(cb => {
+        cb.checked = true;
+    });
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    if (selectAllCheckbox) selectAllCheckbox.checked = true;
+    updateSelectedCount();
+}
+
+function deselectAll() {
+    document.querySelectorAll('.row-checkbox').forEach(cb => {
+        cb.checked = false;
+    });
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    if (selectAllCheckbox) selectAllCheckbox.checked = false;
+    updateSelectedCount();
+}
+
+function toggleAllCheckboxes() {
+    const selectAll = document.getElementById('selectAllCheckbox')?.checked || false;
+    document.querySelectorAll('.row-checkbox:not(:disabled)').forEach(cb => {
+        cb.checked = selectAll;
+    });
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+    const count = checkboxes.length;
+
+    let totalHours = 0;
+    let totalCost = 0;
+
+    checkboxes.forEach(cb => {
+        totalHours += parseFloat(cb.dataset.hours || 0);
+        totalCost += parseFloat(cb.dataset.cost || 0);
+    });
+
+    const btn = document.getElementById('transferSelectedBtn');
+    if (btn) {
+        btn.disabled = count === 0;
+        btn.innerHTML = `<i class="fas fa-exchange-alt me-1"></i>ترحيل المحدد (${count}) - ${totalHours.toFixed(1)} ساعة - ${totalCost.toFixed(2)} ر.ي`;
+    }
+}
+
+function editOvertime(id) {
+    currentOvertimeId = id;
+    console.log('تعديل الساعة الإضافية رقم:', id);
+
+    // العثور على الصف
+    const row = document.getElementById(`row-${id}`);
+    if (!row) {
+        console.error('الصف غير موجود');
+        return;
+    }
+
+    // استخراج البيانات من الصف
+    const cells = row.cells;
+
+    // استخراج الساعات
+    const hoursCell = cells[5];
+    const hours = parseFloat(hoursCell.textContent.trim());
+    console.log('الساعات:', hours);
+
+    // استخراج التكلفة - إزالة " ر.ي" أولاً
+    const costCell = cells[6];
+    let costText = costCell.textContent.trim();
+    costText = costText.replace(' ر.ي', ''); // إزالة " ر.ي"
+    const cost = parseFloat(costText);
+    console.log('التكلفة:', cost, 'النص الأصلي:', costCell.textContent.trim());
+
+    // حساب سعر الساعة
+    const rate = Math.round(cost / hours);
+    console.log('سعر الساعة:', rate);
+
+    // استخراج السبب
+    const reasonCell = cells[7];
+    const reason = reasonCell.textContent.trim() !== '-' ? reasonCell.textContent.trim() : '';
+    console.log('السبب:', reason);
+
+    // تعبئة النموذج
+    document.getElementById('edit_id').value = id;
+    document.getElementById('edit_hours').value = hours;
+    document.getElementById('edit_rate').value = rate;
+
+    // تعبئة حقل السبب
+    const reasonSelect = document.getElementById('edit_reason');
+    if (reasonSelect) {
+        let found = false;
+        for (let i = 0; i < reasonSelect.options.length; i++) {
+            if (reasonSelect.options[i].value === reason) {
+                reasonSelect.selectedIndex = i;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            reasonSelect.value = ''; // قيمة افتراضية
+        }
+    }
+
+    // تعبئة الملاحظات
+    const notesInput = document.getElementById('edit_notes');
+    if (notesInput) {
+        notesInput.value = '';
+    }
+
+    // فتح النافذة باستخدام Bootstrap API
+    try {
+        const editModal = new bootstrap.Modal(document.getElementById('editModal'));
+        editModal.show();
+        console.log('✅ تم فتح النافذة بنجاح');
+    } catch (error) {
+        console.error('❌ خطأ في فتح النافذة:', error);
+        // محاولة بديلة باستخدام jQuery
+        $('#editModal').modal('show');
+    }
+}
+// معالجة نموذج التعديل - نسخة محسنة
+document.getElementById('editForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    console.log('البيانات المرسلة:');
+    for (let pair of formData.entries()) {
+        console.log(pair[0] + ': ' + pair[1]);
+    }
+
+    fetch(`/overtime/edit/${currentOvertimeId}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        console.log('استجابة الحالة:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('بيانات الاستجابة:', data);
+
+        // إغلاق النافذة باستخدام Bootstrap API
+        try {
+            const editModal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
+            if (editModal) {
+                editModal.hide();
+            } else {
+                $('#editModal').modal('hide');
+            }
+        } catch (error) {
+            $('#editModal').modal('hide');
+        }
+
+        if (data.success) {
+            // استخدام alert بسيط
+            alert('✅ تم تعديل الساعة الإضافية بنجاح');
+            location.reload();
+        } else {
+            alert('❌ ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('خطأ في الاتصال:', error);
+
+        // إغلاق النافذة في حالة الخطأ
+        try {
+            const editModal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
+            if (editModal) {
+                editModal.hide();
+            }
+        } catch (e) {}
+
+        alert('❌ حدث خطأ في الاتصال بالخادم');
+    });
+});
+
+// ============================================
+// ✅ دوال الحذف
+// ============================================
+
+function deleteOvertime(id) {
+    if (!confirm('هل أنت متأكد من حذف هذه الساعة الإضافية؟')) {
+        return;
+    }
+
+    fetch(`/overtime/delete/${id}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ تم حذف الساعة الإضافية بنجاح');
+            location.reload();
+        } else {
+            alert('❌ ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ حدث خطأ في الاتصال بالخادم');
+    });
+}
+
+// ============================================
+// دوال الترحيل
+// ============================================
+
+function transferSelected() {
+    transferIds = [];
+    document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
+        transferIds.push(parseInt(cb.value));
+    });
+
+    if (transferIds.length === 0) {
+        alert('الرجاء تحديد سجلات للترحيل');
+        return;
+    }
+
+    document.getElementById('transferCount').innerText = transferIds.length;
+    $('#transferModal').modal('show');
+}
+
+function transferSingle(id) {
+    transferIds = [id];
+    document.getElementById('transferCount').innerText = '1';
+    $('#transferModal').modal('show');
+}
+
+function transferAll() {
+    transferIds = [];
+    document.querySelectorAll('.row-checkbox:not(:disabled)').forEach(cb => {
+        transferIds.push(parseInt(cb.value));
+    });
+
+    if (transferIds.length === 0) {
+        alert('لا توجد سجلات غير مرحّلة');
+        return;
+    }
+
+    document.getElementById('transferCount').innerText = transferIds.length;
+    $('#transferModal').modal('show');
+}
+
+function transferToPayroll() {
+    transferAll();
+}
+
+function confirmTransfer() {
+    const btn = document.querySelector('.btn-warning');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري الترحيل...';
+
+    const now = new Date();
+    const data = {
+        overtime_ids: transferIds,
+        month: now.getMonth() + 1,
+        year: now.getFullYear()
+    };
+
+    console.log('📤 إرسال:', data);
+
+    fetch('/overtime/transfer-to-payroll', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('📥 استجابة:', data);
+        $('#transferModal').modal('hide');
+
+        if (data.success) {
+            alert(`✅ تم ترحيل ${data.transferred_count || transferIds.length} سجل بنجاح`);
+            location.reload();
+        } else {
+            alert(`❌ خطأ: ${data.message || 'فشل الترحيل'}`);
+        }
+    })
+    .catch(error => {
+        console.error('❌ خطأ:', error);
+        $('#transferModal').modal('hide');
+        alert(`❌ خطأ في الاتصال: ${error.message}`);
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+
+// ============================================
 // ✅ تهيئة الرسم البياني - نسخة محسنة
+// ============================================
 function initializeChart() {
     const chartContainer = document.getElementById('overtimeChart');
     if (!chartContainer) {
@@ -401,32 +712,27 @@ function initializeChart() {
         return;
     }
 
-    // التحقق من وجود مكتبة ApexCharts
     if (typeof ApexCharts === 'undefined') {
         console.log('⚠️ مكتبة ApexCharts غير متوفرة');
         chartContainer.innerHTML = '<p class="text-center text-muted py-3">مكتبة الرسم البياني غير متوفرة</p>';
         return;
     }
 
-    // التحقق من وجود بيانات
     if (!overtimeChartData || overtimeChartData.length === 0) {
         chartContainer.innerHTML = '<p class="text-center text-muted py-3">لا توجد بيانات كافية للرسم البياني</p>';
         return;
     }
 
-    // التحقق من وجود تسميات
     if (!monthsLabels || monthsLabels.length === 0) {
         chartContainer.innerHTML = '<p class="text-center text-muted py-3">لا توجد تسميات للرسم البياني</p>';
         return;
     }
 
     try {
-        // إزالة أي رسم بياني سابق
         if (overtimeChart) {
             overtimeChart.destroy();
         }
 
-        // إعداد خيارات الرسم البياني
         const options = {
             series: [{
                 name: 'ساعات العمل الإضافية',
@@ -547,222 +853,13 @@ function initializeChart() {
             }]
         };
 
-        // إنشاء الرسم البياني
         overtimeChart = new ApexCharts(chartContainer, options);
         overtimeChart.render();
-
         console.log('✅ تم إنشاء الرسم البياني بنجاح');
-
-        // إضافة حدث لتحديث الرسم البياني عند تغيير حجم النافذة
-        window.addEventListener('resize', function() {
-            if (overtimeChart) {
-                overtimeChart.updateOptions({
-                    chart: {
-                        width: '100%',
-                        height: 350
-                    }
-                });
-            }
-        });
 
     } catch (e) {
         console.error('❌ خطأ في إنشاء الرسم البياني:', e);
         chartContainer.innerHTML = '<p class="text-center text-danger py-3">حدث خطأ في تحميل الرسم البياني</p>';
-    }
-}
-
-// ============================================
-// دوال تحديد السجلات
-// ============================================
-
-function selectAll() {
-    document.querySelectorAll('.row-checkbox:not(:disabled)').forEach(cb => {
-        cb.checked = true;
-    });
-    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-    if (selectAllCheckbox) selectAllCheckbox.checked = true;
-    updateSelectedCount();
-}
-
-function deselectAll() {
-    document.querySelectorAll('.row-checkbox').forEach(cb => {
-        cb.checked = false;
-    });
-    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-    if (selectAllCheckbox) selectAllCheckbox.checked = false;
-    updateSelectedCount();
-}
-
-function toggleAllCheckboxes() {
-    const selectAll = document.getElementById('selectAllCheckbox')?.checked || false;
-    document.querySelectorAll('.row-checkbox:not(:disabled)').forEach(cb => {
-        cb.checked = selectAll;
-    });
-    updateSelectedCount();
-}
-
-function updateSelectedCount() {
-    const checkboxes = document.querySelectorAll('.row-checkbox:checked');
-    const count = checkboxes.length;
-
-    let totalHours = 0;
-    let totalCost = 0;
-
-    checkboxes.forEach(cb => {
-        totalHours += parseFloat(cb.dataset.hours || 0);
-        totalCost += parseFloat(cb.dataset.cost || 0);
-    });
-
-    const btn = document.getElementById('transferSelectedBtn');
-    if (btn) {
-        btn.disabled = count === 0;
-        btn.innerHTML = `<i class="fas fa-exchange-alt me-1"></i>ترحيل المحدد (${count}) - ${totalHours.toFixed(1)} ساعة - ${totalCost.toFixed(2)} ر.ي`;
-    }
-}
-
-// ============================================
-// دوال الترحيل
-// ============================================
-
-function transferSelected() {
-    const selected = [];
-    document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
-        selected.push(parseInt(cb.value));
-    });
-
-    if (selected.length === 0) {
-        alert('الرجاء تحديد سجلات للترحيل');
-        return;
-    }
-
-    executeTransfer(selected);
-}
-
-function transferSingle(id) {
-    executeTransfer([id]);
-}
-
-function transferAll() {
-    const selected = [];
-    document.querySelectorAll('.row-checkbox:not(:disabled)').forEach(cb => {
-        selected.push(parseInt(cb.value));
-    });
-
-    if (selected.length === 0) {
-        alert('لا توجد سجلات غير مرحّلة');
-        return;
-    }
-
-    executeTransfer(selected);
-}
-
-function transferToPayroll() {
-    const pending = document.querySelectorAll('.row-checkbox:not(:disabled)');
-    if (pending.length === 0) {
-        alert('لا توجد ساعات إضافية غير مرحّلة');
-        return;
-    }
-
-    selectAll();
-    const selected = [];
-    document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
-        selected.push(parseInt(cb.value));
-    });
-    executeTransfer(selected);
-}
-
-function executeTransfer(ids) {
-    if (!confirm(`هل أنت متأكد من ترحيل ${ids.length} سجل من الساعات الإضافية؟`)) {
-        return;
-    }
-
-    const btn = document.activeElement;
-    const originalText = btn?.innerHTML || 'ترحيل';
-
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري الترحيل...';
-    }
-
-    const now = new Date();
-    const data = {
-        overtime_ids: ids,
-        month: now.getMonth() + 1,
-        year: now.getFullYear()
-    };
-
-    console.log('📤 إرسال:', data);
-
-    fetch('/overtime/transfer-to-payroll', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().catch(() => {
-                throw new Error('فشل الاتصال بالخادم');
-            });
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('📥 استجابة:', data);
-
-        if (data.success) {
-            ids.forEach(id => {
-                const row = document.getElementById(`row-${id}`);
-                if (row) {
-                    row.classList.add('table-success');
-                    const badge = row.querySelector('.badge');
-                    if (badge) {
-                        badge.className = 'badge bg-success';
-                        badge.innerText = 'تم الترحيل';
-                    }
-                    const cb = row.querySelector('.row-checkbox');
-                    if (cb) {
-                        cb.disabled = true;
-                        cb.checked = false;
-                    }
-                    const actionBtn = row.querySelector('.btn-sm.btn-success');
-                    if (actionBtn) {
-                        actionBtn.style.display = 'none';
-                    }
-                }
-            });
-            updateSelectedCount();
-            alert(`✅ تم ترحيل ${data.transferred_count || ids.length} سجل بنجاح`);
-        } else {
-            alert(`❌ خطأ: ${data.message || 'فشل الترحيل'}`);
-        }
-    })
-    .catch(error => {
-        console.error('❌ خطأ:', error);
-        alert(`❌ خطأ في الاتصال: ${error.message}`);
-    })
-    .finally(() => {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-        }
-    });
-}
-
-// ============================================
-// دوال التصدير
-// ============================================
-
-function exportToExcel() {
-    window.location.href = "{{ url_for('export_overtime', export_type='excel', **request.args) }}";
-}
-
-function exportReport(type) {
-    if (type === 'pdf') {
-        window.location.href = "{{ url_for('export_overtime', export_type='pdf', **request.args) }}";
-    } else if (type === 'excel') {
-        window.location.href = "{{ url_for('export_overtime', export_type='excel', **request.args) }}";
     }
 }
 </script>
@@ -849,6 +946,18 @@ a.btn-modern:hover {
     height: 350px;
     width: 100%;
     overflow: hidden;
+}
+
+/* تنسيق أزرار الإجراءات */
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 5px;
+    margin: 0 2px;
+}
+
+.btn-group-sm .btn i {
+    font-size: 0.85rem;
 }
 
 @media (max-width: 768px) {
