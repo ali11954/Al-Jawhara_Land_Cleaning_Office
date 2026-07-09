@@ -1,9 +1,9 @@
 services:
   - type: web
-    name: al-jawhara-api
+    name: al-jawhara-app
     runtime: python
     plan: free
-    buildCommand: cd new_app/backend && pip install -r requirements.txt
+    buildCommand: cd new_app/frontend && npm install && npm run build && cd ../backend && pip install -r requirements.txt
     startCommand: cd new_app/backend && gunicorn app:app --bind 0.0.0.0:$PORT
     envVars:
       - key: DATABASE_URL
@@ -12,13 +12,5 @@ services:
         generateValue: true
       - key: PYTHON_VERSION
         value: 3.11.0
-
-  - type: web
-    name: al-jawhara-frontend
-    runtime: static
-    plan: free
-    buildCommand: cd new_app/frontend && npm install && npm run build
-    staticPublishPath: new_app/frontend/dist
-    envVars:
       - key: NODE_VERSION
         value: 18.0.0

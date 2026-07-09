@@ -3,15 +3,17 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from config import Config
 from models import db
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder=None)
     app.config.from_object(Config)
-    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}})
+    
+    # CORS for API
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
 
     db.init_app(app)
 
@@ -60,6 +62,16 @@ def create_app():
     app.register_blueprint(supplier_invoices_bp)
     app.register_blueprint(settings_bp)
     app.register_blueprint(employee_portal_bp)
+
+    # Serve frontend build
+    frontend_dir = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'dist')
+    if os.path.exists(frontend_dir):
+        @app.route('/', defaults={'path': ''})
+        @app.route('/<path:path>')
+        def serve_frontend(path):
+            if path and os.path.exists(os.path.join(frontend_dir, path)):
+                return send_from_directory(frontend_dir, path)
+            return send_from_directory(frontend_dir, 'index.html')
 
     @app.route('/api/health', methods=['GET'])
     def health():
