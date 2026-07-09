@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, CalendarCheck, Building2, Star, DollarSign,
@@ -13,7 +13,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import api from '@/api/client';
 import { formatNum, formatCurrency } from '@/lib/utils';
 
-const COLORS = ['#3b82f6', '#f59e0b', '#ef4444', '#6366f1', '#8b5cf6', '#ec4899', '#06b6d4'];
+const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#6366f1', '#8b5cf6', '#ec4899', '#06b6d4'];
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
@@ -29,7 +29,7 @@ export default function DashboardPage() {
       const u = res.data.data;
       setUser(u);
       if (u?.role === 'employee') {
-        navigate('/app/my-portal', { replace: true });
+        navigate('/my-portal', { replace: true });
         return;
       }
     }).catch(() => {});
@@ -75,19 +75,19 @@ export default function DashboardPage() {
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
             <Leaf className="w-8 h-8" />
-            <h1 className="text-2xl font-bold">ارض الجوهرة</h1>
+            <h1 className="text-2xl font-bold">طلعت هائل</h1>
           </div>
-          <p className="text-primary-100 text-lg">نظام إدارة خدمات النظافة</p>
+          <p className="text-primary-100 text-lg">نظام إدارة الأعمال الزراعية</p>
         </div>
       </div>
 
       {/* Primary Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'الموظفين النشطين', value: stats?.total_employees || 0, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', path: '/app/employees' },
-          { label: 'حضور اليوم', value: `${stats?.today_attendance || 0} / ${stats?.total_employees || 0}`, sub: `${attendanceRate}% نسبة الحضور`, icon: CalendarCheck, color: 'text-green-600', bg: 'bg-green-50', path: '/app/attendance' },
-          { label: 'الرواتب المعلقة', value: stats?.pending_salaries || 0, icon: DollarSign, color: 'text-amber-600', bg: 'bg-amber-50', path: '/app/salaries' },
-          { label: 'خطط العمل', value: stats?.work_plans_total || 0, sub: `${workPlanProgress}% مكتمل`, icon: ClipboardList, color: 'text-purple-600', bg: 'bg-purple-50', path: '/app/work-plans' },
+          { label: 'الموظفين النشطين', value: stats?.total_employees || 0, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', path: '/employees' },
+          { label: 'حضور اليوم', value: `${stats?.today_attendance || 0} / ${stats?.total_employees || 0}`, sub: `${attendanceRate}% نسبة الحضور`, icon: CalendarCheck, color: 'text-green-600', bg: 'bg-green-50', path: '/attendance' },
+          { label: 'الرواتب المعلقة', value: stats?.pending_salaries || 0, icon: DollarSign, color: 'text-amber-600', bg: 'bg-amber-50', path: '/salaries' },
+          { label: 'خطط العمل', value: stats?.work_plans_total || 0, sub: `${workPlanProgress}% مكتمل`, icon: ClipboardList, color: 'text-purple-600', bg: 'bg-purple-50', path: '/work-plans' },
         ].map((stat) => {
           const Icon = stat.icon;
           return (
@@ -108,10 +108,10 @@ export default function DashboardPage() {
       {/* Secondary Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'الشركات', value: stats?.total_companies || 0, icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/app/companies' },
-          { label: 'الموردين', value: stats?.total_suppliers || 0, icon: Truck, color: 'text-rose-600', bg: 'bg-rose-50', path: '/app/suppliers' },
-          { label: 'المعاملات المعلقة', value: stats?.pending_transactions || 0, icon: Activity, color: 'text-indigo-600', bg: 'bg-indigo-50', path: '/app/financial' },
-          { label: 'الرواتب المدفوعة', value: formatNum(stats?.total_salaries_paid || 0) + ' ر.ي', icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50', path: '/app/salaries' },
+          { label: 'الشركات', value: stats?.total_companies || 0, icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/companies' },
+          { label: 'الموردين', value: stats?.total_suppliers || 0, icon: Truck, color: 'text-rose-600', bg: 'bg-rose-50', path: '/suppliers' },
+          { label: 'المعاملات المعلقة', value: stats?.pending_transactions || 0, icon: Activity, color: 'text-indigo-600', bg: 'bg-indigo-50', path: '/financial' },
+          { label: 'الرواتب المدفوعة', value: formatNum(stats?.total_salaries_paid || 0) + ' ر.ي', icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50', path: '/salaries' },
         ].map((stat) => {
           const Icon = stat.icon;
           return (
@@ -181,7 +181,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-800">{stats.pending_salaries} رواتب معلقة</p>
-                  <button onClick={() => navigate('/app/salaries')} className="text-xs text-primary-600 hover:underline">احسب الآن</button>
+                  <button onClick={() => navigate('/salaries')} className="text-xs text-primary-600 hover:underline">احسب الآن</button>
                 </div>
               </div>
             )}
@@ -192,7 +192,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-800">{stats.pending_transactions} معاملات معلقة</p>
-                  <button onClick={() => navigate('/app/financial')} className="text-xs text-primary-600 hover:underline">راجع الآن</button>
+                  <button onClick={() => navigate('/financial')} className="text-xs text-primary-600 hover:underline">راجع الآن</button>
                 </div>
               </div>
             )}
@@ -203,7 +203,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-800">{stats.late_count} موظف متأخر اليوم</p>
-                  <button onClick={() => navigate('/app/attendance')} className="text-xs text-primary-600 hover:underline">عرض الحضور</button>
+                  <button onClick={() => navigate('/attendance')} className="text-xs text-primary-600 hover:underline">عرض الحضور</button>
                 </div>
               </div>
             )}
@@ -214,7 +214,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-800">{stats.absent_count} موظف غائب اليوم</p>
-                  <button onClick={() => navigate('/app/attendance')} className="text-xs text-primary-600 hover:underline">عرض الغياب</button>
+                  <button onClick={() => navigate('/attendance')} className="text-xs text-primary-600 hover:underline">عرض الغياب</button>
                 </div>
               </div>
             )}
@@ -236,7 +236,7 @@ export default function DashboardPage() {
               <XAxis dataKey="name" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip formatter={(value: any) => [value, 'الموظفين']} />
-              <Bar dataKey="count" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="count" fill="#10b981" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -262,7 +262,7 @@ export default function DashboardPage() {
           </ResponsiveContainer>
           <div className="flex flex-wrap gap-3 justify-center mt-2">
             {[
-              { label: 'حاضر', color: '#3b82f6', val: reportAttendance?.summary?.present || 0 },
+              { label: 'حاضر', color: '#10b981', val: reportAttendance?.summary?.present || 0 },
               { label: 'متأخر', color: '#f59e0b', val: reportAttendance?.summary?.late || 0 },
               { label: 'غائب', color: '#ef4444', val: reportAttendance?.summary?.absent || 0 },
               { label: 'مرضي', color: '#3b82f6', val: reportAttendance?.summary?.sick || 0 },
@@ -286,7 +286,7 @@ export default function DashboardPage() {
               <ClipboardList className="w-5 h-5 text-purple-500" />
               خطط العمل
             </h3>
-            <button onClick={() => navigate('/app/work-plans')} className="text-xs text-primary-600 hover:underline">عرض الكل</button>
+            <button onClick={() => navigate('/work-plans')} className="text-xs text-primary-600 hover:underline">عرض الكل</button>
           </div>
           <div className="space-y-4">
             {[
@@ -323,7 +323,7 @@ export default function DashboardPage() {
               <Clock className="w-5 h-5 text-blue-500" />
               حضور اليوم
             </h3>
-            <button onClick={() => navigate('/app/attendance')} className="text-xs text-primary-600 hover:underline">عرض الكل</button>
+            <button onClick={() => navigate('/attendance')} className="text-xs text-primary-600 hover:underline">عرض الكل</button>
           </div>
           <div className="space-y-3">
             {[
@@ -356,7 +356,7 @@ export default function DashboardPage() {
               <Award className="w-5 h-5 text-amber-500" />
               مؤشرات الأداء والتقييم
             </h2>
-            <button onClick={() => navigate('/app/evaluations')} className="text-xs text-primary-600 hover:underline">عرض الكل</button>
+            <button onClick={() => navigate('/evaluations')} className="text-xs text-primary-600 hover:underline">عرض الكل</button>
           </div>
 
           {/* KPI Cards */}
@@ -411,7 +411,7 @@ export default function DashboardPage() {
                 <PieChart>
                   <Pie data={reportEvaluations.rating_distribution || []} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
                     {(reportEvaluations.rating_distribution || []).map((_: any, idx: number) => (
-                      <Cell key={idx} fill={['#3b82f6', '#3b82f6', '#f59e0b', '#f97316', '#ef4444'][idx] || '#ccc'} />
+                      <Cell key={idx} fill={['#10b981', '#3b82f6', '#f59e0b', '#f97316', '#ef4444'][idx] || '#ccc'} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -420,7 +420,7 @@ export default function DashboardPage() {
               <div className="flex flex-wrap gap-2 justify-center mt-2">
                 {(reportEvaluations.rating_distribution || []).map((r: any, idx: number) => (
                   <div key={r.name} className="flex items-center gap-1.5 text-xs text-gray-600">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: ['#3b82f6', '#3b82f6', '#f59e0b', '#f97316', '#ef4444'][idx] || '#ccc' }} />
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: ['#10b981', '#3b82f6', '#f59e0b', '#f97316', '#ef4444'][idx] || '#ccc' }} />
                     {r.name}: {r.value}
                   </div>
                 ))}
@@ -439,7 +439,7 @@ export default function DashboardPage() {
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip formatter={(value: any, name: any) => [value, name === 'avg' ? 'متوسط' : 'عدد']} />
-                  <Area type="monotone" dataKey="avg" stroke="#3b82f6" fill="#3b82f620" strokeWidth={2} />
+                  <Area type="monotone" dataKey="avg" stroke="#10b981" fill="#10b98120" strokeWidth={2} />
                   <Area type="monotone" dataKey="count" stroke="#6366f1" fill="#6366f120" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -483,12 +483,12 @@ export default function DashboardPage() {
         <h2 className="text-lg font-bold text-gray-900 mb-4">إجراءات سريعة</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
           {[
-            { label: 'إضافة موظف', icon: Users, path: '/app/employees', color: 'bg-blue-500' },
-            { label: 'تحضير جماعي', icon: CalendarCheck, path: '/app/attendance', color: 'bg-green-500' },
-            { label: 'خطة عمل', icon: ClipboardList, path: '/app/work-plans', color: 'bg-purple-500' },
-            { label: 'احتساب رواتب', icon: DollarSign, path: '/app/salaries', color: 'bg-amber-500' },
-            { label: 'فاتورة جديدة', icon: FileText, path: '/app/invoices', color: 'bg-violet-500' },
-            { label: 'التقارير', icon: BarChart3, path: '/app/reports', color: 'bg-pink-500' },
+            { label: 'إضافة موظف', icon: Users, path: '/employees', color: 'bg-blue-500' },
+            { label: 'تحضير جماعي', icon: CalendarCheck, path: '/attendance', color: 'bg-green-500' },
+            { label: 'خطة عمل', icon: ClipboardList, path: '/work-plans', color: 'bg-purple-500' },
+            { label: 'احتساب رواتب', icon: DollarSign, path: '/salaries', color: 'bg-amber-500' },
+            { label: 'فاتورة جديدة', icon: FileText, path: '/invoices', color: 'bg-violet-500' },
+            { label: 'التقارير', icon: BarChart3, path: '/reports', color: 'bg-pink-500' },
           ].map((action) => {
             const Icon = action.icon;
             return (
@@ -514,7 +514,7 @@ export default function DashboardPage() {
                 <Award className="w-5 h-5 text-amber-500" />
                 أفضل الموظفين أداءً
               </h3>
-              <button onClick={() => navigate('/app/evaluations')} className="text-xs text-primary-600 hover:underline">عرض الكل</button>
+              <button onClick={() => navigate('/evaluations')} className="text-xs text-primary-600 hover:underline">عرض الكل</button>
             </div>
             <div className="space-y-3">
               {stats.top_employees.map((emp: any, idx: number) => (
@@ -549,7 +549,7 @@ export default function DashboardPage() {
                 <AlertTriangle className="w-5 h-5" />
                 خطط عمل متأخرة ({stats.overdue_plans.length})
               </h3>
-              <button onClick={() => navigate('/app/work-plans')} className="text-xs text-red-600 hover:underline">عرض الكل</button>
+              <button onClick={() => navigate('/work-plans')} className="text-xs text-red-600 hover:underline">عرض الكل</button>
             </div>
             <div className="space-y-3">
               {stats.overdue_plans.map((plan: any) => (

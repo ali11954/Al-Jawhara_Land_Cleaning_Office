@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home, Users, CalendarCheck, Building2, Star, DollarSign,
@@ -9,32 +9,31 @@ import {
 import api from '@/api/client';
 
 const navItems = [
-  { path: '/app', label: 'الرئيسية', icon: Home, roles: ['admin', 'owner', 'supervisor', 'accountant', 'viewer'] },
-  { path: '/app/employees', label: 'الموظفين', icon: Users, roles: ['admin', 'owner', 'supervisor'] },
-  { path: '/app/attendance', label: 'الحضور', icon: CalendarCheck, roles: ['admin', 'owner', 'supervisor'] },
-  { path: '/app/companies', label: 'الشركات', icon: Building2, roles: ['admin', 'owner', 'supervisor', 'accountant'] },
-  { path: '/app/contracts', label: 'العقود', icon: FileCheck, roles: ['admin', 'owner', 'supervisor'] },
-  { path: '/app/invoices', label: 'الفواتير', icon: FileText, roles: ['admin', 'owner', 'supervisor', 'accountant'] },
-  { path: '/app/evaluations', label: 'التقييمات', icon: Star, roles: ['admin', 'owner', 'supervisor'] },
-  { path: '/app/work-plans', label: 'خطط العمل', icon: ClipboardList, roles: ['admin', 'owner', 'supervisor'] },
-  { path: '/app/salaries', label: 'الرواتب', icon: Coins, roles: ['admin', 'owner', 'accountant'] },
-  { path: '/app/financial', label: 'المالية', icon: DollarSign, roles: ['admin', 'owner', 'accountant'] },
-  { path: '/app/accounts', label: 'الحسابات', icon: BookOpen, roles: ['admin', 'owner', 'accountant'] },
-  { path: '/app/suppliers', label: 'الموردين', icon: Truck, roles: ['admin', 'owner', 'accountant'] },
-  { path: '/app/supplier-invoices', label: 'فواتير الموردين', icon: FileText, roles: ['admin', 'owner', 'accountant'] },
-  { path: '/app/periods', label: 'الفترات المالية', icon: Calendar, roles: ['admin', 'owner', 'accountant'] },
-  { path: '/app/leaves', label: 'الإجازات', icon: Clock, roles: ['admin', 'owner', 'supervisor'] },
-  { path: '/app/reports', label: 'التقارير', icon: BarChart3, roles: ['admin', 'owner', 'supervisor', 'accountant'] },
-  { path: '/app/users', label: 'المستخدمين', icon: UserCog, roles: ['admin', 'owner'] },
-  { path: '/app/profile', label: 'الملف الشخصي', icon: User, roles: ['admin', 'owner', 'supervisor', 'accountant', 'viewer', 'employee'] },
-  { path: '/app/settings', label: 'الإعدادات', icon: Settings, roles: ['admin', 'owner'] },
+  { path: '/', label: 'الرئيسية', icon: Home, roles: ['admin', 'supervisor', 'accountant', 'viewer'] },
+  { path: '/employees', label: 'الموظفين', icon: Users, roles: ['admin', 'supervisor'] },
+  { path: '/attendance', label: 'الحضور', icon: CalendarCheck, roles: ['admin', 'supervisor'] },
+  { path: '/companies', label: 'الشركات', icon: Building2, roles: ['admin', 'supervisor', 'accountant'] },
+  { path: '/contracts', label: 'العقود', icon: FileCheck, roles: ['admin', 'supervisor'] },
+  { path: '/invoices', label: 'الفواتير', icon: FileText, roles: ['admin', 'supervisor', 'accountant'] },
+  { path: '/evaluations', label: 'التقييمات', icon: Star, roles: ['admin', 'supervisor'] },
+  { path: '/work-plans', label: 'خطط العمل', icon: ClipboardList, roles: ['admin', 'supervisor'] },
+  { path: '/salaries', label: 'الرواتب', icon: Coins, roles: ['admin', 'accountant'] },
+  { path: '/financial', label: 'المالية', icon: DollarSign, roles: ['admin', 'accountant'] },
+  { path: '/accounts', label: 'الحسابات', icon: BookOpen, roles: ['admin', 'accountant'] },
+  { path: '/suppliers', label: 'الموردين', icon: Truck, roles: ['admin', 'accountant'] },
+  { path: '/supplier-invoices', label: 'فواتير الموردين', icon: FileText, roles: ['admin', 'accountant'] },
+  { path: '/periods', label: 'الفترات المالية', icon: Calendar, roles: ['admin', 'accountant'] },
+  { path: '/leaves', label: 'الإجازات', icon: Clock, roles: ['admin', 'supervisor'] },
+  { path: '/reports', label: 'التقارير', icon: BarChart3, roles: ['admin', 'supervisor', 'accountant'] },
+  { path: '/users', label: 'المستخدمين', icon: UserCog, roles: ['admin'] },
+  { path: '/settings', label: 'الإعدادات', icon: Settings, roles: ['admin'] },
 ];
 
 const shortcuts = [
-  { label: 'موظف', icon: Users, path: '/app/employees' },
-  { label: 'حضور', icon: CalendarCheck, path: '/app/attendance' },
-  { label: 'فاتورة', icon: FileText, path: '/app/invoices' },
-  { label: 'تقرير', icon: BarChart3, path: '/app/reports' },
+  { label: 'موظف', icon: Users, path: '/employees' },
+  { label: 'حضور', icon: CalendarCheck, path: '/attendance' },
+  { label: 'فاتورة', icon: FileText, path: '/invoices' },
+  { label: 'تقرير', icon: BarChart3, path: '/reports' },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -82,17 +81,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       const ql = q.toLowerCase();
       (empRes.data.data || []).forEach((e: any) => {
         if (e.name?.toLowerCase().includes(ql) || e.job_title?.toLowerCase().includes(ql)) {
-          results.push({ type: 'employee', label: e.name, sub: e.job_title || '', path: '/app/employees' });
+          results.push({ type: 'employee', label: e.name, sub: e.job_title || '', path: '/employees' });
         }
       });
       (compRes.data.data || []).forEach((c: any) => {
         if (c.name?.toLowerCase().includes(ql)) {
-          results.push({ type: 'company', label: c.name, sub: 'شركة', path: '/app/companies' });
+          results.push({ type: 'company', label: c.name, sub: 'شركة', path: '/companies' });
         }
       });
       (supRes.data.data || []).forEach((s: any) => {
         if (s.name?.toLowerCase().includes(ql)) {
-          results.push({ type: 'supplier', label: s.name, sub: 'مورد', path: '/app/suppliers' });
+          results.push({ type: 'supplier', label: s.name, sub: 'مورد', path: '/suppliers' });
         }
       });
       setSearchResults(results.slice(0, 10));
@@ -107,7 +106,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     navigate('/login');
   };
 
-  const currentPage = navItems.find(n => location.pathname === n.path || (n.path !== '/app' && location.pathname.startsWith(n.path)));
+  const currentPage = navItems.find(n => location.pathname === n.path || (n.path !== '/' && location.pathname.startsWith(n.path)));
 
   return (
     <div className="flex h-screen bg-gray-50/50">
@@ -116,11 +115,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {/* Logo */}
         <div className="p-4 border-b border-gray-50">
           <div className={`flex items-center ${sidebarOpen ? 'gap-3' : 'justify-center'}`}>
-            <img src="/logo.png" alt="ارض الجوهرة" className="w-10 h-10 rounded-xl object-contain flex-shrink-0" />
+            <img src="/logo.png" alt="طلعت هائل" className="w-10 h-10 rounded-xl object-contain flex-shrink-0" />
             {sidebarOpen && (
               <div>
-                <div className="font-bold text-gray-900 text-sm">ارض الجوهرة</div>
-                <div className="text-[10px] text-gray-400 uppercase tracking-wider">CLEANING SERVICES</div>
+                <div className="font-bold text-gray-900 text-sm">طلعت هائل</div>
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider">Agricultural Services</div>
               </div>
             )}
           </div>
@@ -131,7 +130,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           {navItems.filter(item => {
             if (user?.role === 'employee') {
               const allowed = user?.allowed_pages || ['my-portal'];
-              return item.path === '/app' || allowed.includes(item.path.replace('/app/', ''));
+              return item.path === '/' || allowed.includes(item.path.replace('/', ''));
             }
             return (item.roles || []).includes(user?.role || '');
           }).map((item) => {
@@ -154,16 +153,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             );
           })}
           {user?.role === 'employee' && (
-              <Link
-                to="/app/my-portal"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  location.pathname === '/app/my-portal'
-                    ? 'bg-primary-50 text-primary-700 shadow-sm'
-                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
-                }`}
-              >
-                <User className={`w-5 h-5 flex-shrink-0 ${location.pathname === '/app/my-portal' ? 'text-primary-600' : ''}`} />
+            <Link
+              to="/my-portal"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                location.pathname === '/my-portal'
+                  ? 'bg-primary-50 text-primary-700 shadow-sm'
+                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              <User className={`w-5 h-5 flex-shrink-0 ${location.pathname === '/my-portal' ? 'text-primary-600' : ''}`} />
               {sidebarOpen && <span>بوابة الموظف</span>}
             </Link>
           )}
@@ -200,16 +199,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div className="hidden md:flex items-center gap-2">
             {user?.role === 'employee' ? (
               <>
-                <button onClick={() => navigate('/app/my-portal')} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-medium transition-all">
+                <button onClick={() => navigate('/my-portal')} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-medium transition-all">
                   <User className="w-3.5 h-3.5" /> ملفي الشخصي
                 </button>
-                <button onClick={() => navigate('/app/my-portal')} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 text-xs font-medium transition-all">
+                <button onClick={() => navigate('/my-portal')} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 text-xs font-medium transition-all">
                   <Calendar className="w-3.5 h-3.5" /> حضوري
                 </button>
-                <button onClick={() => navigate('/app/my-portal')} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 text-xs font-medium transition-all">
+                <button onClick={() => navigate('/my-portal')} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 text-xs font-medium transition-all">
                   <DollarSign className="w-3.5 h-3.5" /> راتبي
                 </button>
-                <button onClick={() => navigate('/app/my-portal')} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 text-xs font-medium transition-all">
+                <button onClick={() => navigate('/my-portal')} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 text-xs font-medium transition-all">
                   <Clock className="w-3.5 h-3.5" /> إجازاتي
                 </button>
               </>
@@ -235,7 +234,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <span className="absolute top-1.5 left-1.5 w-2 h-2 bg-red-500 rounded-full" />
             </button>
             {user && (
-              <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/app/profile')}>
+              <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/settings')}>
                 <div className="text-left hidden sm:block">
                   <p className="text-sm font-bold text-gray-900 leading-tight">{user.full_name}</p>
                   <p className="text-[10px] text-gray-400">{user.role === 'admin' ? 'مدير النظام' : user.role}</p>
@@ -329,13 +328,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 {navItems.filter(item => {
                   if (user?.role === 'employee') {
                     const allowed = user?.allowed_pages || ['my-portal'];
-                    return item.path === '/app' || allowed.includes(item.path.replace('/app/', ''));
+                    return item.path === '/' || allowed.includes(item.path.replace('/', ''));
                   }
                   return (item.roles || []).includes(user?.role || '');
                 }).map((item) => {
-            const isActive = item.path === '/app'
-              ? (location.pathname === '/app' || location.pathname === '/app/')
-              : location.pathname.startsWith(item.path);
+                  const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
                   const Icon = item.icon;
                   return (
                     <Link key={item.path} to={item.path} onClick={() => setMobileMenuOpen(false)}
@@ -345,9 +342,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   );
                 })}
                 {user?.role === 'employee' && (
-                  <Link to="/app/my-portal" onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${location.pathname === '/app/my-portal' ? 'bg-primary-50 text-primary-700' : 'text-gray-500 hover:bg-gray-50'}`}>
-                    <User className={`w-5 h-5 ${location.pathname === '/app/my-portal' ? 'text-primary-600' : ''}`} /><span>بوابة الموظف</span>
+                  <Link to="/my-portal" onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${location.pathname === '/my-portal' ? 'bg-primary-50 text-primary-700' : 'text-gray-500 hover:bg-gray-50'}`}>
+                    <User className={`w-5 h-5 ${location.pathname === '/my-portal' ? 'text-primary-600' : ''}`} /><span>بوابة الموظف</span>
                   </Link>
                 )}
               </nav>

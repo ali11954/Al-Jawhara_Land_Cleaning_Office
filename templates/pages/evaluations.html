@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}التقييمات - ارض الجوهرة لخدمات النظافة{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0"><i class="fas fa-star" style="color:#16a34a;"></i> التقييمات</h4>
+    <button class="btn btn-success" onclick="showModal('addEvaluationModal')"><i class="fas fa-plus"></i> إضافة تقييم</button>
+</div>
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead><tr><th>الموظف</th><th>التاريخ</th><th>التقييم</th><th>الملاحظات</th></tr></thead>
+                <tbody id="evaluationsTable"><tr><td colspan="4" class="text-center text-muted">جاري التحميل...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const res = await fetch('/api/evaluations');
+        const data = await res.json();
+        const tbody = document.getElementById('evaluationsTable');
+        if (data.success && data.data.length) {
+            tbody.innerHTML = data.data.map(e => `<tr>
+                <td>${e.employee_name || ''}</td><td>${e.date || ''}</td>
+                <td><span class="badge bg-${e.score >= 8 ? 'success' : e.score >= 5 ? 'warning' : 'danger'}">${e.score || 0}/10</span></td>
+                <td>${e.notes || '-'}</td>
+            </tr>`).join('');
+        } else { tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">لا يوجد بيانات</td></tr>'; }
+    } catch(e) { document.getElementById('evaluationsTable').innerHTML = '<tr><td colspan="4" class="text-center text-danger">خطأ في تحميل البيانات</td></tr>'; }
+});
+</script>
+{% endblock %}

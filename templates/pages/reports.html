@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}التقارير - ارض الجوهرة لخدمات النظافة{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0"><i class="fas fa-chart-pie" style="color:#16a34a;"></i> التقارير</h4>
+</div>
+<div class="row">
+    <div class="col-md-4 mb-3"><div class="card h-100"><div class="card-body text-center"><i class="fas fa-users fa-3x text-success mb-3"></i><h5>تقرير الموظفين</h5><p class="text-muted">عدد الموظفين النشطين وغير النشطين</p><a href="/api/reports/employees" class="btn btn-outline-success" target="_blank">عرض التقرير</a></div></div></div>
+    <div class="col-md-4 mb-3"><div class="card h-100"><div class="card-body text-center"><i class="fas fa-calendar-check fa-3x text-primary mb-3"></i><h5>تقرير الحضور</h5><p class="text-muted">سجل الحضور والغياب الشهري</p><a href="/api/reports/attendance" class="btn btn-outline-primary" target="_blank">عرض التقرير</a></div></div></div>
+    <div class="col-md-4 mb-3"><div class="card h-100"><div class="card-body text-center"><i class="fas fa-star fa-3x text-warning mb-3"></i><h5>تقرير التقييمات</h5><p class="text-muted">تقييم أداء الموظفين</p><a href="/api/reports/evaluations" class="btn btn-outline-warning" target="_blank">عرض التقرير</a></div></div></div>
+    <div class="col-md-4 mb-3"><div class="card h-100"><div class="card-body text-center"><i class="fas fa-chart-line fa-3x text-danger mb-3"></i><h5>التقرير المالي</h5><p class="text-muted">الإيرادات والمصروفات</p><a href="/api/reports/financial" class="btn btn-outline-danger" target="_blank">عرض التقرير</a></div></div></div>
+    <div class="col-md-4 mb-3"><div class="card h-100"><div class="card-body text-center"><i class="fas fa-file-contract fa-3x text-info mb-3"></i><h5>تقرير العقود</h5><p class="text-muted">العقود النشطة والمنتهية</p><a href="/api/contracts" class="btn btn-outline-info" target="_blank">عرض التقرير</a></div></div></div>
+    <div class="col-md-4 mb-3"><div class="card h-100"><div class="card-body text-center"><i class="fas fa-dollar-sign fa-3x text-secondary mb-3"></i><h5>تقرير الرواتب</h5><p class="text-muted"> الرواتب المدفوعة والمعلقة</p><a href="/api/financial/salaries" class="btn btn-outline-secondary" target="_blank">عرض التقرير</a></div></div></div>
+</div>
+{% endblock %}

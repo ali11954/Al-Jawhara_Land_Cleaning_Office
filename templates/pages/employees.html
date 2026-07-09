@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}الموظفين - ارض الجوهرة لخدمات النظافة{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0"><i class="fas fa-users" style="color:#16a34a;"></i> قائمة الموظفين</h4>
+    <button class="btn btn-success" onclick="showModal('addEmployeeModal')"><i class="fas fa-plus"></i> إضافة موظف</button>
+</div>
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead><tr><th>الاسم</th><th>البطاقة</th><th>الوظيفة</th><th>الشركة</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+                <tbody id="employeesTable"><tr><td colspan="6" class="text-center text-muted">جاري التحميل...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const res = await fetch('/api/employees');
+        const data = await res.json();
+        const tbody = document.getElementById('employeesTable');
+        if (data.success && data.data.length) {
+            tbody.innerHTML = data.data.map(e => `<tr>
+                <td>${e.full_name || ''}</td><td>${e.card_number || ''}</td>
+                <td>${e.job_title || ''}</td><td>${e.company_name || ''}</td>
+                <td><span class="badge bg-${e.is_active ? 'success' : 'secondary'}">${e.is_active ? 'نشط' : 'غير نشط'}</span></td>
+                <td><button class="btn btn-sm btn-outline-primary" onclick="editEmployee(${e.id})"><i class="fas fa-edit"></i></button></td>
+            </tr>`).join('');
+        } else { tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">لا يوجد بيانات</td></tr>'; }
+    } catch(e) { document.getElementById('employeesTable').innerHTML = '<tr><td colspan="6" class="text-center text-danger">خطأ في تحميل البيانات</td></tr>'; }
+});
+</script>
+{% endblock %}

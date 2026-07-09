@@ -1,0 +1,1205 @@
+import { useState, useEffect } from 'react';
+import { BarChart3, Users, Building2, DollarSign, CalendarCheck, Download, Printer, TrendingUp, TrendingDown, PieChart as PieIcon, Activity, ClipboardList, Briefcase, Star, Award, Target, TrendingUpIcon, Filter, ArrowLeftRight, FileText, Settings2, X, Check } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend, AreaChart, Area, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ComposedChart } from 'recharts';
+import api from '@/api/client';
+import { formatNum } from '@/lib/utils';
+import { openPrintWindow, contractorColumns, contractorRow, attendanceColumns, attendanceRow, employeesColumns, employeesRow, financialColumns, financialRow, evaluationsColumns, evaluationsRow, overviewColumns, overviewRow, workPlansColumns, workPlansRow, type ColDef } from '@/lib/pdfExport';
+
+function pctChange(current: number, previous: number): number | null {
+  if (!previous || previous === 0) return null;
+  return Math.round((current - previous) / previous * 100);
+}
+function ChangeBadge({ current, prev, invert }: { current: number; prev: number; invert?: boolean }) {
+  const pct = pctChange(current, prev);
+  if (pct === null) return null;
+  const good = invert ? pct <= 0 : pct >= 0;
+  return (
+    <span className={`text-xs font-bold ${good ? 'text-green-600' : 'text-red-600'}`}>
+      {pct >= 0 ? '↑' : '↓'} {Math.abs(pct)}%
+    </span>
+  );
+}
+
+const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#6366f1', '#8b5cf6', '#ec4899', '#06b6d4'];
+
+function getMonthStr(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
+}
+function prevMonth(ym: string) {
+  const [y, m] = ym.split('-').map(Number);
+  const d = new Date(y, m - 2, 1);
+  return getMonthStr(d);
+}
+function getMonthLabel(ym: string) {
+  const [y, m] = ym.split('-').map(Number);
+  const names = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  return `${names[m - 1]} ${y}`;
+}
+function getDaysInMonth(ym: string) {
+  const [y, m] = ym.split('-').map(Number);
+  return new Date(y, m, 0).getDate();
+}
+
+export default function ReportsPage() {
+  const [stats, setStats] = useState<any>(null);
+  const [employees, setEmployees] = useState<any>(null);
+  const [attendance, setAttendance] = useState<any>(null);
+  const [attendanceComp, setAttendanceComp] = useState<any>(null);
+  const [financial, setFinancial] = useState<any>(null);
+  const [financialComp, setFinancialComp] = useState<any>(null);
+  const [workPlans, setWorkPlans] = useState<any[]>([]);
+  const [evaluations, setEvaluations] = useState<any>(null);
+  const [evaluationsComp, setEvaluationsComp] = useState<any>(null);
+  const [contractorProfit, setContractorProfit] = useState<any>(null);
+  const [contractorProfitComp, setContractorProfitComp] = useState<any>(null);
+  const [companies, setCompanies] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [selectedMonth, setSelectedMonth] = useState(() => getMonthStr(new Date()));
+  const [showColumnModal, setShowColumnModal] = useState(false);
+  const [exportColumns, setExportColumns] = useState<Record<string, boolean>>({});
+  const [exportType, setExportType] = useState('');
+  const [exportData, setExportData] = useState<{ cols: any[]; data: Record<string,string>[] }>({ cols: [], data: [] });
+
+  const loadData = () => {
+    setLoading(true);
+    const pm = prevMonth(selectedMonth);
+    const empty = (d: any) => ({ data: { data: d } });
+    Promise.all([
+      api.get('/dashboard/stats').catch(() => empty({ total_employees: 0, today_attendance: 0, pending_salaries: 0, work_plans_total: 0, total_companies: 0, total_suppliers: 0, total_income: 0, total_expense: 0, recent_attendance: [], recent_evaluations: [], recent_transactions: [], work_plans_pending: 0, work_plans_in_progress: 0, work_plans_completed: 0, active_contracts: 0, pending_transactions: 0, top_employees: [] })),
+      api.get('/reports/employees').catch(() => empty({ by_company: [], employees: [] })),
+      api.get(`/reports/attendance?date_from=${selectedMonth}-01&date_to=${selectedMonth}-31`).catch(() => empty({ daily: [], attendance_rate: 0, summary: {} })),
+      api.get(`/reports/attendance?date_from=${pm}-01&date_to=${pm}-31`).catch(() => empty({ daily: [], attendance_rate: 0, summary: {} })),
+      api.get(`/reports/financial?month_year=${selectedMonth.replace('-', '-')}`).catch(() => empty({ balance: 0, by_type: [], monthly: [] })),
+      api.get(`/reports/financial?month_year=${pm.replace('-', '-')}`).catch(() => empty({ balance: 0, by_type: [], monthly: [] })),
+      api.get('/work-plans').catch(() => empty([])),
+      api.get(`/reports/evaluations?month_year=${selectedMonth}`).catch(() => empty({ total_evaluations: 0, avg_score: 0, avg_rating: '-', rating_distribution: [], type_distribution: [], top_employees: [], monthly_trend: [], all_employees: [] })),
+      api.get(`/reports/evaluations?month_year=${pm}`).catch(() => empty({ total_evaluations: 0, avg_score: 0, avg_rating: '-', rating_distribution: [], type_distribution: [], top_employees: [], monthly_trend: [], all_employees: [] })),
+      api.get(`/reports/contractor-profit?month_year=${selectedMonth}`).catch(() => empty({ employees: [], summary: {} })),
+      api.get(`/reports/contractor-profit?month_year=${pm}`).catch(() => empty({ employees: [], summary: {} })),
+      api.get('/companies').catch(() => empty([])),
+    ]).then(([sRes, eRes, aRes, aCompRes, fRes, fCompRes, wRes, evRes, evCompRes, cpRes, cpCompRes, cRes]) => {
+      setStats(sRes.data.data);
+      setEmployees(eRes.data.data);
+      setAttendance(aRes.data.data);
+      setAttendanceComp(aCompRes.data.data);
+      setFinancial(fRes.data.data);
+      setFinancialComp(fCompRes.data.data);
+      setWorkPlans(wRes.data.data || []);
+      setEvaluations(evRes.data.data);
+      setEvaluationsComp(evCompRes.data.data);
+      setContractorProfit(cpRes.data.data);
+      setContractorProfitComp(cpCompRes.data.data);
+      setCompanies(cRes.data.data || []);
+    }).catch((err) => { console.error('Reports load error:', err); }).finally(() => setLoading(false));
+  };
+
+  useEffect(() => { loadData(); }, [selectedMonth]);
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-3 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" /></div>;
+
+  const tabs = [
+    { id: 'overview', label: 'نظرة عامة', icon: Activity },
+    { id: 'employees', label: 'الموظفين', icon: Users },
+    { id: 'attendance', label: 'الحضور', icon: CalendarCheck },
+    { id: 'evaluations', label: 'التقييمات', icon: Star },
+    { id: 'workplans', label: 'خطط العمل', icon: ClipboardList },
+    { id: 'financial', label: 'المالية', icon: DollarSign },
+    { id: 'contractor', label: 'أرباح المتعهد', icon: TrendingUpIcon },
+  ];
+
+  const plansByType = {
+    daily: workPlans.filter(p => p.plan_type === 'daily'),
+    monthly: workPlans.filter(p => p.plan_type === 'monthly'),
+    yearly: workPlans.filter(p => p.plan_type === 'yearly'),
+  };
+
+  const workPlanPieData = [
+    { name: 'قيد الانتظار', value: stats?.work_plans_pending || 0 },
+    { name: 'قيد التنفيذ', value: stats?.work_plans_in_progress || 0 },
+    { name: 'مكتملة', value: stats?.work_plans_completed || 0 },
+  ].filter(d => d.value > 0);
+
+  const workPlanTypeData = [
+    { name: 'يومي', count: plansByType.daily.length },
+    { name: 'شهري', count: plansByType.monthly.length },
+    { name: 'سنوي', count: plansByType.yearly.length },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">التقارير والتحليلات</h1>
+          <p className="text-gray-500 text-sm mt-1">لوحة تحليلات شاملة مع رسوم بيانية تفاعلية</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => window.print()}><Printer className="w-4 h-4" /> طباعة</Button>
+          <Button variant="outline" className="gap-2" onClick={() => {
+            let cols: ColDef[] = [];
+            let data: Record<string,string>[] = [];
+            if (activeTab === 'contractor') { cols = contractorColumns; data = (contractorProfit?.employees||[]).map(contractorRow); }
+            else if (activeTab === 'attendance') { cols = attendanceColumns; data = (attendance?.daily||[]).map(attendanceRow); }
+            else if (activeTab === 'employees') { cols = employeesColumns; data = (employees?.employees||[]).map(employeesRow); }
+            else if (activeTab === 'financial') { cols = financialColumns; data = (financial?.by_type||[]).map(financialRow); }
+            else if (activeTab === 'evaluations') { cols = evaluationsColumns; data = (evaluations?.all_employees||[]).map(evaluationsRow); }
+            else if (activeTab === 'overview') { cols = overviewColumns; data = (employees?.by_company||[]).map(overviewRow); }
+            else if (activeTab === 'workplans') { cols = workPlansColumns; data = (workPlans||[]).map(workPlansRow); }
+            if (cols.length) {
+              setExportType(activeTab);
+              setExportColumns(Object.fromEntries(cols.map(c => [c.key, c.default !== false])));
+              setShowColumnModal(true);
+              setExportData({ cols, data });
+            }
+          }}><FileText className="w-4 h-4" /> تصدير PDF</Button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl overflow-x-auto">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+              <Icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Month Selector */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">الشهر:</span>
+            </div>
+            <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white" />
+            <div className="flex gap-1">
+              {[
+                { label: 'الشهر الحالي', value: getMonthStr(new Date()) },
+                { label: 'الشهر السابق', value: prevMonth(getMonthStr(new Date())) },
+              ].map(p => (
+                <Button key={p.label} size="sm" variant={selectedMonth === p.value ? 'default' : 'outline'}
+                  onClick={() => setSelectedMonth(p.value)}>{p.label}</Button>
+              ))}
+            </div>
+            <div className="mr-auto flex items-center gap-3 text-sm text-gray-500">
+              <span>الشهر الحالي: <strong className="text-gray-700">{getMonthLabel(selectedMonth)}</strong></span>
+              <span className="text-gray-300">|</span>
+              <span>الشهر السابق: <strong className="text-gray-700">{getMonthLabel(prevMonth(selectedMonth))}</strong></span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Overview Tab */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: 'الموظفين النشطين', value: stats?.total_employees || 0, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+              { label: 'حضور اليوم', value: stats?.today_attendance || 0, icon: CalendarCheck, color: 'text-green-600', bg: 'bg-green-50' },
+              { label: 'رواتب معلقة', value: stats?.pending_salaries || 0, icon: DollarSign, color: 'text-amber-600', bg: 'bg-amber-50' },
+              { label: 'خطط العمل', value: stats?.work_plans_total || 0, icon: ClipboardList, color: 'text-purple-600', bg: 'bg-purple-50' },
+            ].map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <Card key={stat.label} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center`}>
+                        <Icon className={`w-5 h-5 ${stat.color}`} />
+                      </div>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                    <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-primary-500" />
+                  توزيع الموظفين حسب الشركة
+                </h3>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={employees?.by_company || []}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip formatter={(value: any) => [value, 'الموظفين']} />
+                    <Bar dataKey="count" fill="#10b981" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <CalendarCheck className="w-5 h-5 text-green-500" />
+                  ملخص الحضور (آخر 30 يوم)
+                </h3>
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie data={[
+                      { name: 'حاضر', value: attendance?.summary?.present || 0 },
+                      { name: 'متأخر', value: attendance?.summary?.late || 0 },
+                      { name: 'غائب', value: attendance?.summary?.absent || 0 },
+                      { name: 'مرضي', value: attendance?.summary?.sick || 0 },
+                      { name: 'إجازة', value: attendance?.summary?.annual_leave || 0 },
+                    ].filter(d => d.value > 0)} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={3} dataKey="value">
+                    </Pie>
+                    <Tooltip formatter={(value: any) => [value, 'يوم']} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <ClipboardList className="w-5 h-5 text-purple-500" />
+                  حالة خطط العمل
+                </h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie data={workPlanPieData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value">
+                      {workPlanPieData.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-emerald-500" />
+                  الملخص المالي الشهري
+                </h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <AreaChart data={financial?.monthly || []}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(value: any) => [formatNum(value) + ' ر.ي', '']} />
+                    <Area type="monotone" dataKey="income" stroke="#10b981" fill="#10b98133" name="الإيرادات" />
+                    <Area type="monotone" dataKey="expense" stroke="#ef4444" fill="#ef444433" name="المصروفات" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6">
+            {(employees?.companies || []).map((comp: any) => (
+              <Card key={comp.company_name}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-5 h-5 text-primary-600" />
+                      <span className="font-bold text-gray-900">{comp.company_name}</span>
+                      <span className="text-xs text-gray-500">({comp.count} موظف)</span>
+                    </div>
+                    <span className="text-sm font-bold text-primary-600">{formatNum(comp.total_salary)} ر.ي</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Employees Tab */}
+      {activeTab === 'employees' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-bold text-gray-900 mb-4">الموظفين حسب الشركة</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={employees?.by_company || []} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis type="number" tick={{ fontSize: 12 }} />
+                    <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={100} />
+                    <Tooltip formatter={(value: any) => [value, 'موظف']} />
+                    <Bar dataKey="count" fill="#6366f1" radius={[0, 6, 6, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-bold text-gray-900 mb-4">إجمالي أعداد الرواتب</h3>
+                <div className="text-center py-8">
+                  <p className="text-4xl font-bold text-primary-600">{formatNum(employees?.total_salary)}</p>
+                  <p className="text-gray-500 mt-2">ر.ي إجمالي الرواتب الشهرية</p>
+                  <p className="text-sm text-gray-400 mt-1">{employees?.total || 0} موظف نشط</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardContent className="p-0">
+              <div className="p-4 bg-primary-50 border-b flex items-center justify-between">
+                <h3 className="font-bold text-primary-800">قائمة الموظفين ({employees?.employees?.length || 0})</h3>
+                <Button size="sm" onClick={() => {
+                  const csv = employees?.employees?.map((e: any) => `${e.name},${e.job_title},${e.company_name},${e.salary}`).join('\n') || '';
+                  const blob = new Blob(['الاسم,الوظيفة,الشركة,الراتب\n' + csv], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a'); a.href = url; a.download = 'employees_report.csv'; a.click();
+                }}><Download className="w-3.5 h-3.5" /> تصدير CSV</Button>
+              </div>
+              <div className="overflow-x-auto max-h-96">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-gray-50"><tr>
+                    <th className="px-4 py-3 text-right font-semibold">الاسم</th>
+                    <th className="px-4 py-3 text-right font-semibold">الوظيفة</th>
+                    <th className="px-4 py-3 text-right font-semibold">الشركة</th>
+                    <th className="px-4 py-3 text-right font-semibold">الراتب</th>
+                  </tr></thead>
+                  <tbody>
+                    {employees?.employees?.map((e: any) => (
+                      <tr key={e.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="px-4 py-3 font-medium">{e.name}</td>
+                        <td className="px-4 py-3 text-gray-600">{e.job_title || '—'}</td>
+                        <td className="px-4 py-3"><Badge variant="default">{e.company_name || 'غير محدد'}</Badge></td>
+                        <td className="px-4 py-3 font-bold">{formatNum(e.salary)} ر.ي</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {(employees?.companies || []).length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Building2 className="w-5 h-5" /> توزيع الموظفين حسب الشركة</h3>
+              {(employees?.companies || []).map((comp: any) => (
+                <Card key={comp.company_name}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3 border-b border-gray-200 pb-2">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-primary-600" />
+                        <span className="font-bold text-gray-900">{comp.company_name}</span>
+                        <span className="text-xs text-gray-500">({comp.count} موظف)</span>
+                      </div>
+                      <span className="text-sm font-bold text-primary-600">{formatNum(comp.total_salary)} ر.ي</span>
+                    </div>
+                    <div className="overflow-x-auto max-h-60">
+                      <table className="w-full text-sm">
+                        <thead><tr className="bg-gray-50">
+                          <th className="px-3 py-2 text-right font-semibold text-xs">الاسم</th>
+                          <th className="px-3 py-2 text-right font-semibold text-xs">الوظيفة</th>
+                          <th className="px-3 py-2 text-right font-semibold text-xs">الراتب</th>
+                        </tr></thead>
+                        <tbody>
+                          {comp.employees.map((e: any) => (
+                            <tr key={e.id} className="border-b border-gray-100 hover:bg-gray-50">
+                              <td className="px-3 py-2 font-medium">{e.name}</td>
+                              <td className="px-3 py-2 text-gray-600 text-xs">{e.job_title || '—'}</td>
+                              <td className="px-3 py-2 font-bold">{formatNum(e.total_salary || e.salary)} ر.ي</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Attendance Tab */}
+      {activeTab === 'attendance' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            {[
+              { label: 'حاضر', value: attendance?.summary?.present || 0, comp: attendanceComp?.summary?.present || 0, color: 'bg-green-500' },
+              { label: 'متأخر', value: attendance?.summary?.late || 0, comp: attendanceComp?.summary?.late || 0, color: 'bg-yellow-500' },
+              { label: 'غائب', value: attendance?.summary?.absent || 0, comp: attendanceComp?.summary?.absent || 0, color: 'bg-red-500', invert: true },
+              { label: 'مرضي', value: attendance?.summary?.sick || 0, comp: attendanceComp?.summary?.sick || 0, color: 'bg-blue-500' },
+              { label: 'إجازة', value: attendance?.summary?.annual_leave || 0, comp: attendanceComp?.summary?.annual_leave || 0, color: 'bg-purple-500' },
+            ].map((item) => (
+              <Card key={item.label}>
+                <CardContent className="p-4 text-center">
+                  <div className={`w-3 h-3 rounded-full ${item.color} mx-auto mb-2`} />
+                  <p className="text-2xl font-bold">{item.value}</p>
+                  <p className="text-xs text-gray-500">{item.label}</p>
+                  <div className="mt-1"><ChangeBadge current={item.value} prev={item.comp} invert={item.invert} /></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <Card className="bg-primary-50 border-primary-200">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 text-center">
+                <div>
+                  <p className="text-xs text-gray-500">الفترة الحالية</p>
+                  <p className="font-bold text-primary-700">{getMonthLabel(selectedMonth)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">نسبة الحضور</p>
+                  <p className="font-bold text-green-700">{attendance?.attendance_rate || 0}%</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">الشهر السابق</p>
+                  <p className="font-bold text-gray-600">{getMonthLabel(prevMonth(selectedMonth))}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">نسبة الحضور (الشهر السابق)</p>
+                  <p className="font-bold text-gray-600">{attendanceComp?.attendance_rate || 0}%</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">التغيير</p>
+                  <ChangeBadge current={attendance?.attendance_rate || 0} prev={attendanceComp?.attendance_rate || 0} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="font-bold text-gray-900 mb-4">الحضور اليومي ({attendance?.period || 'آخر 30 يوم'})</h3>
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart data={attendance?.daily || []}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="present" fill="#10b981" name="حاضر" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="late" fill="#f59e0b" name="متأخر" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="absent" fill="#ef4444" name="غائب" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="sick" fill="#3b82f6" name="مرضي" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-bold text-gray-900 mb-4">نسبة الحضور — {getMonthLabel(selectedMonth)}</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie data={[
+                      { name: 'حاضر', value: attendance?.summary?.present || 0 },
+                      { name: 'متأخر', value: attendance?.summary?.late || 0 },
+                      { name: 'غائب', value: attendance?.summary?.absent || 0 },
+                      { name: 'مرضي', value: attendance?.summary?.sick || 0 },
+                      { name: 'إجازة', value: attendance?.summary?.annual_leave || 0 },
+                    ].filter(d => d.value > 0)} cx="50%" cy="50%" innerRadius={70} outerRadius={110} paddingAngle={4} dataKey="value" label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}>
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-bold text-gray-900 mb-4">نسبة الحضور — {getMonthLabel(prevMonth(selectedMonth))}</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie data={[
+                      { name: 'حاضر', value: attendanceComp?.summary?.present || 0 },
+                      { name: 'متأخر', value: attendanceComp?.summary?.late || 0 },
+                      { name: 'غائب', value: attendanceComp?.summary?.absent || 0 },
+                      { name: 'مرضي', value: attendanceComp?.summary?.sick || 0 },
+                      { name: 'إجازة', value: attendanceComp?.summary?.annual_leave || 0 },
+                    ].filter(d => d.value > 0)} cx="50%" cy="50%" innerRadius={70} outerRadius={110} paddingAngle={4} dataKey="value" label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}>
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          {(attendance?.companies || []).length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Building2 className="w-5 h-5" /> الحضور حسب الشركة</h3>
+              {(attendance?.companies || []).map((comp: any) => (
+                <Card key={comp.company_name}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3 border-b border-gray-200 pb-2">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-primary-600" />
+                        <span className="font-bold text-gray-900">{comp.company_name}</span>
+                      </div>
+                      <span className={`text-sm font-bold ${comp.attendance_rate >= 80 ? 'text-green-600' : comp.attendance_rate >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                        نسبة الحضور: {comp.attendance_rate}%
+                      </span>
+                    </div>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={comp.daily || []}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="date" tick={{ fontSize: 9 }} />
+                        <YAxis tick={{ fontSize: 10 }} />
+                        <Tooltip />
+                        <Bar dataKey="present" fill="#10b981" name="حاضر" radius={[3, 3, 0, 0]} />
+                        <Bar dataKey="late" fill="#f59e0b" name="متأخر" radius={[3, 3, 0, 0]} />
+                        <Bar dataKey="absent" fill="#ef4444" name="غائب" radius={[3, 3, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Work Plans Tab */}
+      {activeTab === 'workplans' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: 'إجمالي الخطط', value: stats?.work_plans_total || 0, color: 'text-gray-700', bg: 'bg-gray-50' },
+              { label: 'قيد الانتظار', value: stats?.work_plans_pending || 0, color: 'text-yellow-600', bg: 'bg-yellow-50' },
+              { label: 'قيد التنفيذ', value: stats?.work_plans_in_progress || 0, color: 'text-blue-600', bg: 'bg-blue-50' },
+              { label: 'مكتملة', value: stats?.work_plans_completed || 0, color: 'text-green-600', bg: 'bg-green-50' },
+            ].map(item => (
+              <Card key={item.label}>
+                <CardContent className="p-4 text-center">
+                  <p className={`text-3xl font-bold ${item.color}`}>{item.value}</p>
+                  <p className="text-xs text-gray-500 mt-1">{item.label}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-bold text-gray-900 mb-4">حالة الخطط</h3>
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie data={workPlanPieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={3} dataKey="value">
+                      {workPlanPieData.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-bold text-gray-900 mb-4">الخطط حسب النوع</h3>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={workPlanTypeData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#8b5cf6" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Tasks Progress */}
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="font-bold text-gray-900 mb-4">تقدم المهام الإجمالي</h3>
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-gray-900">{stats?.work_plan_tasks_total || 0}</p>
+                  <p className="text-xs text-gray-500">إجمالي المهام</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-green-600">{stats?.work_plan_tasks_completed || 0}</p>
+                  <p className="text-xs text-gray-500">مهام مكتملة</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-amber-600">{(stats?.work_plan_tasks_total || 0) - (stats?.work_plan_tasks_completed || 0)}</p>
+                  <p className="text-xs text-gray-500">مهام متبقية</p>
+                </div>
+              </div>
+              <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-l from-purple-500 to-primary-500 rounded-full transition-all"
+                  style={{ width: `${stats?.work_plan_tasks_total ? Math.round((stats.work_plan_tasks_completed / stats.work_plan_tasks_total) * 100) : 0}%` }} />
+              </div>
+              <p className="text-center text-sm text-gray-500 mt-2">
+                نسبة الإنجاز: {stats?.work_plan_tasks_total ? Math.round((stats.work_plan_tasks_completed / stats.work_plan_tasks_total) * 100) : 0}%
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Plans List */}
+          <Card>
+            <CardContent className="p-0">
+              <div className="p-4 bg-purple-50 border-b">
+                <h3 className="font-bold text-purple-800">قائمة الخطط ({workPlans.length})</h3>
+              </div>
+              <div className="overflow-x-auto max-h-96">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-gray-50"><tr>
+                    <th className="px-4 py-3 text-right font-semibold">الخطة</th>
+                    <th className="px-4 py-3 text-right font-semibold">النوع</th>
+                    <th className="px-4 py-3 text-right font-semibold">الحالة</th>
+                    <th className="px-4 py-3 text-right font-semibold">المهام</th>
+                    <th className="px-4 py-3 text-right font-semibold">التقدم</th>
+                  </tr></thead>
+                  <tbody>
+                    {workPlans.map((plan) => (
+                      <tr key={plan.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="px-4 py-3 font-medium">{plan.title}</td>
+                        <td className="px-4 py-3"><Badge variant="default">{plan.plan_type_name}</Badge></td>
+                        <td className="px-4 py-3">
+                          <Badge variant={plan.status === 'completed' ? 'success' : plan.status === 'in_progress' ? 'warning' : 'default'}>
+                            {plan.status_name}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3">{plan.completed_tasks}/{plan.tasks_count}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div className="h-full bg-primary-500 rounded-full" style={{ width: `${plan.progress}%` }} />
+                            </div>
+                            <span className="text-xs font-bold">{plan.progress}%</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Evaluations Tab */}
+      {activeTab === 'evaluations' && (
+        <div className="space-y-6">
+          {!evaluations ? (
+            <div className="text-center py-12">
+              <div className="w-12 h-12 border-4 border-primary-500/20 border-t-primary-500 rounded-full animate-spin mx-auto" />
+              <p className="text-gray-400 mt-4 text-sm">جاري تحميل بيانات التقييمات...</p>
+            </div>
+          ) : evaluations.total_evaluations === 0 ? (
+            <div className="text-center py-12">
+              <Star className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">لا توجد تقييمات مسجلة بعد</p>
+              <p className="text-sm text-gray-400 mt-1">أضف تقييمات من صفحة التقييمات</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
+                  <CardContent className="p-5 text-center">
+                    <Star className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-amber-700">{evaluations.total_evaluations}</p>
+                    <p className="text-sm text-amber-600">إجمالي التقييمات</p>
+                    <ChangeBadge current={evaluations.total_evaluations || 0} prev={evaluationsComp?.total_evaluations || 0} />
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+                  <CardContent className="p-5 text-center">
+                    <TrendingUp className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-green-700">{evaluations.avg_score}/10</p>
+                    <p className="text-sm text-green-600">المتوسط — {evaluations.avg_rating}</p>
+                    <ChangeBadge current={evaluations.avg_score || 0} prev={evaluationsComp?.avg_score || 0} />
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+                  <CardContent className="p-5 text-center">
+                    <Award className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-blue-700">{evaluations.rating_distribution?.find((r: any) => r.name === 'ممتاز')?.value || 0}</p>
+                    <p className="text-sm text-blue-600">تقييم "ممتاز"</p>
+                    <ChangeBadge current={evaluations.rating_distribution?.find((r: any) => r.name === 'ممتاز')?.value || 0} prev={evaluationsComp?.rating_distribution?.find((r: any) => r.name === 'ممتاز')?.value || 0} />
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-red-50 to-pink-50 border-red-200">
+                  <CardContent className="p-5 text-center">
+                    <Target className="w-8 h-8 text-red-500 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-red-700">{evaluations.rating_distribution?.find((r: any) => r.name === 'ضعيف')?.value || 0}</p>
+                    <p className="text-sm text-red-600">تقييم "ضعيف"</p>
+                    <ChangeBadge current={evaluations.rating_distribution?.find((r: any) => r.name === 'ضعيف')?.value || 0} prev={evaluationsComp?.rating_distribution?.find((r: any) => r.name === 'ضعيف')?.value || 0} invert />
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Charts Row */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-md transition-shadow">
+                  <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Star className="w-5 h-5 text-amber-500" />
+                    توزيع التقييمات حسب التصنيف
+                  </h3>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={evaluations.rating_distribution || []} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis type="number" tick={{ fontSize: 11 }} />
+                      <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={80} />
+                      <Tooltip formatter={(value: any) => [value, 'عدد']} />
+                      <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                        {(evaluations.rating_distribution || []).map((_: any, idx: number) => (
+                          <Cell key={idx} fill={['#10b981', '#3b82f6', '#f59e0b', '#f97316', '#ef4444'][idx] || '#ccc'} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-md transition-shadow">
+                  <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-blue-500" />
+                    التقييمات حسب النوع
+                  </h3>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <PieChart>
+                      <Pie data={evaluations.type_distribution || []} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="value" label={({ name, percent }: any) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}>
+                        {(evaluations.type_distribution || []).map((_: any, idx: number) => (
+                          <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Monthly Trend + Top Employees */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-md transition-shadow">
+                  <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-green-500" />
+                    اتجاه التقييمات الشهرية
+                  </h3>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <AreaChart data={(evaluations.monthly_trend || []).reverse()}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 11 }} />
+                      <Tooltip formatter={(value: any, name: any) => [value, name === 'avg' ? 'متوسط الدرجة' : 'عدد التقييمات']} />
+                      <Legend />
+                      <Area type="monotone" dataKey="avg" name="متوسط الدرجة" stroke="#10b981" fill="#10b98120" strokeWidth={2} />
+                      <Area type="monotone" dataKey="count" name="عدد التقييمات" stroke="#6366f1" fill="#6366f120" strokeWidth={2} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-md transition-shadow">
+                  <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Award className="w-5 h-5 text-amber-500" />
+                    أفضل 10 موظفين أداءً
+                  </h3>
+                  <div className="space-y-3 max-h-[280px] overflow-y-auto">
+                    {(evaluations.top_employees || []).map((emp: any, idx: number) => (
+                      <div key={emp.employee_id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                          idx === 0 ? 'bg-amber-100 text-amber-700' :
+                          idx === 1 ? 'bg-gray-200 text-gray-600' :
+                          idx === 2 ? 'bg-orange-100 text-orange-700' :
+                          'bg-gray-100 text-gray-500'
+                        }`}>
+                          {idx + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-800 truncate">{emp.name}</p>
+                          <p className="text-xs text-gray-500">{emp.job_title} — {emp.eval_count} تقييمات</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            emp.rating === 'ممتاز' ? 'bg-green-100 text-green-700' :
+                            emp.rating === 'جيد جداً' ? 'bg-blue-100 text-blue-700' :
+                            emp.rating === 'جيد' ? 'bg-yellow-100 text-yellow-700' :
+                            emp.rating === 'مقبول' ? 'bg-orange-100 text-orange-700' :
+                            'bg-red-100 text-red-700'
+                          }`}>
+                            {emp.rating}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                            <span className="text-sm font-bold text-amber-600">{emp.avg_score}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* All Employees Table */}
+              {evaluations.all_employees && evaluations.all_employees.length > 0 && (
+                <div className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-md transition-shadow">
+                  <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-primary-500" />
+                    قائمة الموظفين بالتقييم
+                  </h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-gray-50 text-right">
+                          <th className="px-4 py-3 font-semibold text-gray-600">#</th>
+                          <th className="px-4 py-3 font-semibold text-gray-600">الموظف</th>
+                          <th className="px-4 py-3 font-semibold text-gray-600">الوظيفة</th>
+                          <th className="px-4 py-3 font-semibold text-gray-600">عدد التقييمات</th>
+                          <th className="px-4 py-3 font-semibold text-gray-600">متوسط الدرجة</th>
+                          <th className="px-4 py-3 font-semibold text-gray-600">التصنيف</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {evaluations.all_employees.map((emp: any, idx: number) => (
+                          <tr key={emp.employee_id} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
+                            <td className="px-4 py-3 font-medium">{emp.name}</td>
+                            <td className="px-4 py-3 text-gray-600">{emp.job_title}</td>
+                            <td className="px-4 py-3 text-center">{emp.eval_count}</td>
+                            <td className="px-4 py-3 text-center">
+                              <span className={`font-bold ${
+                                emp.avg_score >= 9 ? 'text-green-600' :
+                                emp.avg_score >= 7 ? 'text-blue-600' :
+                                emp.avg_score >= 5 ? 'text-yellow-600' :
+                                emp.avg_score >= 3 ? 'text-orange-600' : 'text-red-600'
+                              }`}>
+                                {emp.avg_score}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                emp.rating === 'ممتاز' ? 'bg-green-100 text-green-700' :
+                                emp.rating === 'جيد جداً' ? 'bg-blue-100 text-blue-700' :
+                                emp.rating === 'جيد' ? 'bg-yellow-100 text-yellow-700' :
+                                emp.rating === 'مقبول' ? 'bg-orange-100 text-orange-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                {emp.rating}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {(evaluations?.companies || []).length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Building2 className="w-5 h-5" /> التقييمات حسب الشركة</h3>
+              {(evaluations?.companies || []).map((comp: any) => (
+                <Card key={comp.company_name}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-primary-600" />
+                        <span className="font-bold text-gray-900">{comp.company_name}</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-sm text-gray-600">{comp.total_evaluations} تقييم</span>
+                        <span className={`text-sm font-bold ${comp.avg_score >= 7 ? 'text-green-600' : comp.avg_score >= 5 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          المتوسط: {comp.avg_score}/10 — {comp.avg_rating}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Financial Tab */}
+      {activeTab === 'financial' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card className="bg-green-50 border-green-200">
+              <CardContent className="p-6 text-center">
+                <TrendingUp className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                <p className="text-sm text-green-600">إجمالي الإيرادات</p>
+                <p className="text-3xl font-bold text-green-700">{formatNum(financial?.total_income)} ر.ي</p>
+                <ChangeBadge current={financial?.total_income || 0} prev={financialComp?.total_income || 0} />
+              </CardContent>
+            </Card>
+            <Card className="bg-red-50 border-red-200">
+              <CardContent className="p-6 text-center">
+                <TrendingDown className="w-8 h-8 text-red-500 mx-auto mb-2" />
+                <p className="text-sm text-red-600">إجمالي المصروفات</p>
+                <p className="text-3xl font-bold text-red-700">{formatNum(financial?.total_expense)} ر.ي</p>
+                <ChangeBadge current={financial?.total_expense || 0} prev={financialComp?.total_expense || 0} invert />
+              </CardContent>
+            </Card>
+            <Card className="bg-primary-50 border-primary-200">
+              <CardContent className="p-6 text-center">
+                <DollarSign className="w-8 h-8 text-primary-500 mx-auto mb-2" />
+                <p className="text-sm text-primary-600">الصافي</p>
+                <p className={`text-3xl font-bold ${(financial?.balance || 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>{formatNum(financial?.balance)} ر.ي</p>
+                <ChangeBadge current={financial?.balance || 0} prev={financialComp?.balance || 0} />
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="font-bold text-gray-900 mb-4">التطور الشهري للإيرادات والمصروفات</h3>
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart data={financial?.monthly || []}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(value: any) => [formatNum(value) + ' ر.ي', '']} />
+                  <Legend />
+                  <Bar dataKey="income" fill="#10b981" name="الإيرادات" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="expense" fill="#ef4444" name="المصروفات" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="font-bold text-gray-900 mb-4">توزيع المعاملات حسب النوع</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie data={(financial?.by_type || []).map((t: any) => ({ name: ({ advance: 'سلفة', overtime: 'إضافي', deduction: 'خصم', penalty: 'جزاء', restaurant: 'مطعم', buffet: 'بوفية' } as any)[t.type] || t.type, value: t.total }))}
+                    cx="50%" cy="50%" outerRadius={100} paddingAngle={4} dataKey="value" label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}>
+                    {(financial?.by_type || []).map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(value: any) => [formatNum(value) + ' ر.ي', '']} />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {(financial?.companies || []).length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Building2 className="w-5 h-5" /> المعاملات حسب الشركة</h3>
+              {(financial?.companies || []).map((comp: any) => (
+                <Card key={comp.company_name}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3 border-b border-gray-200 pb-2">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-primary-600" />
+                        <span className="font-bold text-gray-900">{comp.company_name}</span>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="text-green-600 font-bold">إيرادات: {formatNum(comp.income)} ر.ي</span>
+                        <span className="text-red-600 font-bold">مصروفات: {formatNum(comp.expense)} ر.ي</span>
+                        <span className="font-bold">{comp.count} معاملة</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'contractor' && (
+        <div className="space-y-6">
+          <h2 className="text-xl font-bold">أرباح المتعهد — {getMonthLabel(selectedMonth)}</h2>
+          
+          {contractorProfit?.summary && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="text-sm text-gray-500">إجمالي الإيرادات</div>
+                  <div className="text-xl font-bold text-green-600">{formatNum(contractorProfit.summary.total_revenue)} ر.ي</div>
+                  <ChangeBadge current={contractorProfit.summary.total_revenue || 0} prev={contractorProfitComp?.summary?.total_revenue || 0} />
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="text-sm text-gray-500">المدفوع للعمال</div>
+                  <div className="text-xl font-bold text-blue-600">{formatNum((contractorProfit.summary.total_basic_paid || 0) + (contractorProfit.summary.total_resident_paid || 0))} ر.ي</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="text-sm text-gray-500">تكاليف صاحب العمل</div>
+                  <div className="text-xl font-bold text-orange-600">{formatNum(contractorProfit.summary.total_employer_costs)} ر.ي</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="text-sm text-gray-500">صافي الربح</div>
+                  <div className={`text-xl font-bold ${(contractorProfit.summary.total_profit || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatNum(contractorProfit.summary.total_profit)} ر.ي
+                  </div>
+                  <ChangeBadge current={contractorProfit.summary.total_profit || 0} prev={contractorProfitComp?.summary?.total_profit || 0} />
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {(contractorProfit?.companies || []).map((comp: any) => (
+            <div key={comp.company_name} className="space-y-4">
+              <div className="flex items-center gap-3 border-b-2 border-primary-600 pb-2">
+                <Building2 className="w-5 h-5 text-primary-600" />
+                <h3 className="text-lg font-bold text-gray-900">{comp.company_name}</h3>
+                <span className="text-sm text-gray-500">({comp.employee_count} عامل)</span>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                  <div className="text-xs text-gray-500">الإيرادات</div>
+                  <div className="text-lg font-bold text-green-700">{formatNum(comp.total_revenue)} ر.ي</div>
+                </div>
+                <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                  <div className="text-xs text-gray-500">المدفوع للعمال</div>
+                  <div className="text-lg font-bold text-blue-700">{formatNum(comp.total_basic_paid + comp.total_resident_paid)} ر.ي</div>
+                </div>
+                <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
+                  <div className="text-xs text-gray-500">تكاليف صاحب العمل</div>
+                  <div className="text-lg font-bold text-orange-700">{formatNum(comp.total_employer_costs)} ر.ي</div>
+                </div>
+                <div className={`rounded-lg p-3 border ${comp.total_profit >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                  <div className="text-xs text-gray-500">صافي الربح</div>
+                  <div className={`text-lg font-bold ${comp.total_profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>{formatNum(comp.total_profit)} ر.ي</div>
+                </div>
+              </div>
+
+              <Card>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-3 text-right font-medium text-gray-600">العامل</th>
+                          <th className="px-3 py-3 text-right font-medium text-gray-600">الراتب الشامل</th>
+                          <th className="px-3 py-3 text-right font-medium text-gray-600">الراتب الأساسي</th>
+                          <th className="px-3 py-3 text-right font-medium text-gray-600">أيام الحضور</th>
+                          <th className="px-3 py-3 text-right font-medium text-gray-600">المبلغ المستحق</th>
+                          <th className="px-3 py-3 text-right font-medium text-gray-600">بدل الإقامة</th>
+                          <th className="px-3 py-3 text-right font-medium text-gray-600">بدل الإضافي</th>
+                          <th className="px-3 py-3 text-right font-medium text-gray-600">التأمين</th>
+                          <th className="px-3 py-3 text-right font-medium text-gray-600">صندوق صحي</th>
+                          <th className="px-3 py-3 text-right font-medium text-gray-600">بدل الملابس</th>
+                          <th className="px-3 py-3 text-right font-medium text-gray-600">الربح</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {comp.employees.map((emp: any) => (
+                          <tr key={emp.employee_id} className="hover:bg-gray-50">
+                            <td className="px-3 py-3 font-medium">{emp.employee_name}</td>
+                            <td className="px-3 py-3">{formatNum(emp.total_salary_revenue)} ر.ي</td>
+                            <td className="px-3 py-3">{formatNum(emp.base_salary)} ر.ي</td>
+                            <td className="px-3 py-3">{emp.present_days}/{emp.days_in_month}</td>
+                            <td className="px-3 py-3">{formatNum(emp.basic_paid)} ر.ي</td>
+                            <td className="px-3 py-3">{formatNum(emp.resident_paid)} ر.ي</td>
+                            <td className="px-3 py-3">{formatNum(emp.overtime_amount || 0)} ر.ي</td>
+                            <td className="px-3 py-3">{formatNum(emp.insurance_cost)} ر.ي</td>
+                            <td className="px-3 py-3">{formatNum(emp.health_cost)} ر.ي</td>
+                            <td className="px-3 py-3">{formatNum(emp.clothing_cost)} ر.ي</td>
+                            <td className={`px-3 py-3 font-bold ${emp.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {formatNum(emp.profit)} ر.ي
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="bg-gray-100 font-bold">
+                          <td className="px-3 py-3">الإجمالي — {comp.company_name}</td>
+                          <td className="px-3 py-3">{formatNum(comp.total_revenue)} ر.ي</td>
+                          <td className="px-3 py-3">—</td>
+                          <td className="px-3 py-3">—</td>
+                          <td className="px-3 py-3">{formatNum(comp.total_basic_paid)} ر.ي</td>
+                          <td className="px-3 py-3">{formatNum(comp.total_resident_paid)} ر.ي</td>
+                          <td className="px-3 py-3">{formatNum(comp.total_overtime)} ر.ي</td>
+                          <td className="px-3 py-3">{formatNum(comp.total_insurance)} ر.ي</td>
+                          <td className="px-3 py-3">{formatNum(comp.total_health)} ر.ي</td>
+                          <td className="px-3 py-3">{formatNum(comp.total_clothing)} ر.ي</td>
+                          <td className={`px-3 py-3 ${comp.total_profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                            {formatNum(comp.total_profit)} ر.ي
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Column Chooser Modal */}
+      {showColumnModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowColumnModal(false)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Settings2 className="w-5 h-5" /> تخصيص أعمدة التقرير</h3>
+              <button onClick={() => setShowColumnModal(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-4 space-y-2 max-h-80 overflow-y-auto">
+              {exportData.cols.map((col: any) => (
+                <label key={col.key} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <input type="checkbox" checked={exportColumns[col.key] !== false}
+                    onChange={e => setExportColumns(prev => ({ ...prev, [col.key]: e.target.checked }))}
+                    className="w-4 h-4 text-primary-600 rounded border-gray-300" />
+                  <span className="text-sm text-gray-700">{col.label}</span>
+                  {col.default !== false && <Badge className="text-xs bg-green-100 text-green-700">افتراضي</Badge>}
+                </label>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t">
+              <Button variant="outline" onClick={() => setShowColumnModal(false)}>إلغاء</Button>
+              <Button onClick={() => {
+                const activeCols = exportData.cols.filter((c: any) => exportColumns[c.key] !== false);
+                const titles: Record<string,string> = { overview:'التقرير الشامل', employees:'تقرير الموظفين', attendance:'تقرير الحضور والغياب', evaluations:'تقرير التقييمات', workplans:'تقرير خطط العمل', financial:'التقرير المالي', contractor:'تقرير أرباح المتعهد' };
+                let summaryItems: {l:string;v:string;c?:string}[] = [];
+                if (exportType === 'contractor') {
+                  const s = contractorProfit?.summary || {};
+                  summaryItems = [
+                    {l:'إجمالي الإيرادات',v:formatNum(s.total_revenue||0)+' ر.ي'},
+                    {l:'المدفوع للعمال',v:formatNum((s.total_basic_paid||0)+(s.total_resident_paid||0))+' ر.ي',c:'#2563eb'},
+                    {l:'تكاليف صاحب العمل',v:formatNum(s.total_employer_costs||0)+' ر.ي',c:'#d97706'},
+                    {l:'صافي الربح',v:formatNum(s.total_profit||0)+' ر.ي',c:(s.total_profit||0)>=0?'#059669':'#dc2626'},
+                  ];
+                } else if (exportType === 'attendance') {
+                  const s = attendance?.summary || {};
+                  summaryItems = [
+                    {l:'نسبة الحضور',v:(attendance?.attendance_rate||0)+'%',c:'#059669'},
+                    {l:'حاضر',v:String(s.present||0),c:'#059669'},
+                    {l:'متأخر',v:String(s.late||0),c:'#d97706'},
+                    {l:'غائب',v:String(s.absent||0),c:'#dc2626'},
+                  ];
+                } else if (exportType === 'financial') {
+                  summaryItems = [
+                    {l:'الرصيد',v:formatNum(financial?.balance||0)+' ر.ي',c:(financial?.balance||0)>=0?'#059669':'#dc2626'},
+                  ];
+                }
+                openPrintWindow(titles[exportType]||'تقرير', selectedMonth, activeCols, exportData.data, summaryItems);
+                setShowColumnModal(false);
+              }} className="bg-primary-600 hover:bg-primary-700 text-white gap-1"><Check className="w-4 h-4" /> إنشاء التقرير</Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

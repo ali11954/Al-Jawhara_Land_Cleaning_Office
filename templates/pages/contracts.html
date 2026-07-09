@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}العقود - ارض الجوهرة لخدمات النظافة{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0"><i class="fas fa-file-contract" style="color:#16a34a;"></i> إدارة العقود</h4>
+    <button class="btn btn-success" onclick="showModal('addContractModal')"><i class="fas fa-plus"></i> إضافة عقد</button>
+</div>
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead><tr><th>رقم العقد</th><th>الشركة</th><th>المدة</th><th>المبلغ</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+                <tbody id="contractsTable"><tr><td colspan="6" class="text-center text-muted">جاري التحميل...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const res = await fetch('/api/contracts');
+        const data = await res.json();
+        const tbody = document.getElementById('contractsTable');
+        if (data.success && data.data.length) {
+            tbody.innerHTML = data.data.map(c => `<tr>
+                <td>${c.contract_number || ''}</td><td>${c.company_name || ''}</td>
+                <td>${c.start_date || ''} - ${c.end_date || ''}</td>
+                <td>${c.total_amount || 0}</td>
+                <td><span class="badge bg-${c.status === 'active' ? 'success' : 'secondary'}">${c.status === 'active' ? 'نشط' : 'منتهي'}</span></td>
+                <td><button class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></button></td>
+            </tr>`).join('');
+        } else { tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">لا يوجد بيانات</td></tr>'; }
+    } catch(e) { document.getElementById('contractsTable').innerHTML = '<tr><td colspan="6" class="text-center text-danger">خطأ في تحميل البيانات</td></tr>'; }
+});
+</script>
+{% endblock %}

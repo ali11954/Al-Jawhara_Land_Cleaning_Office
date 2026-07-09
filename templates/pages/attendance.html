@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}الحضور والغياب - ارض الجوهرة لخدمات النظافة{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0"><i class="fas fa-calendar-check" style="color:#16a34a;"></i> سجل الحضور والغياب</h4>
+    <button class="btn btn-success" onclick="showModal('addAttendanceModal')"><i class="fas fa-plus"></i> إضافة سجل</button>
+</div>
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead><tr><th>الموظف</th><th>التاريخ</th><th>الحضور</th><th>الانصراف</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+                <tbody id="attendanceTable"><tr><td colspan="6" class="text-center text-muted">جاري التحميل...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const res = await fetch('/api/attendance');
+        const data = await res.json();
+        const tbody = document.getElementById('attendanceTable');
+        if (data.success && data.data.length) {
+            tbody.innerHTML = data.data.map(a => `<tr>
+                <td>${a.employee_name || ''}</td><td>${a.date || ''}</td>
+                <td>${a.check_in || '-'}</td><td>${a.check_out || '-'}</td>
+                <td><span class="badge bg-${a.status === 'present' ? 'success' : a.status === 'late' ? 'warning' : 'danger'}">${a.status === 'present' ? 'حاضر' : a.status === 'late' ? 'متأخر' : 'غائب'}</span></td>
+                <td><button class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></button></td>
+            </tr>`).join('');
+        } else { tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">لا يوجد بيانات</td></tr>'; }
+    } catch(e) { document.getElementById('attendanceTable').innerHTML = '<tr><td colspan="6" class="text-center text-danger">خطأ في تحميل البيانات</td></tr>'; }
+});
+</script>
+{% endblock %}

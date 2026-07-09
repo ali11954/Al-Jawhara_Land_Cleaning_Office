@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}الموردين - ارض الجوهرة لخدمات النظافة{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0"><i class="fas fa-truck" style="color:#16a34a;"></i> إدارة الموردين</h4>
+    <button class="btn btn-success" onclick="showModal('addSupplierModal')"><i class="fas fa-plus"></i> إضافة مورد</button>
+</div>
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead><tr><th>اسم المورد</th><th>الهاتف</th><th>العنوان</th><th>الرصيد</th><th>إجراءات</th></tr></thead>
+                <tbody id="suppliersTable"><tr><td colspan="5" class="text-center text-muted">جاري التحميل...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const res = await fetch('/api/suppliers');
+        const data = await res.json();
+        const tbody = document.getElementById('suppliersTable');
+        if (data.success && data.data.length) {
+            tbody.innerHTML = data.data.map(s => `<tr>
+                <td>${s.name || ''}</td><td>${s.phone || '-'}</td>
+                <td>${s.address || '-'}</td><td>${s.balance || 0}</td>
+                <td><button class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></button></td>
+            </tr>`).join('');
+        } else { tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">لا يوجد موردين</td></tr>'; }
+    } catch(e) { document.getElementById('suppliersTable').innerHTML = '<tr><td colspan="5" class="text-center text-danger">خطأ في تحميل البيانات</td></tr>'; }
+});
+</script>
+{% endblock %}

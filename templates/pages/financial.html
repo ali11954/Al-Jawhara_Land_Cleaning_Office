@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}الإدارة المالية - ارض الجوهرة لخدمات النظافة{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0"><i class="fas fa-chart-line" style="color:#16a34a;"></i> الإدارة المالية</h4>
+</div>
+<div class="row mb-4">
+    <div class="col-md-3"><div class="card text-center"><div class="card-body"><h5 class="text-success" id="totalIncome">0</h5><small>إجمالي الإيرادات</small></div></div></div>
+    <div class="col-md-3"><div class="card text-center"><div class="card-body"><h5 class="text-danger" id="totalExpenses">0</h5><small>إجمالي المصروفات</small></div></div></div>
+    <div class="col-md-3"><div class="card text-center"><div class="card-body"><h5 class="text-primary" id="netProfit">0</h5><small>صافي الربح</small></div></div></div>
+    <div class="col-md-3"><div class="card text-center"><div class="card-body"><h5 class="text-warning" id="pendingSalaries">0</h5><small>رواتب معلقة</small></div></div></div>
+</div>
+<div class="card">
+    <div class="card-body">
+        <h5>آخر المعاملات المالية</h5>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead><tr><th>التاريخ</th><th>النوع</th><th>الوصف</th><th>المبلغ</th></tr></thead>
+                <tbody id="financialTable"><tr><td colspan="4" class="text-center text-muted">جاري التحميل...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const res = await fetch('/api/financial/dashboard');
+        const data = await res.json();
+        if (data.success && data.data) {
+            document.getElementById('totalIncome').textContent = (data.data.total_income || 0).toLocaleString();
+            document.getElementById('totalExpenses').textContent = (data.data.total_expenses || 0).toLocaleString();
+            document.getElementById('netProfit').textContent = (data.data.net_profit || 0).toLocaleString();
+        }
+        const res2 = await fetch('/api/financial/transactions');
+        const data2 = await res2.json();
+        const tbody = document.getElementById('financialTable');
+        if (data2.success && data2.data.length) {
+            tbody.innerHTML = data2.data.slice(0, 20).map(t => `<tr>
+                <td>${t.date || ''}</td><td>${t.type === 'income' ? '<span class="badge bg-success">إيراد</span>' : '<span class="badge bg-danger">مصروف</span>'}</td>
+                <td>${t.description || ''}</td><td>${t.amount || 0}</td>
+            </tr>`).join('');
+        } else { tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">لا يوجد معاملات</td></tr>'; }
+    } catch(e) { document.getElementById('financialTable').innerHTML = '<tr><td colspan="4" class="text-center text-danger">خطأ في تحميل البيانات</td></tr>'; }
+});
+</script>
+{% endblock %}
