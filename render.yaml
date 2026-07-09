@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: al-jawhara-api
+    runtime: python
+    plan: free
+    buildCommand: cd new_app/backend && pip install -r requirements.txt
+    startCommand: cd new_app/backend && gunicorn app:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: DATABASE_URL
+        value: postgresql://postgres.zyicslsosozivkilpylb:ali1993mubark@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require&connect_timeout=15
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: 3.11.0
+
+  - type: web
+    name: al-jawhara-frontend
+    runtime: static
+    plan: free
+    buildCommand: cd new_app/frontend && npm install && npm run build
+    staticPublishPath: new_app/frontend/dist
+    envVars:
+      - key: NODE_VERSION
+        value: 18.0.0

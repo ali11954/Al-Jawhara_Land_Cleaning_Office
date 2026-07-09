@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+backend/venv/
+.env
+*.db
+instance/
+node_modules/
+frontend/dist/
+frontend/build/
+.DS_Store
+Thumbs.db
+*.log

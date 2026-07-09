@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 450" fill="none">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f5a623;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#d4941c;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#c8891a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a237e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0d1b4a;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Outer Blue Circle -->
+  <circle cx="200" cy="180" r="155" fill="none" stroke="url(#blueGrad)" stroke-width="8"/>
+  
+  <!-- Gold Inner Circle -->
+  <circle cx="200" cy="180" r="140" fill="none" stroke="url(#goldGrad)" stroke-width="5"/>
+  
+  <!-- Arabic Calligraphy - أرض -->
+  <!-- Letter Alef -->
+  <path d="M160 100 L160 200 L170 200 L170 100 Z" fill="url(#blueGrad)"/>
+  
+  <!-- Letter Dal -->
+  <path d="M175 140 Q175 120 200 120 L220 120 Q235 120 235 140 L235 160 Q235 180 210 180 L175 180" fill="none" stroke="url(#blueGrad)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Letter Ra -->
+  <path d="M240 150 Q260 130 280 140 Q290 150 280 170 L240 200" fill="none" stroke="url(#blueGrad)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Letter Dad/Dhad curve -->
+  <path d="M155 180 Q155 210 180 210 Q205 210 205 180 Q205 155 180 155 Q155 155 155 180" fill="url(#blueGrad)"/>
+  
+  <!-- Decorative swoosh -->
+  <path d="M120 200 Q200 250 280 200" fill="none" stroke="url(#goldGrad)" stroke-width="4" stroke-linecap="round"/>
+  
+  <!-- Cleaning Tool Icon -->
+  <!-- Handle -->
+  <rect x="210" y="100" width="8" height="80" rx="4" fill="url(#blueGrad)"/>
+  
+  <!-- Tool Head -->
+  <path d="M195 175 L235 175 L230 200 L200 200 Z" fill="url(#blueGrad)"/>
+  
+  <!-- Bristles -->
+  <path d="M200 200 L198 220 M205 200 L205 222 M210 200 L212 222 M215 200 L218 222 M220 200 L222 220 M225 200 L225 218" stroke="url(#blueGrad)" stroke-width="2.5" stroke-linecap="round"/>
+  
+  <!-- Small sparkle dots -->
+  <circle cx="140" cy="130" r="4" fill="url(#goldGrad)"/>
+  <circle cx="260" cy="130" r="4" fill="url(#goldGrad)"/>
+  <circle cx="130" cy="200" r="3" fill="url(#goldGrad)"/>
+  <circle cx="270" cy="200" r="3" fill="url(#goldGrad)"/>
+  
+  <!-- Main Title Arabic -->
+  <text x="200" y="360" text-anchor="middle" fill="url(#goldGrad)" font-family="'Cairo', 'Arial', sans-serif" font-size="42" font-weight="bold" direction="rtl">أرض الجوهرة</text>
+  
+  <!-- Subtitle Arabic -->
+  <text x="200" y="400" text-anchor="middle" fill="url(#blueGrad)" font-family="'Cairo', 'Arial', sans-serif" font-size="28" font-weight="600" direction="rtl">لخدمات النظافة</text>
+  
+  <!-- English Text -->
+  <text x="200" y="435" text-anchor="middle" fill="url(#blueGrad)" font-family="'Arial', sans-serif" font-size="14" font-weight="600" letter-spacing="2">AL-JAWHARA LAND FOR CLEANING SERVICES</text>
+</svg>
