@@ -49,9 +49,10 @@ def get_employee(current_user, emp_id):
 @token_required
 def create_employee(current_user):
     data = request.get_json()
-    if not data or not data.get('full_name'):
+    emp_name = data.get('full_name') or data.get('name', '')
+    if not data or not emp_name:
         return jsonify({'success': False, 'message': 'full_name is required'}), 400
-    emp = Employee(full_name=data['full_name'], code=data.get('code', ''), position=data.get('position', ''),
+    emp = Employee(full_name=emp_name, code=data.get('code', ''), position=data.get('position') or data.get('job_title', ''),
                    is_resident=data.get('is_resident', False), phone=data.get('phone', ''), address=data.get('address', ''),
                    salary=data.get('salary', 60000), is_active=data.get('is_active', True),
                    company_id=data.get('company_id'), supervisor_id=data.get('supervisor_id'),
@@ -67,6 +68,10 @@ def create_employee(current_user):
 def update_employee(current_user, emp_id):
     emp = Employee.query.get_or_404(emp_id)
     data = request.get_json()
+    if 'name' in data and 'full_name' not in data:
+        data['full_name'] = data['name']
+    if 'job_title' in data and 'position' not in data:
+        data['position'] = data['job_title']
     for field in ['full_name', 'code', 'position', 'is_resident', 'phone', 'address',
                   'salary', 'is_active', 'company_id', 'supervisor_id', 'qualification',
                   'specialization', 'base_salary', 'hire_date']:

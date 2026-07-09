@@ -109,15 +109,32 @@ class Employee(db.Model):
     user_id = db.Column(db.Integer, nullable=True)
 
     def to_dict(self):
+        company_name = None
+        supervisor_name = None
+        try:
+            if self.company_id:
+                from db import fetch_one, get_db
+                with get_db() as conn:
+                    row = fetch_one(conn, "SELECT name FROM companies WHERE id=%s", (self.company_id,))
+                    if row: company_name = row['name']
+            if self.supervisor_id:
+                from db import fetch_one, get_db
+                with get_db() as conn:
+                    row = fetch_one(conn, "SELECT full_name FROM employees WHERE id=%s", (self.supervisor_id,))
+                    if row: supervisor_name = row['full_name']
+        except Exception:
+            pass
         return {
             'id': self.id, 'code': self.code, 'full_name': self.full_name,
+            'name': self.full_name,
             'phone': self.phone, 'address': self.address, 'position': self.position,
+            'job_title': self.position,
             'salary': self.salary, 'is_active': self.is_active,
             'is_resident': self.is_resident,
             'company_id': self.company_id,
-            'company_name': None,
+            'company_name': company_name,
             'supervisor_id': self.supervisor_id,
-            'supervisor_name': None,
+            'supervisor_name': supervisor_name,
             'user_id': self.user_id,
             'qualification': self.qualification, 'specialization': self.specialization,
             'hire_date': self.hire_date.strftime('%Y-%m-%d') if self.hire_date else None,
