@@ -59,7 +59,10 @@ def list_transactions(current_user):
     tx_type = request.args.get('type')
 
     with get_db() as conn:
-        q = "SELECT ft.* FROM financial_transactions ft JOIN employees e ON ft.employee_id = e.id WHERE 1=1"
+        q = """SELECT ft.*, e.full_name as employee_name, e.code as employee_code,
+               ft.payment_method as payment_method_name
+               FROM financial_transactions ft 
+               JOIN employees e ON ft.employee_id = e.id WHERE 1=1"""
         params = []
 
         if current_user.role == 'supervisor':
@@ -116,7 +119,12 @@ def list_salaries(current_user):
     month_year = request.args.get('month_year')
     employee_id = request.args.get('employee_id', type=int)
     with get_db() as conn:
-        q = "SELECT s.*, e.full_name as employee_name, e.code as employee_code FROM salaries s LEFT JOIN employees e ON s.employee_id=e.id WHERE 1=1"
+        q = """SELECT s.*, e.full_name as employee_name, e.code as employee_code,
+               c.name as company_name, e.company_id
+               FROM salaries s 
+               LEFT JOIN employees e ON s.employee_id=e.id 
+               LEFT JOIN companies c ON e.company_id=c.id
+               WHERE 1=1"""
         params = []
         if current_user.role == 'supervisor':
             if current_user.company_id:

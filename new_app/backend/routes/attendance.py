@@ -18,7 +18,9 @@ def list_attendance(current_user):
     date = request.args.get('date')
 
     with get_db() as conn:
-        q = "SELECT a.* FROM attendance a JOIN employees e ON a.employee_id = e.id WHERE 1=1"
+        q = """SELECT a.*, e.full_name as employee_name, e.code as employee_code,
+               a.status as attendance_status, a.check_in as check_in_time, a.check_out as check_out_time
+               FROM attendance a JOIN employees e ON a.employee_id = e.id WHERE 1=1"""
         params = []
 
         if current_user.role == 'supervisor':
@@ -81,9 +83,10 @@ def create_attendance(current_user):
                 return jsonify({'success': False, 'message': 'Access denied'}), 403
 
     with get_db() as conn:
+        status = data.get('attendance_status') or data.get('status', 'present')
         execute(conn,
-            "INSERT INTO attendance (employee_id, date, status, notes) VALUES (%s, %s, %s, %s)",
-            (data['employee_id'], data['date'], data.get('status', 'present'), data.get('notes', '')))
+            "INSERT INTO attendance (employee_id, date, status, check_in, check_out, notes) VALUES (%s, %s, %s, %s, %s, %s)",
+            (data['employee_id'], data['date'], status, data.get('time_in') or data.get('check_in'), data.get('time_out') or data.get('check_out'), data.get('notes', '')))
     return jsonify({'success': True, 'message': 'Attendance recorded'}), 201
 
 
@@ -109,8 +112,9 @@ def bulk_attendance(current_user):
                 if current_user.employee_id and emp[1] != current_user.employee_id:
                     continue
         with get_db() as conn:
+            status = rec.get('attendance_status') or rec.get('status', 'present')
             execute(conn,
-                "INSERT INTO attendance (employee_id, date, status, notes) VALUES (%s, %s, %s, %s)",
-                (rec['employee_id'], rec['date'], rec.get('status', 'present'), rec.get('notes', '')))
+                "INSERT INTO attendance (employee_id, date, status, check_in, check_out, notes) VALUES (%s, %s, %s, %s, %s, %s)",
+                (rec['employee_id'], rec['date'], status, rec.get('time_in') or rec.get('check_in'), rec.get('time_out') or rec.get('check_out'), rec.get('notes', '')))
         created += 1
     return jsonify({'success': True, 'data': {'created': created}, 'message': f'{created} records created'}), 201

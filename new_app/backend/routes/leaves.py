@@ -20,7 +20,8 @@ def list_leave_requests(current_user):
     status = request.args.get('status')
     employee_id = request.args.get('employee_id', type=int)
     with get_db() as conn:
-        q = ("SELECT lr.*, e.full_name as employee_name, e.code as employee_code, lt.name as leave_type_name "
+        q = ("SELECT lr.*, e.full_name as employee_name, e.code as employee_code, lt.name as leave_type_name, "
+             "lr.days as total_days, lr.status as status_name "
              "FROM leave_requests lr LEFT JOIN employees e ON lr.employee_id=e.id "
              "LEFT JOIN leave_types lt ON lr.leave_type_id=lt.id WHERE 1=1")
         params = []

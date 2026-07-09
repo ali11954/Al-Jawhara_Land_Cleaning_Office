@@ -15,7 +15,9 @@ def list_evaluations(current_user):
     employee_id = request.args.get('employee_id', type=int)
 
     with get_db() as conn:
-        q = "SELECT ev.* FROM evaluations ev JOIN employees e ON ev.employee_id = e.id WHERE 1=1"
+        q = """SELECT ev.*, e.full_name as employee_name, e.position as employee_job,
+               e.company_id, ev.evaluator_id as evaluator_name
+               FROM evaluations ev JOIN employees e ON ev.employee_id = e.id WHERE 1=1"""
         params = []
 
         if current_user.role == 'supervisor':

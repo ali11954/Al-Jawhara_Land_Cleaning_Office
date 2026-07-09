@@ -11,7 +11,9 @@ def my_profile(current_user):
     if not current_user.employee_id:
         return jsonify({'success': False, 'message': 'No employee linked'}), 404
     with get_db() as conn:
-        emp = fetch_one(conn, "SELECT * FROM employees WHERE id=%s", (current_user.employee_id,))
+        emp = fetch_one(conn, """SELECT e.*, c.name as company_name, 
+            e.full_name as name, e.position as job_title, e.salary as total_salary
+            FROM employees e LEFT JOIN companies c ON e.company_id=c.id WHERE e.id=%s""", (current_user.employee_id,))
     if not emp:
         return jsonify({'success': False, 'message': 'Employee not found'}), 404
     return jsonify({'success': True, 'data': emp})
@@ -25,7 +27,7 @@ def my_attendance(current_user):
     month = request.args.get('month', type=int)
     year = request.args.get('year', type=int)
     with get_db() as conn:
-        q = "SELECT * FROM attendance WHERE employee_id=%s"
+        q = "SELECT *, status as status_name, check_in as check_in_time, check_out as check_out_time FROM attendance WHERE employee_id=%s"
         params = [current_user.employee_id]
         if month and year:
             q += " AND EXTRACT(MONTH FROM date)=%s AND EXTRACT(YEAR FROM date)=%s"
@@ -52,7 +54,7 @@ def my_leaves(current_user):
         return jsonify({'success': False, 'message': 'No employee linked'}), 404
     with get_db() as conn:
         rows = fetch_all(conn,
-            "SELECT lr.*, lt.name as leave_type_name FROM leave_requests lr "
+            "SELECT lr.*, lt.name as leave_type_name, lr.days as total_days FROM leave_requests lr "
             "LEFT JOIN leave_types lt ON lr.leave_type_id=lt.id "
             "WHERE lr.employee_id=%s ORDER BY lr.created_at DESC", (current_user.employee_id,))
     return jsonify({'success': True, 'data': rows})

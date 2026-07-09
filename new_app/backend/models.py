@@ -273,10 +273,19 @@ class Contract(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
+        company_name = None
+        try:
+            if self.company_id:
+                from db import fetch_one, get_db
+                with get_db() as conn:
+                    row = fetch_one(conn, "SELECT name FROM companies WHERE id=%s", (self.company_id,))
+                    if row: company_name = row['name']
+        except Exception:
+            pass
         return {
             'id': self.id, 'contract_number': self.contract_number,
             'company_id': self.company_id,
-            'company_name': '',
+            'company_name': company_name or '',
             'contract_type': self.contract_type,
             'contract_value': self.contract_value,
             'monthly_value': self.monthly_value,
@@ -285,6 +294,7 @@ class Contract(db.Model):
             'amount_received': self.amount_received,
             'remaining_amount': self.remaining_amount,
             'status': self.status, 'is_active': self.is_active,
+            'total_amount': self.contract_value,
         }
 
 
@@ -307,16 +317,27 @@ class Invoice(db.Model):
     journal_entry_id = db.Column(db.Integer, nullable=True)
 
     def to_dict(self):
+        company_name = None
+        try:
+            if self.contract_id:
+                from db import fetch_one, get_db
+                with get_db() as conn:
+                    row = fetch_one(conn, "SELECT c.name as company_name FROM contracts ct JOIN companies c ON ct.company_id=c.id WHERE ct.id=%s", (self.contract_id,))
+                    if row: company_name = row['company_name']
+        except Exception:
+            pass
         return {
             'id': self.id, 'contract_id': self.contract_id,
             'invoice_number': self.invoice_number, 'amount': self.amount,
             'invoice_date': self.invoice_date.strftime('%Y-%m-%d') if self.invoice_date else None,
+            'date': self.invoice_date.strftime('%Y-%m-%d') if self.invoice_date else None,
             'due_date': self.due_date.strftime('%Y-%m-%d') if self.due_date else None,
             'is_paid': self.is_paid,
             'paid_date': self.paid_date.strftime('%Y-%m-%d') if self.paid_date else None,
             'paid_amount': self.paid_amount,
             'remaining_amount': (self.amount or 0) - (self.paid_amount or 0),
             'description': self.description,
+            'company_name': company_name,
         }
 
 
@@ -366,6 +387,7 @@ class Account(db.Model):
             'name_ar': self.name_ar, 'account_type': self.account_type,
             'nature': self.nature, 'parent_id': self.parent_id,
             'is_active': self.is_active, 'opening_balance': self.opening_balance,
+            'balance': self.opening_balance,
         }
 
 

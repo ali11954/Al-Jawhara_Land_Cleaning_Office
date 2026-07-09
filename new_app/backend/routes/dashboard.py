@@ -124,6 +124,8 @@ def dashboard_stats(current_user):
             'today_attendance': today_attendance,
             'late_count': late_count,
             'absent_count': absent_count,
+            'sick_count': sum(1 for s in today_statuses if s == 'sick'),
+            'leave_count': sum(1 for s in today_statuses if s in ('annual_leave', 'sick')),
             'total_companies': total_companies,
             'total_suppliers': total_suppliers,
             'total_salaries_paid': float(total_salaries_paid),
