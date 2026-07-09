@@ -18,7 +18,8 @@ def list_attendance(current_user):
     date = request.args.get('date')
 
     with get_db() as conn:
-        q = """SELECT a.*, e.full_name as employee_name, e.code as employee_code,
+        q = """SELECT a.id, a.employee_id, a.date, a.shift_type, a.status, a.check_in, a.check_out, a.notes, a.created_at, a.updated_at,
+               e.full_name as employee_name, e.code as employee_code,
                a.status as attendance_status, a.check_in as check_in_time, a.check_out as check_out_time
                FROM attendance a JOIN employees e ON a.employee_id = e.id WHERE 1=1"""
         params = []
