@@ -142,6 +142,8 @@ class Employee(db.Model):
             'qualification': self.qualification, 'specialization': self.specialization,
             'hire_date': self.hire_date.strftime('%Y-%m-%d') if self.hire_date else None,
             'base_salary': self.base_salary,
+            'basic_salary': self.base_salary,
+            'total_salary': self.salary,
             'daily_allowance': self.daily_allowance,
             'clothing_allowance': self.clothing_allowance,
             'health_card_allowance': self.health_card_allowance,
