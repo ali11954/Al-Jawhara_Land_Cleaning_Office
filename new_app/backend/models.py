@@ -101,6 +101,9 @@ class Employee(db.Model):
     updated_at = db.Column(db.DateTime)
     is_resident = db.Column(db.Boolean, default=False)
     base_salary = db.Column(db.Float, default=2000)
+    daily_allowance = db.Column(db.Float, default=0)
+    clothing_allowance = db.Column(db.Float, default=0)
+    health_card_allowance = db.Column(db.Float, default=0)
     company_id = db.Column(db.Integer)
     supervisor_id = db.Column(db.Integer)
     qualification = db.Column(db.String(100))
@@ -139,6 +142,9 @@ class Employee(db.Model):
             'qualification': self.qualification, 'specialization': self.specialization,
             'hire_date': self.hire_date.strftime('%Y-%m-%d') if self.hire_date else None,
             'base_salary': self.base_salary,
+            'daily_allowance': self.daily_allowance,
+            'clothing_allowance': self.clothing_allowance,
+            'health_card_allowance': self.health_card_allowance,
         }
 
 
