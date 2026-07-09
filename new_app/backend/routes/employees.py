@@ -14,9 +14,21 @@ def list_employees(current_user):
     search = request.args.get('search', '')
     company_id = request.args.get('company_id', type=int)
     query = Employee.query
+
+    # Supervisor can only see employees in their company and linked to them
+    if current_user.role == 'supervisor':
+        if current_user.company_id:
+            query = query.filter(Employee.company_id == current_user.company_id)
+        if current_user.employee_id:
+            query = query.filter(Employee.supervisor_id == current_user.employee_id)
+    elif current_user.role == 'owner':
+        pass  # Owner sees everything
+    elif current_user.role not in ('admin', 'owner'):
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+
     if search:
         query = query.filter(db.or_(Employee.full_name.contains(search), Employee.code.contains(search)))
-    if company_id:
+    if company_id and current_user.role in ('admin', 'owner'):
         query = query.filter_by(company_id=company_id)
     if page:
         pagination = query.order_by(Employee.full_name).paginate(page=page, per_page=per_page, error_out=False)
@@ -41,10 +53,9 @@ def create_employee(current_user):
         return jsonify({'success': False, 'message': 'full_name is required'}), 400
     emp = Employee(full_name=data['full_name'], code=data.get('code', ''), position=data.get('position', ''),
                    is_resident=data.get('is_resident', False), phone=data.get('phone', ''), address=data.get('address', ''),
-                   salary=data.get('salary', 60000), total_salary=data.get('total_salary', 60000),
-                   daily_allowance=data.get('daily_allowance', 500), is_active=data.get('is_active', True),
+                   salary=data.get('salary', 60000), is_active=data.get('is_active', True),
                    company_id=data.get('company_id'), supervisor_id=data.get('supervisor_id'),
-                   worker_type=data.get('worker_type', 'permanent'), qualification=data.get('qualification', ''),
+                   qualification=data.get('qualification', ''),
                    specialization=data.get('specialization', ''))
     db.session.add(emp)
     db.session.commit()
@@ -57,8 +68,8 @@ def update_employee(current_user, emp_id):
     emp = Employee.query.get_or_404(emp_id)
     data = request.get_json()
     for field in ['full_name', 'code', 'position', 'is_resident', 'phone', 'address',
-                  'salary', 'total_salary', 'daily_allowance', 'is_active',
-                  'company_id', 'supervisor_id', 'worker_type', 'qualification', 'specialization', 'region_id']:
+                  'salary', 'is_active', 'company_id', 'supervisor_id', 'qualification',
+                  'specialization', 'base_salary', 'hire_date']:
         if field in data:
             setattr(emp, field, data[field])
     db.session.commit()

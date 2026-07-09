@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
 from auth import token_required
-from models import db, Evaluation
+from models import db, Evaluation, Employee
 from datetime import datetime
+from db import get_db, fetch_all, execute
 
 evaluations_bp = Blueprint('evaluations', __name__)
 
@@ -13,24 +14,39 @@ def list_evaluations(current_user):
     per_page = request.args.get('per_page', 50, type=int)
     employee_id = request.args.get('employee_id', type=int)
 
-    query = Evaluation.query
-    if employee_id:
-        query = query.filter_by(employee_id=employee_id)
+    with get_db() as conn:
+        q = "SELECT ev.* FROM evaluations ev JOIN employees e ON ev.employee_id = e.id WHERE 1=1"
+        params = []
 
-    if page:
-        pagination = query.order_by(Evaluation.date.desc()).paginate(page=page, per_page=per_page, error_out=False)
-        return jsonify({
-            'success': True,
-            'data': {
-                'items': [e.to_dict() for e in pagination.items],
-                'total': pagination.total,
-                'page': page,
-                'pages': pagination.pages,
-            }
-        })
-    else:
-        evaluations = query.order_by(Evaluation.date.desc()).all()
-        return jsonify({'success': True, 'data': [e.to_dict() for e in evaluations]})
+        if current_user.role == 'supervisor':
+            if current_user.company_id:
+                q += " AND e.company_id = %s"
+                params.append(current_user.company_id)
+            if current_user.employee_id:
+                q += " AND e.supervisor_id = %s"
+                params.append(current_user.employee_id)
+        elif current_user.role not in ('admin', 'owner'):
+            return jsonify({'success': False, 'message': 'Access denied'}), 403
+
+        if employee_id:
+            q += " AND ev.employee_id = %s"
+            params.append(employee_id)
+
+        q += " ORDER BY ev.date DESC"
+
+        if page:
+            count_q = q.replace("SELECT ev.*", "SELECT COUNT(*)")
+            cur = conn.cursor()
+            cur.execute(count_q, tuple(params))
+            total = cur.fetchone()[0]
+            offset = (page - 1) * per_page
+            q += f" LIMIT {per_page} OFFSET {offset}"
+            rows = fetch_all(conn, q, tuple(params))
+            pages = (total + per_page - 1) // per_page
+            return jsonify({'success': True, 'data': {'items': rows, 'total': total, 'page': page, 'pages': pages}})
+        else:
+            rows = fetch_all(conn, q, tuple(params))
+            return jsonify({'success': True, 'data': rows})
 
 
 @evaluations_bp.route('/api/evaluations', methods=['POST'])
@@ -41,26 +57,26 @@ def create_evaluation(current_user):
     if not data or not data.get('employee_id') or not data.get('score'):
         return jsonify({'success': False, 'message': 'employee_id and score are required'}), 400
 
-    ev = Evaluation(
-        employee_id=data['employee_id'],
-        evaluator_id=current_user.id,
-        evaluation_type=data.get('evaluation_type', 'supervisor'),
-        score=data['score'],
-        comments=data.get('comments', ''),
-        date=datetime.strptime(data['date'], '%Y-%m-%d').date() if data.get('date') else datetime.utcnow().date(),
-        criteria_scores=json.dumps(data.get('criteria_scores', [])),
-        region_id=data.get('region_id'),
-        location_id=data.get('location_id'),
-    )
-    db.session.add(ev)
-    db.session.commit()
-    return jsonify({'success': True, 'data': ev.to_dict(), 'message': 'Evaluation created'}), 201
+    with get_db() as conn:
+        execute(conn,
+            "INSERT INTO evaluations (employee_id, evaluator_id, evaluation_type, score, comments, date, criteria_scores) VALUES (%s,%s,%s,%s,%s,%s,%s)",
+            (data['employee_id'], current_user.id, data.get('evaluation_type', 'supervisor'),
+             data['score'], data.get('comments', ''), data.get('date', datetime.utcnow().strftime('%Y-%m-%d')),
+             json.dumps(data.get('criteria_scores', []))))
+    return jsonify({'success': True, 'message': 'Evaluation created'}), 201
 
 
 @evaluations_bp.route('/api/evaluations/<int:eval_id>', methods=['DELETE'])
 @token_required
 def delete_evaluation(current_user, eval_id):
-    ev = Evaluation.query.get_or_404(eval_id)
-    db.session.delete(ev)
-    db.session.commit()
+    with get_db() as conn:
+        execute(conn, "DELETE FROM evaluations WHERE id=%s", (eval_id,))
     return jsonify({'success': True, 'message': 'Evaluation deleted'})
+
+
+@evaluations_bp.route('/api/evaluations/areas', methods=['GET'])
+@token_required
+def list_areas(current_user):
+    with get_db() as conn:
+        rows = fetch_all(conn, "SELECT id, name, company_id FROM areas ORDER BY name")
+    return jsonify({'success': True, 'data': rows})

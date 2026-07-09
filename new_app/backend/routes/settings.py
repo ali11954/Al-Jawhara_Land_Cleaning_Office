@@ -24,5 +24,6 @@ def change_password(current_user):
         return jsonify({'success': False, 'message': 'new_password required'}), 400
     from werkzeug.security import generate_password_hash
     with get_db() as conn:
-        execute(conn, "UPDATE users SET password=%s WHERE id=%s", (generate_password_hash(data['new_password']), current_user.id))
+        execute(conn, "UPDATE clean_users SET password_hash=%s WHERE id=%s",
+                (generate_password_hash(data['new_password']), current_user.id))
     return jsonify({'success': True, 'message': 'Password changed'})

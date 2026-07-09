@@ -82,7 +82,7 @@ def login():
 
     password_valid = False
     try:
-        password_valid = check_password_hash(user.password, data['password'])
+        password_valid = check_password_hash(user.password_hash, data['password'])
     except Exception:
         password_valid = False
 

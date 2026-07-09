@@ -1,8 +1,7 @@
 from flask import Blueprint, jsonify
 from auth import token_required
-from models import db, Employee, Attendance, FinancialTransaction, Company, Supplier, Salary, Evaluation, Account, Contract, Invoice
-from sqlalchemy import func
-from datetime import datetime, timedelta
+from db import get_db
+from datetime import datetime
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
@@ -11,60 +10,112 @@ dashboard_bp = Blueprint('dashboard', __name__)
 @token_required
 def dashboard_stats(current_user):
     today = datetime.utcnow().date()
+    today_str = today.strftime('%Y-%m-%d')
 
-    # Employee counts
-    total_employees = Employee.query.filter_by(is_active=True).count()
+    with get_db() as conn:
+        cur = conn.cursor()
 
-    # Today's attendance
-    today_records = Attendance.query.filter_by(date=today).all()
-    today_attendance = sum(1 for r in today_records if r.attendance_status == 'present')
-    late_count = sum(1 for r in today_records if r.attendance_status == 'late')
-    absent_count = Employee.query.filter_by(is_active=True).count() - len(today_records)
-    sick_count = sum(1 for r in today_records if r.sick_leave)
-    leave_count = sum(1 for r in today_records if r.attendance_status == 'annual_leave')
+        if current_user.role == 'supervisor':
+            # Total employees
+            if current_user.company_id and current_user.employee_id:
+                cur.execute("SELECT COUNT(*) FROM employees WHERE is_active = true AND company_id = %s AND supervisor_id = %s",
+                            (current_user.company_id, current_user.employee_id))
+            elif current_user.company_id:
+                cur.execute("SELECT COUNT(*) FROM employees WHERE is_active = true AND company_id = %s",
+                            (current_user.company_id,))
+            else:
+                cur.execute("SELECT COUNT(*) FROM employees WHERE is_active = true")
+            total_employees = cur.fetchone()[0]
 
-    # Companies & suppliers
-    total_companies = Company.query.count()
-    total_suppliers = Supplier.query.count()
+            # Today's attendance
+            att_params = [today_str]
+            att_where = ""
+            if current_user.company_id:
+                att_where += " AND e.company_id = %s"
+                att_params.append(current_user.company_id)
+            if current_user.employee_id:
+                att_where += " AND e.supervisor_id = %s"
+                att_params.append(current_user.employee_id)
 
-    # Salaries
-    total_salaries_paid = db.session.query(
-        func.coalesce(func.sum(Salary.total_salary), 0)
-    ).filter_by(is_paid=True).scalar()
+            cur.execute(f"SELECT a.status FROM attendance a JOIN employees e ON a.employee_id = e.id WHERE a.date = %s{att_where}", tuple(att_params))
+            today_statuses = [r[0] for r in cur.fetchall()]
 
-    total_salaries_unpaid = db.session.query(
-        func.coalesce(func.sum(Salary.total_salary), 0)
-    ).filter_by(is_paid=False).scalar()
+            # Companies & suppliers
+            total_companies = 1
+            cur.execute("SELECT COUNT(*) FROM suppliers")
+            total_suppliers = cur.fetchone()[0]
 
-    pending_salaries = Salary.query.filter_by(is_paid=False).count()
+            # Salaries
+            sal_params = []
+            sal_where = ""
+            if current_user.company_id:
+                sal_where += " AND e.company_id = %s"
+                sal_params.append(current_user.company_id)
+            if current_user.employee_id:
+                sal_where += " AND e.supervisor_id = %s"
+                sal_params.append(current_user.employee_id)
 
-    # Financial
-    total_income = db.session.query(
-        func.coalesce(func.sum(FinancialTransaction.amount), 0)
-    ).filter(FinancialTransaction.transaction_type == 'income').scalar()
+            cur.execute(f"SELECT COALESCE(SUM(s.total_salary), 0) FROM salaries s JOIN employees e ON s.employee_id = e.id WHERE s.is_paid = true{sal_where}", tuple(sal_params))
+            total_salaries_paid = cur.fetchone()[0]
 
-    total_expense = db.session.query(
-        func.coalesce(func.sum(FinancialTransaction.amount), 0)
-    ).filter(FinancialTransaction.transaction_type == 'expense').scalar()
+            cur.execute(f"SELECT COALESCE(SUM(s.total_salary), 0) FROM salaries s JOIN employees e ON s.employee_id = e.id WHERE s.is_paid = false{sal_where}", tuple(sal_params))
+            total_salaries_unpaid = cur.fetchone()[0]
 
-    pending_transactions = FinancialTransaction.query.filter_by(is_settled=False).count()
+            cur.execute(f"SELECT COUNT(*) FROM salaries s JOIN employees e ON s.employee_id = e.id WHERE s.is_paid = false{sal_where}", tuple(sal_params))
+            pending_salaries = cur.fetchone()[0]
 
-    # Work plans (placeholder - set to 0 if no work_plans table)
-    work_plans_total = 0
-    work_plans_pending = 0
-    work_plans_in_progress = 0
-    work_plans_completed = 0
-    work_plan_tasks_total = 0
-    work_plan_tasks_completed = 0
+            # Financial
+            fin_params = []
+            fin_where = ""
+            if current_user.company_id:
+                fin_where += " AND e.company_id = %s"
+                fin_params.append(current_user.company_id)
+            if current_user.employee_id:
+                fin_where += " AND e.supervisor_id = %s"
+                fin_params.append(current_user.employee_id)
 
-    try:
-        from models import WorkPlan
-        work_plans_total = WorkPlan.query.count()
-        work_plans_pending = WorkPlan.query.filter_by(status='pending').count()
-        work_plans_in_progress = WorkPlan.query.filter_by(status='in_progress').count()
-        work_plans_completed = WorkPlan.query.filter_by(status='completed').count()
-    except ImportError:
-        pass
+            cur.execute(f"SELECT COALESCE(SUM(ft.amount), 0) FROM financial_transactions ft JOIN employees e ON ft.employee_id = e.id WHERE ft.transaction_type = 'income'{fin_where}", tuple(fin_params))
+            total_income = cur.fetchone()[0]
+
+            cur.execute(f"SELECT COALESCE(SUM(ft.amount), 0) FROM financial_transactions ft JOIN employees e ON ft.employee_id = e.id WHERE ft.transaction_type = 'expense'{fin_where}", tuple(fin_params))
+            total_expense = cur.fetchone()[0]
+
+            cur.execute(f"SELECT COUNT(*) FROM financial_transactions ft JOIN employees e ON ft.employee_id = e.id WHERE ft.is_settled = false{fin_where}", tuple(fin_params))
+            pending_transactions = cur.fetchone()[0]
+
+            today_attendance = sum(1 for s in today_statuses if s == 'present')
+            late_count = sum(1 for s in today_statuses if s == 'late')
+            absent_count = total_employees - len(today_statuses)
+
+        else:
+            # Owner/admin - no filters
+            cur.execute("SELECT COUNT(*) FROM employees WHERE is_active = true")
+            total_employees = cur.fetchone()[0]
+
+            cur.execute("SELECT a.status FROM attendance a WHERE a.date = %s", (today_str,))
+            today_statuses = [r[0] for r in cur.fetchall()]
+            today_attendance = sum(1 for s in today_statuses if s == 'present')
+            late_count = sum(1 for s in today_statuses if s == 'late')
+            absent_count = total_employees - len(today_statuses)
+
+            cur.execute("SELECT COUNT(*) FROM companies")
+            total_companies = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM suppliers")
+            total_suppliers = cur.fetchone()[0]
+
+            cur.execute("SELECT COALESCE(SUM(total_salary), 0) FROM salaries WHERE is_paid = true")
+            total_salaries_paid = cur.fetchone()[0]
+            cur.execute("SELECT COALESCE(SUM(total_salary), 0) FROM salaries WHERE is_paid = false")
+            total_salaries_unpaid = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM salaries WHERE is_paid = false")
+            pending_salaries = cur.fetchone()[0]
+
+            cur.execute("SELECT COALESCE(SUM(amount), 0) FROM financial_transactions WHERE transaction_type = 'income'")
+            total_income = cur.fetchone()[0]
+            cur.execute("SELECT COALESCE(SUM(amount), 0) FROM financial_transactions WHERE transaction_type = 'expense'")
+            total_expense = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM financial_transactions WHERE is_settled = false")
+            pending_transactions = cur.fetchone()[0]
 
     return jsonify({
         'success': True,
@@ -73,8 +124,6 @@ def dashboard_stats(current_user):
             'today_attendance': today_attendance,
             'late_count': late_count,
             'absent_count': absent_count,
-            'sick_count': sick_count,
-            'leave_count': leave_count,
             'total_companies': total_companies,
             'total_suppliers': total_suppliers,
             'total_salaries_paid': float(total_salaries_paid),
@@ -84,11 +133,5 @@ def dashboard_stats(current_user):
             'total_income': float(total_income),
             'total_expense': float(total_expense),
             'balance': float(total_income) - float(total_expense),
-            'work_plans_total': work_plans_total,
-            'work_plans_pending': work_plans_pending,
-            'work_plans_in_progress': work_plans_in_progress,
-            'work_plans_completed': work_plans_completed,
-            'work_plan_tasks_total': work_plan_tasks_total,
-            'work_plan_tasks_completed': work_plan_tasks_completed,
         }
     })

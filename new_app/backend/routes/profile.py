@@ -1,8 +1,9 @@
 from flask import Blueprint, request, jsonify
 from auth import token_required
-from models import db, User, Employee, Attendance, Evaluation, Salary
+from models import db, User
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+from db import get_db, fetch_all, fetch_one
 
 profile_bp = Blueprint('profile', __name__)
 
@@ -24,25 +25,27 @@ def get_profile(current_user):
 
     employee_data = None
     if current_user.employee_id:
-        employee = Employee.query.get(current_user.employee_id)
-        if employee:
+        with get_db() as conn:
+            emp = fetch_one(conn, "SELECT * FROM employees WHERE id=%s", (current_user.employee_id,))
+        if emp:
+            company_name = None
+            if emp.get('company_id'):
+                with get_db() as conn:
+                    co = fetch_one(conn, "SELECT name FROM companies WHERE id=%s", (emp['company_id'],))
+                company_name = co['name'] if co else None
             employee_data = {
-                'id': employee.id,
-                'code': employee.code,
-                'full_name': employee.full_name,
-                'phone': employee.phone,
-                'address': employee.address,
-                'position': employee.position,
-                'salary': employee.salary,
-                'total_salary': employee.total_salary,
-                'daily_allowance': employee.daily_allowance,
-                'is_resident': employee.is_resident,
-                'worker_type': employee.worker_type,
-                'company_name': employee.company.name if employee.company else None,
-                'region_name': employee.region_rel.name if employee.region_rel else None,
-                'qualification': employee.qualification,
-                'specialization': employee.specialization,
-                'hire_date': employee.hire_date.strftime('%Y-%m-%d') if employee.hire_date else None,
+                'id': emp['id'],
+                'code': emp.get('code'),
+                'full_name': emp.get('full_name'),
+                'phone': emp.get('phone'),
+                'address': emp.get('address'),
+                'position': emp.get('position'),
+                'salary': emp.get('salary'),
+                'is_resident': emp.get('is_resident'),
+                'company_name': company_name,
+                'qualification': emp.get('qualification'),
+                'specialization': emp.get('specialization'),
+                'hire_date': str(emp['hire_date']) if emp.get('hire_date') else None,
             }
 
     return jsonify({
@@ -60,17 +63,6 @@ def update_profile(current_user):
     data = request.get_json()
     if not data:
         return jsonify({'success': False, 'message': 'No data provided'}), 400
-
-    for field in ['full_name', 'phone']:
-        if field in data:
-            setattr(current_user, field, data[field])
-
-    if 'email' in data:
-        if data['email'] and data['email'] != '':
-            if current_user.employee_id:
-                employee = Employee.query.get(current_user.employee_id)
-                if employee:
-                    employee.email = data['email']
 
     db.session.commit()
     return jsonify({'success': True, 'message': 'Profile updated', 'data': current_user.to_dict()})
@@ -94,14 +86,14 @@ def change_password(current_user):
 
     valid = False
     try:
-        valid = check_password_hash(current_user.password, old_password)
+        valid = check_password_hash(current_user.password_hash, old_password)
     except Exception:
         valid = False
 
     if not valid:
         return jsonify({'success': False, 'message': 'Current password is incorrect'}), 400
 
-    current_user.password = generate_password_hash(new_password, method='scrypt')
+    current_user.password_hash = generate_password_hash(new_password)
     db.session.commit()
     return jsonify({'success': True, 'message': 'Password changed successfully'})
 
@@ -120,59 +112,68 @@ def get_stats(current_user):
     }
 
     if current_user.employee_id:
-        employee = Employee.query.get(current_user.employee_id)
-        if employee:
-            stats['employee'] = {
-                'position': employee.position,
-                'company_name': employee.company.name if employee.company else None,
-                'salary': employee.salary,
-                'total_salary': employee.total_salary,
-                'daily_allowance': employee.daily_allowance,
-                'worker_type': employee.worker_type,
-                'is_resident': employee.is_resident,
-                'hire_date': employee.hire_date.strftime('%Y-%m-%d') if employee.hire_date else None,
-                'qualification': employee.qualification,
-                'specialization': employee.specialization,
-            }
+        with get_db() as conn:
+            emp = fetch_one(conn, "SELECT * FROM employees WHERE id=%s", (current_user.employee_id,))
+            if emp:
+                company_name = None
+                if emp.get('company_id'):
+                    co = fetch_one(conn, "SELECT name FROM companies WHERE id=%s", (emp['company_id'],))
+                    company_name = co['name'] if co else None
 
-            attendances = Attendance.query.filter_by(employee_id=employee.id).order_by(Attendance.date.desc()).all()
-            present_days = sum(1 for a in attendances if a.attendance_status == 'present')
-            late_days = sum(1 for a in attendances if a.late_minutes > 0)
-            absent_days = sum(1 for a in attendances if a.attendance_status == 'absent')
-            sick_days = sum(1 for a in attendances if a.sick_leave)
-            leave_days = sum(a.annual_leave_days for a in attendances)
+                stats['employee'] = {
+                    'position': emp.get('position'),
+                    'company_name': company_name,
+                    'salary': emp.get('salary'),
+                    'is_resident': emp.get('is_resident'),
+                    'hire_date': str(emp['hire_date']) if emp.get('hire_date') else None,
+                    'qualification': emp.get('qualification'),
+                    'specialization': emp.get('specialization'),
+                }
 
-            stats['attendance'] = {
-                'total_days': len(attendances),
-                'present_days': present_days,
-                'late_days': late_days,
-                'absent_days': absent_days,
-                'sick_days': sick_days,
-                'leave_days': leave_days,
-            }
+                att_rows = fetch_all(conn,
+                    "SELECT status FROM attendance WHERE employee_id=%s ORDER BY date DESC",
+                    (current_user.employee_id,))
+                present_days = sum(1 for a in att_rows if a.get('status') == 'present')
+                late_days = sum(1 for a in att_rows if a.get('status') == 'late')
+                absent_days = sum(1 for a in att_rows if a.get('status') == 'absent')
+                sick_days = sum(1 for a in att_rows if a.get('status') == 'sick')
+                leave_days = sum(1 for a in att_rows if a.get('status') in ('annual_leave', 'leave'))
 
-            latest_eval = Evaluation.query.filter_by(employee_id=employee.id).order_by(Evaluation.date.desc()).first()
-            avg_score = 0
-            eval_count = Evaluation.query.filter_by(employee_id=employee.id).count()
-            if eval_count > 0:
-                scores = [e.score for e in Evaluation.query.filter_by(employee_id=employee.id).all()]
-                avg_score = round(sum(scores) / len(scores), 1) if scores else 0
+                stats['attendance'] = {
+                    'total_days': len(att_rows),
+                    'present_days': present_days,
+                    'late_days': late_days,
+                    'absent_days': absent_days,
+                    'sick_days': sick_days,
+                    'leave_days': leave_days,
+                }
 
-            stats['evaluations'] = {
-                'latest_score': latest_eval.score if latest_eval else None,
-                'latest_date': latest_eval.date.strftime('%Y-%m-%d') if latest_eval else None,
-                'average_score': avg_score,
-                'total_evaluations': eval_count,
-            }
+                eval_rows = fetch_all(conn,
+                    "SELECT score FROM evaluations WHERE employee_id=%s ORDER BY date DESC",
+                    (current_user.employee_id,))
+                eval_count = len(eval_rows)
+                avg_score = 0
+                if eval_count > 0:
+                    scores = [e['score'] for e in eval_rows if e.get('score')]
+                    avg_score = round(sum(scores) / len(scores), 1) if scores else 0
 
-            total_paid = db.session.query(db.func.sum(Salary.total_salary)).filter_by(
-                employee_id=employee.id, is_paid=True
-            ).scalar() or 0
+                latest_eval = eval_rows[0] if eval_rows else None
 
-            stats['salary'] = {
-                'total_paid': total_paid,
-                'base_salary': employee.salary,
-                'total_salary': employee.total_salary,
-            }
+                stats['evaluations'] = {
+                    'latest_score': latest_eval.get('score') if latest_eval else None,
+                    'latest_date': None,
+                    'average_score': avg_score,
+                    'total_evaluations': eval_count,
+                }
+
+                sal_row = fetch_one(conn,
+                    "SELECT COALESCE(SUM(total_salary), 0) as total_paid FROM salaries WHERE employee_id=%s AND is_paid=true",
+                    (current_user.employee_id,))
+                total_paid = sal_row['total_paid'] if sal_row else 0
+
+                stats['salary'] = {
+                    'total_paid': float(total_paid),
+                    'base_salary': emp.get('salary'),
+                }
 
     return jsonify({'success': True, 'data': stats})

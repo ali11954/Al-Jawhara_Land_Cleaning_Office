@@ -9,7 +9,7 @@ users_bp = Blueprint('users', __name__)
 @users_bp.route('/api/users', methods=['GET'])
 @token_required
 def list_users(current_user):
-    if current_user.role != 'admin':
+    if current_user.role not in ('admin', 'owner'):
         return jsonify({'success': False, 'message': 'Admin access required'}), 403
     users = User.query.order_by(User.username).all()
     return jsonify({
@@ -21,7 +21,7 @@ def list_users(current_user):
 @users_bp.route('/api/users', methods=['POST'])
 @token_required
 def create_user(current_user):
-    if current_user.role != 'admin':
+    if current_user.role not in ('admin', 'owner'):
         return jsonify({'success': False, 'message': 'Admin access required'}), 403
 
     data = request.get_json()
@@ -33,10 +33,12 @@ def create_user(current_user):
 
     u = User(
         username=data['username'],
-        password=generate_password_hash(data['password'], method='scrypt'),
-        full_name=data.get('full_name', ''),
-        role=data.get('role', 'viewer'),
+        email=data.get('email', ''),
+        password_hash=generate_password_hash(data['password']),
+        role=data.get('role', 'supervisor'),
         is_active=data.get('is_active', True),
+        company_id=data.get('company_id'),
+        employee_id=data.get('employee_id'),
     )
     db.session.add(u)
     db.session.commit()
@@ -46,16 +48,16 @@ def create_user(current_user):
 @users_bp.route('/api/users/<int:user_id>', methods=['PUT'])
 @token_required
 def update_user(current_user, user_id):
-    if current_user.role != 'admin':
+    if current_user.role not in ('admin', 'owner'):
         return jsonify({'success': False, 'message': 'Admin access required'}), 403
 
     u = User.query.get_or_404(user_id)
     data = request.get_json()
-    for field in ['full_name', 'role', 'is_active']:
+    for field in ['role', 'is_active', 'company_id', 'employee_id', 'email']:
         if field in data:
             setattr(u, field, data[field])
     if 'password' in data and data['password']:
-        u.password = generate_password_hash(data['password'], method='scrypt')
+        u.password_hash = generate_password_hash(data['password'])
     db.session.commit()
     return jsonify({'success': True, 'data': u.to_dict(), 'message': 'User updated'})
 
@@ -63,7 +65,7 @@ def update_user(current_user, user_id):
 @users_bp.route('/api/users/<int:user_id>', methods=['DELETE'])
 @token_required
 def delete_user(current_user, user_id):
-    if current_user.role != 'admin':
+    if current_user.role not in ('admin', 'owner'):
         return jsonify({'success': False, 'message': 'Admin access required'}), 403
     u = User.query.get_or_404(user_id)
     db.session.delete(u)

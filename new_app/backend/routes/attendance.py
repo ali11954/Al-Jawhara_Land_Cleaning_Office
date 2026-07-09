@@ -16,21 +16,49 @@ def list_attendance(current_user):
     date_from = request.args.get('date_from')
     date_to = request.args.get('date_to')
     date = request.args.get('date')
-    query = Attendance.query
-    if employee_id:
-        query = query.filter_by(employee_id=employee_id)
-    if date:
-        query = query.filter_by(date=datetime.strptime(date, '%Y-%m-%d').date())
-    if date_from:
-        query = query.filter(Attendance.date >= date_from)
-    if date_to:
-        query = query.filter(Attendance.date <= date_to)
-    if page:
-        pagination = query.order_by(Attendance.date.desc()).paginate(page=page, per_page=per_page, error_out=False)
-        return jsonify({'success': True, 'data': {'items': [a.to_dict() for a in pagination.items], 'total': pagination.total, 'page': page, 'pages': pagination.pages}})
-    else:
-        records = query.order_by(Attendance.date.desc()).all()
-        return jsonify({'success': True, 'data': [a.to_dict() for a in records]})
+
+    with get_db() as conn:
+        q = "SELECT a.* FROM attendance a JOIN employees e ON a.employee_id = e.id WHERE 1=1"
+        params = []
+
+        if current_user.role == 'supervisor':
+            if current_user.company_id:
+                q += " AND e.company_id = %s"
+                params.append(current_user.company_id)
+            if current_user.employee_id:
+                q += " AND e.supervisor_id = %s"
+                params.append(current_user.employee_id)
+        elif current_user.role not in ('admin', 'owner'):
+            return jsonify({'success': False, 'message': 'Access denied'}), 403
+
+        if employee_id:
+            q += " AND a.employee_id = %s"
+            params.append(employee_id)
+        if date:
+            q += " AND a.date = %s"
+            params.append(date)
+        if date_from:
+            q += " AND a.date >= %s"
+            params.append(date_from)
+        if date_to:
+            q += " AND a.date <= %s"
+            params.append(date_to)
+
+        q += " ORDER BY a.date DESC"
+
+        if page:
+            count_q = q.replace("SELECT a.*", "SELECT COUNT(*)")
+            cur = conn.cursor()
+            cur.execute(count_q, tuple(params))
+            total = cur.fetchone()[0]
+            offset = (page - 1) * per_page
+            q += f" LIMIT {per_page} OFFSET {offset}"
+            rows = fetch_all(conn, q, tuple(params))
+            pages = (total + per_page - 1) // per_page
+            return jsonify({'success': True, 'data': {'items': rows, 'total': total, 'page': page, 'pages': pages}})
+        else:
+            rows = fetch_all(conn, q, tuple(params))
+            return jsonify({'success': True, 'data': rows})
 
 
 @attendance_bp.route('/api/attendance', methods=['POST'])
@@ -39,15 +67,24 @@ def create_attendance(current_user):
     data = request.get_json()
     if not data or not data.get('employee_id') or not data.get('date'):
         return jsonify({'success': False, 'message': 'employee_id and date are required'}), 400
-    att = Attendance(employee_id=data['employee_id'], date=datetime.strptime(data['date'], '%Y-%m-%d').date(),
-                     attendance_type=data.get('attendance_type', 'individual'),
-                     attendance_status=data.get('attendance_status', 'present'),
-                     late_minutes=data.get('late_minutes', 0), sick_leave=data.get('sick_leave', False),
-                     sick_leave_days=data.get('sick_leave_days', 0), annual_leave_days=data.get('annual_leave_days', 0),
-                     notes=data.get('notes', ''), created_by=current_user.id)
-    db.session.add(att)
-    db.session.commit()
-    return jsonify({'success': True, 'data': att.to_dict(), 'message': 'Attendance recorded'}), 201
+
+    if current_user.role == 'supervisor':
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT company_id, supervisor_id FROM employees WHERE id = %s", (data['employee_id'],))
+            emp = cur.fetchone()
+            if not emp:
+                return jsonify({'success': False, 'message': 'Employee not found'}), 404
+            if current_user.company_id and emp[0] != current_user.company_id:
+                return jsonify({'success': False, 'message': 'Access denied'}), 403
+            if current_user.employee_id and emp[1] != current_user.employee_id:
+                return jsonify({'success': False, 'message': 'Access denied'}), 403
+
+    with get_db() as conn:
+        execute(conn,
+            "INSERT INTO attendance (employee_id, date, status, notes) VALUES (%s, %s, %s, %s)",
+            (data['employee_id'], data['date'], data.get('status', 'present'), data.get('notes', '')))
+    return jsonify({'success': True, 'message': 'Attendance recorded'}), 201
 
 
 @attendance_bp.route('/api/attendance/bulk', methods=['POST'])
@@ -60,12 +97,20 @@ def bulk_attendance(current_user):
     for rec in data['records']:
         if not rec.get('employee_id') or not rec.get('date'):
             continue
-        att = Attendance(employee_id=rec['employee_id'], date=datetime.strptime(rec['date'], '%Y-%m-%d').date(),
-                         attendance_status=rec.get('attendance_status', 'present'), late_minutes=rec.get('late_minutes', 0),
-                         sick_leave=rec.get('sick_leave', False), sick_leave_days=rec.get('sick_leave_days', 0),
-                         annual_leave_days=rec.get('annual_leave_days', 0), notes=rec.get('notes', ''),
-                         created_by=current_user.id)
-        db.session.add(att)
+        if current_user.role == 'supervisor':
+            with get_db() as conn:
+                cur = conn.cursor()
+                cur.execute("SELECT company_id, supervisor_id FROM employees WHERE id = %s", (rec['employee_id'],))
+                emp = cur.fetchone()
+                if not emp:
+                    continue
+                if current_user.company_id and emp[0] != current_user.company_id:
+                    continue
+                if current_user.employee_id and emp[1] != current_user.employee_id:
+                    continue
+        with get_db() as conn:
+            execute(conn,
+                "INSERT INTO attendance (employee_id, date, status, notes) VALUES (%s, %s, %s, %s)",
+                (rec['employee_id'], rec['date'], rec.get('status', 'present'), rec.get('notes', '')))
         created += 1
-    db.session.commit()
     return jsonify({'success': True, 'data': {'created': created}, 'message': f'{created} records created'}), 201

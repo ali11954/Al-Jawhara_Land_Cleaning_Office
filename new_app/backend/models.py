@@ -5,24 +5,85 @@ db = SQLAlchemy()
 
 
 class User(db.Model):
-    __tablename__ = 'users'
+    __tablename__ = 'clean_users'
+    __table_args__ = {'schema': None}
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-    full_name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120))
+    password_hash = db.Column('password_hash', db.String(200), nullable=False)
     role = db.Column(db.String(50), nullable=False)
     is_active = db.Column(db.Boolean, default=True)
-    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=True)
-    allowed_pages = db.Column(db.Text, nullable=True)
+    employee_id = db.Column(db.Integer, nullable=True)
+    company_id = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime)
+    can_view_employees = db.Column(db.Boolean, default=False)
+    can_edit_employees = db.Column(db.Boolean, default=False)
+    can_add_employees = db.Column(db.Boolean, default=False)
+    can_delete_employees = db.Column(db.Boolean, default=False)
+    can_view_attendance = db.Column(db.Boolean, default=False)
+    can_record_attendance = db.Column(db.Boolean, default=False)
+    can_view_attendance_reports = db.Column(db.Boolean, default=False)
+    can_view_overtime = db.Column(db.Boolean, default=False)
+    can_view_absence_rates = db.Column(db.Boolean, default=False)
+    can_view_evaluations = db.Column(db.Boolean, default=False)
+    can_add_evaluations = db.Column(db.Boolean, default=False)
+    can_view_evaluation_reports = db.Column(db.Boolean, default=False)
+    can_view_detailed_evaluations = db.Column(db.Boolean, default=False)
+    can_view_performance = db.Column(db.Boolean, default=False)
+    can_view_top_employees = db.Column(db.Boolean, default=False)
+    can_view_employee_efficiency = db.Column(db.Boolean, default=False)
+    can_view_companies = db.Column(db.Boolean, default=False)
+    can_view_company_stats = db.Column(db.Boolean, default=False)
+    can_view_zones = db.Column(db.Boolean, default=False)
+    can_view_salaries = db.Column(db.Boolean, default=False)
+    can_view_salary_reports = db.Column(db.Boolean, default=False)
+    can_view_financial = db.Column(db.Boolean, default=False)
+    can_view_invoices = db.Column(db.Boolean, default=False)
+    can_view_penalties = db.Column(db.Boolean, default=False)
+    can_view_dashboard = db.Column(db.Boolean, default=False)
+    can_view_kpis = db.Column(db.Boolean, default=False)
+    can_view_heatmap = db.Column(db.Boolean, default=False)
+    can_manage_users = db.Column(db.Boolean, default=False)
+    can_manage_roles = db.Column(db.Boolean, default=False)
 
     def to_dict(self):
-        import json
         return {
-            'id': self.id, 'username': self.username, 'full_name': self.full_name,
+            'id': self.id, 'username': self.username, 'email': self.email,
             'role': self.role, 'is_active': self.is_active,
-            'employee_id': self.employee_id,
-            'allowed_pages': json.loads(self.allowed_pages) if self.allowed_pages else [],
+            'employee_id': self.employee_id, 'company_id': self.company_id,
+            'full_name': self.username,
+            'permissions': {
+                'can_view_employees': self.can_view_employees,
+                'can_edit_employees': self.can_edit_employees,
+                'can_add_employees': self.can_add_employees,
+                'can_delete_employees': self.can_delete_employees,
+                'can_view_attendance': self.can_view_attendance,
+                'can_record_attendance': self.can_record_attendance,
+                'can_view_attendance_reports': self.can_view_attendance_reports,
+                'can_view_overtime': self.can_view_overtime,
+                'can_view_absence_rates': self.can_view_absence_rates,
+                'can_view_evaluations': self.can_view_evaluations,
+                'can_add_evaluations': self.can_add_evaluations,
+                'can_view_evaluation_reports': self.can_view_evaluation_reports,
+                'can_view_detailed_evaluations': self.can_view_detailed_evaluations,
+                'can_view_performance': self.can_view_performance,
+                'can_view_top_employees': self.can_view_top_employees,
+                'can_view_employee_efficiency': self.can_view_employee_efficiency,
+                'can_view_companies': self.can_view_companies,
+                'can_view_company_stats': self.can_view_company_stats,
+                'can_view_zones': self.can_view_zones,
+                'can_view_salaries': self.can_view_salaries,
+                'can_view_salary_reports': self.can_view_salary_reports,
+                'can_view_financial': self.can_view_financial,
+                'can_view_invoices': self.can_view_invoices,
+                'can_view_penalties': self.can_view_penalties,
+                'can_view_dashboard': self.can_view_dashboard,
+                'can_view_kpis': self.can_view_kpis,
+                'can_view_heatmap': self.can_view_heatmap,
+                'can_manage_users': self.can_manage_users,
+                'can_manage_roles': self.can_manage_roles,
+            },
         }
 
 
@@ -33,87 +94,64 @@ class Employee(db.Model):
     full_name = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(20))
     address = db.Column(db.Text)
-    position = db.Column(db.String(20))
+    position = db.Column(db.String(200))
     salary = db.Column(db.Float, default=60000)
-    total_salary = db.Column(db.Float, default=60000)
-    daily_allowance = db.Column(db.Float, default=500)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime)
     is_resident = db.Column(db.Boolean, default=False)
-    basic_salary = db.Column(db.Float, default=2000)
-    clothing_allowance = db.Column(db.Float, default=24480)
-    health_card_allowance = db.Column(db.Float, default=15000)
-    monthly_insurance = db.Column(db.Float, default=10800)
-    contractor_tax = db.Column(db.Float, default=500000)
-    contractor_zakat = db.Column(db.Float, default=75000)
-    worker_type = db.Column(db.String(20), default='permanent')
-    region_id = db.Column(db.Integer, db.ForeignKey('regions.id'), nullable=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    company_id = db.Column(db.Integer, db.ForeignKey('companies.id'))
-    supervisor_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=True)
+    base_salary = db.Column(db.Float, default=2000)
+    company_id = db.Column(db.Integer)
+    supervisor_id = db.Column(db.Integer)
     qualification = db.Column(db.String(100))
     specialization = db.Column(db.String(100))
     hire_date = db.Column(db.Date)
-    allowances_updated_at = db.Column(db.DateTime)
-
-    company = db.relationship('Company', foreign_keys=[company_id], backref='employees')
-    region_rel = db.relationship('Region', foreign_keys=[region_id], backref='region_employees')
+    user_id = db.Column(db.Integer, nullable=True)
 
     def to_dict(self):
         return {
             'id': self.id, 'code': self.code, 'full_name': self.full_name,
             'phone': self.phone, 'address': self.address, 'position': self.position,
-            'salary': self.salary, 'total_salary': self.total_salary,
-            'daily_allowance': self.daily_allowance, 'is_active': self.is_active,
-            'is_resident': self.is_resident, 'worker_type': self.worker_type,
+            'salary': self.salary, 'is_active': self.is_active,
+            'is_resident': self.is_resident,
             'company_id': self.company_id,
-            'company_name': self.company.name if self.company else None,
-            'region_id': self.region_id,
-            'region_name': self.region_rel.name if self.region_rel else None,
-            'supervisor_id': self.supervisor_id, 'user_id': self.user_id,
+            'company_name': None,
+            'supervisor_id': self.supervisor_id,
+            'supervisor_name': None,
+            'user_id': self.user_id,
             'qualification': self.qualification, 'specialization': self.specialization,
             'hire_date': self.hire_date.strftime('%Y-%m-%d') if self.hire_date else None,
+            'base_salary': self.base_salary,
         }
 
 
 class Attendance(db.Model):
-    __tablename__ = 'attendances'
+    __tablename__ = 'attendance'
     id = db.Column(db.Integer, primary_key=True)
-    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    employee_id = db.Column(db.Integer, nullable=False)
     date = db.Column(db.Date, nullable=False)
-    attendance_type = db.Column(db.String(20), default='individual')
-    attendance_status = db.Column(db.String(20), default='present')
-    late_minutes = db.Column(db.Integer, default=0)
-    sick_leave = db.Column(db.Boolean, default=False)
-    sick_leave_days = db.Column(db.Integer, default=0)
-    annual_leave_days = db.Column(db.Integer, default=0)
-    check_in_time = db.Column(db.Time)
-    check_out_time = db.Column(db.Time)
-    notes = db.Column(db.String(500))
-    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    shift_type = db.Column(db.String(20), default='morning')
+    status = db.Column(db.String(20), default='present')
+    check_in = db.Column(db.Time)
+    check_out = db.Column(db.Time)
+    notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    employee = db.relationship('Employee', backref='attendances')
-    creator = db.relationship('User', backref='created_attendances')
-
-    __table_args__ = (
-        db.UniqueConstraint('employee_id', 'date', name='unique_employee_date'),
-    )
+    updated_at = db.Column(db.DateTime)
 
     def to_dict(self):
         return {
             'id': self.id, 'employee_id': self.employee_id,
-            'employee_name': self.employee.full_name if self.employee else '',
-            'employee_code': self.employee.code if self.employee else '',
+            'employee_name': '',
+            'employee_code': '',
             'date': self.date.strftime('%Y-%m-%d') if self.date else None,
-            'attendance_status': self.attendance_status,
-            'late_minutes': self.late_minutes,
-            'sick_leave': self.sick_leave,
-            'sick_leave_days': self.sick_leave_days,
-            'annual_leave_days': self.annual_leave_days,
-            'check_in_time': self.check_in_time.strftime('%H:%M') if self.check_in_time else None,
-            'check_out_time': self.check_out_time.strftime('%H:%M') if self.check_out_time else None,
+            'attendance_status': self.status,
+            'status': self.status,
+            'late_minutes': 0,
+            'sick_leave': False,
+            'sick_leave_days': 0,
+            'annual_leave_days': 0,
+            'check_in_time': self.check_in.strftime('%H:%M') if self.check_in else None,
+            'check_out_time': self.check_out.strftime('%H:%M') if self.check_out else None,
             'notes': self.notes,
         }
 
@@ -121,31 +159,25 @@ class Attendance(db.Model):
 class Evaluation(db.Model):
     __tablename__ = 'evaluations'
     id = db.Column(db.Integer, primary_key=True)
-    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
-    evaluator_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    employee_id = db.Column(db.Integer, nullable=False)
+    evaluator_id = db.Column(db.Integer)
     evaluation_type = db.Column(db.String(50), nullable=False)
     score = db.Column(db.Integer, nullable=False)
     comments = db.Column(db.Text)
     date = db.Column(db.Date, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     criteria_scores = db.Column(db.Text)
-    region_id = db.Column(db.Integer, db.ForeignKey('regions.id'), nullable=True)
-    location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), nullable=True)
-
-    employee = db.relationship('Employee', backref='evaluations')
-    evaluator = db.relationship('User', backref='evaluations')
-    region = db.relationship('Region', foreign_keys=[region_id], backref='region_evaluations')
-    location = db.relationship('Location', foreign_keys=[location_id], backref='location_evaluations')
+    region_id = db.Column(db.Integer)
+    location_id = db.Column(db.Integer)
 
     def to_dict(self):
-        import json
         return {
             'id': self.id, 'employee_id': self.employee_id,
-            'employee_name': self.employee.full_name if self.employee else '',
+            'employee_name': '',
             'evaluation_type': self.evaluation_type, 'score': self.score,
             'comments': self.comments,
             'date': self.date.strftime('%Y-%m-%d') if self.date else None,
-            'criteria_scores': json.loads(self.criteria_scores) if self.criteria_scores else [],
+            'criteria_scores': [],
             'region_id': self.region_id, 'location_id': self.location_id,
         }
 
@@ -158,7 +190,7 @@ class Company(db.Model):
     phone = db.Column(db.String(20))
     email = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    receivable_account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True)
+    receivable_account_id = db.Column(db.Integer, nullable=True)
 
     def to_dict(self):
         return {
@@ -172,16 +204,13 @@ class Region(db.Model):
     __tablename__ = 'regions'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    company_id = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=False)
+    company_id = db.Column(db.Integer)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    company = db.relationship('Company', backref='company_regions')
 
     def to_dict(self):
         return {
             'id': self.id, 'name': self.name,
             'company_id': self.company_id,
-            'company_name': self.company.name if self.company else None,
         }
 
 
@@ -189,12 +218,10 @@ class Location(db.Model):
     __tablename__ = 'locations'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    region_id = db.Column(db.Integer, db.ForeignKey('regions.id'), nullable=False)
+    region_id = db.Column(db.Integer)
     address = db.Column(db.String(200))
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    region = db.relationship('Region', backref='region_locations')
 
     def to_dict(self):
         return {
@@ -207,7 +234,7 @@ class Contract(db.Model):
     __tablename__ = 'contracts'
     id = db.Column(db.Integer, primary_key=True)
     contract_number = db.Column(db.String(50))
-    company_id = db.Column(db.Integer, db.ForeignKey('companies.id'))
+    company_id = db.Column(db.Integer)
     contract_type = db.Column(db.String(20))
     contract_value = db.Column(db.Float, nullable=False)
     monthly_value = db.Column(db.Float)
@@ -220,13 +247,11 @@ class Contract(db.Model):
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    company = db.relationship('Company', backref='contracts')
-
     def to_dict(self):
         return {
             'id': self.id, 'contract_number': self.contract_number,
             'company_id': self.company_id,
-            'company_name': self.company.name if self.company else '',
+            'company_name': '',
             'contract_type': self.contract_type,
             'contract_value': self.contract_value,
             'monthly_value': self.monthly_value,
@@ -241,7 +266,7 @@ class Contract(db.Model):
 class Invoice(db.Model):
     __tablename__ = 'invoices'
     id = db.Column(db.Integer, primary_key=True)
-    contract_id = db.Column(db.Integer, db.ForeignKey('contracts.id'))
+    contract_id = db.Column(db.Integer)
     invoice_number = db.Column(db.String(50))
     amount = db.Column(db.Float, nullable=False)
     invoice_date = db.Column(db.Date, nullable=False)
@@ -254,9 +279,7 @@ class Invoice(db.Model):
     payment_reference = db.Column(db.String(100))
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    journal_entry_id = db.Column(db.Integer, db.ForeignKey('journal_entries.id'), nullable=True)
-
-    contract = db.relationship('Contract', backref='invoices')
+    journal_entry_id = db.Column(db.Integer, nullable=True)
 
     def to_dict(self):
         return {
@@ -275,7 +298,7 @@ class Invoice(db.Model):
 class FinancialTransaction(db.Model):
     __tablename__ = 'financial_transactions'
     id = db.Column(db.Integer, primary_key=True)
-    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    employee_id = db.Column(db.Integer, nullable=False)
     transaction_type = db.Column(db.String(50), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     date = db.Column(db.Date, nullable=False)
@@ -283,25 +306,16 @@ class FinancialTransaction(db.Model):
     is_settled = db.Column(db.Boolean, default=False)
     settled_date = db.Column(db.Date)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
-    payment_method = db.Column(db.String(20), default='cash')
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
-    monthly_installment = db.Column(db.Float, default=0)
-    settled_amount = db.Column(db.Float, default=0)
-    journal_entry_id = db.Column(db.Integer, db.ForeignKey('journal_entries.id'), nullable=True)
-
-    employee = db.relationship('Employee', backref='transactions')
-    supplier = db.relationship('Supplier', backref='transactions')
-    creator = db.relationship('User', backref='created_transactions')
+    created_by = db.Column(db.Integer)
 
     def to_dict(self):
         return {
             'id': self.id, 'employee_id': self.employee_id,
-            'employee_name': self.employee.full_name if self.employee else '',
+            'employee_name': '',
             'transaction_type': self.transaction_type, 'amount': self.amount,
             'description': self.description,
             'date': self.date.strftime('%Y-%m-%d') if self.date else None,
-            'payment_method': self.payment_method or 'cash',
+            'payment_method': 'cash',
             'is_settled': self.is_settled,
         }
 
@@ -314,14 +328,12 @@ class Account(db.Model):
     name_ar = db.Column(db.String(100), nullable=False)
     account_type = db.Column(db.String(20), nullable=False)
     nature = db.Column(db.String(10), nullable=False)
-    parent_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True)
+    parent_id = db.Column(db.Integer, nullable=True)
     opening_balance = db.Column(db.Float, default=0)
     is_active = db.Column(db.Boolean, default=True)
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    parent = db.relationship('Account', remote_side=[id], backref='children')
 
     def to_dict(self):
         return {
@@ -349,7 +361,7 @@ class Supplier(db.Model):
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    payable_account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=True)
+    payable_account_id = db.Column(db.Integer, nullable=True)
 
     def to_dict(self):
         return {
@@ -367,34 +379,30 @@ class JournalEntry(db.Model):
     description = db.Column(db.String(500), nullable=False)
     reference_type = db.Column(db.String(50), nullable=True)
     reference_id = db.Column(db.Integer, nullable=True)
-    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    created_by = db.Column(db.Integer)
     is_posted = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    details = db.relationship('JournalEntryDetail', backref='entry', cascade='all, delete-orphan')
 
     def to_dict(self):
         return {
             'id': self.id, 'entry_number': self.entry_number,
             'date': self.date.strftime('%Y-%m-%d') if self.date else None,
             'description': self.description,
-            'total_debit': sum(d.debit for d in self.details),
-            'total_credit': sum(d.credit for d in self.details),
+            'total_debit': 0,
+            'total_credit': 0,
         }
 
 
 class JournalEntryDetail(db.Model):
     __tablename__ = 'journal_entry_details'
     id = db.Column(db.Integer, primary_key=True)
-    entry_id = db.Column(db.Integer, db.ForeignKey('journal_entries.id'), nullable=False)
-    account_id = db.Column(db.Integer, db.ForeignKey('accounts.id'), nullable=False)
+    entry_id = db.Column(db.Integer, nullable=False)
+    account_id = db.Column(db.Integer, nullable=False)
     debit = db.Column(db.Float, default=0)
     credit = db.Column(db.Float, default=0)
     description = db.Column(db.String(200))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    account = db.relationship('Account', backref='journal_entries')
 
     def to_dict(self):
         return {
@@ -407,7 +415,7 @@ class JournalEntryDetail(db.Model):
 class Salary(db.Model):
     __tablename__ = 'salaries'
     id = db.Column(db.Integer, primary_key=True)
-    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    employee_id = db.Column(db.Integer, nullable=False)
     month_year = db.Column(db.String(20), nullable=False)
     base_salary = db.Column(db.Float, default=0)
     attendance_days = db.Column(db.Integer, default=0)
@@ -433,25 +441,11 @@ class Salary(db.Model):
     health_card_amount = db.Column(db.Float, default=0)
     insurance_amount = db.Column(db.Float, default=0)
     contractor_profit = db.Column(db.Float, default=0)
-    cafeteria_supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
-    restaurant_supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
-    cafeteria_paid_to_supplier = db.Column(db.Boolean, default=False)
-    restaurant_paid_to_supplier = db.Column(db.Boolean, default=False)
-    is_calculated = db.Column(db.Boolean, default=False)
-    calculated_at = db.Column(db.DateTime)
-    journal_entry_id = db.Column(db.Integer, db.ForeignKey('journal_entries.id'), nullable=True)
-
-    employee = db.relationship('Employee', backref='salaries')
-
-    __table_args__ = (
-        db.UniqueConstraint('employee_id', 'month_year', name='uq_employee_period_salary'),
-    )
 
     def to_dict(self):
-        emp = self.employee
         return {
             'id': self.id, 'employee_id': self.employee_id,
-            'employee_name': emp.full_name if emp else '',
+            'employee_name': '',
             'month_year': self.month_year,
             'attendance_days': self.attendance_days,
             'total_salary': self.total_salary or 0,
