@@ -97,8 +97,12 @@ def bulk_attendance(current_user):
     if not data or not data.get('records'):
         return jsonify({'success': False, 'message': 'records array required'}), 400
     created = 0
+    bulk_date = data.get('date')
     for rec in data['records']:
-        if not rec.get('employee_id') or not rec.get('date'):
+        if not rec.get('employee_id'):
+            continue
+        rec_date = rec.get('date') or bulk_date
+        if not rec_date:
             continue
         if current_user.role == 'supervisor':
             with get_db() as conn:
@@ -115,6 +119,6 @@ def bulk_attendance(current_user):
             status = rec.get('attendance_status') or rec.get('status', 'present')
             execute(conn,
                 "INSERT INTO attendance (employee_id, date, status, check_in, check_out, notes) VALUES (%s, %s, %s, %s, %s, %s)",
-                (rec['employee_id'], rec['date'], status, rec.get('time_in') or rec.get('check_in'), rec.get('time_out') or rec.get('check_out'), rec.get('notes', '')))
+                (rec['employee_id'], rec_date, status, rec.get('time_in') or rec.get('check_in'), rec.get('time_out') or rec.get('check_out'), rec.get('notes', '')))
         created += 1
     return jsonify({'success': True, 'data': {'created': created}, 'message': f'{created} records created'}), 201
