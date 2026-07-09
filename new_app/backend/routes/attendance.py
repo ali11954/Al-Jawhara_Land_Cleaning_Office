@@ -85,8 +85,8 @@ def create_attendance(current_user):
     with get_db() as conn:
         status = data.get('attendance_status') or data.get('status', 'present')
         execute(conn,
-            "INSERT INTO attendance (employee_id, date, status, check_in, check_out, notes) VALUES (%s, %s, %s, %s, %s, %s)",
-            (data['employee_id'], data['date'], status, data.get('time_in') or data.get('check_in'), data.get('time_out') or data.get('check_out'), data.get('notes', '')))
+            "INSERT INTO attendance (employee_id, date, shift_type, status, check_in, check_out, notes) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            (data['employee_id'], data['date'], data.get('shift_type', 'morning'), status, data.get('time_in') or data.get('check_in'), data.get('time_out') or data.get('check_out'), data.get('notes', '')))
     return jsonify({'success': True, 'message': 'Attendance recorded'}), 201
 
 
@@ -118,7 +118,7 @@ def bulk_attendance(current_user):
         with get_db() as conn:
             status = rec.get('attendance_status') or rec.get('status', 'present')
             execute(conn,
-                "INSERT INTO attendance (employee_id, date, status, check_in, check_out, notes) VALUES (%s, %s, %s, %s, %s, %s)",
-                (rec['employee_id'], rec_date, status, rec.get('time_in') or rec.get('check_in'), rec.get('time_out') or rec.get('check_out'), rec.get('notes', '')))
+                "INSERT INTO attendance (employee_id, date, shift_type, status, check_in, check_out, notes) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                (rec['employee_id'], rec_date, rec.get('shift_type', 'morning'), status, rec.get('time_in') or rec.get('check_in'), rec.get('time_out') or rec.get('check_out'), rec.get('notes', '')))
         created += 1
     return jsonify({'success': True, 'data': {'created': created}, 'message': f'{created} records created'}), 201
