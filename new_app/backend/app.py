@@ -1,15 +1,32 @@
 import os
 import sys
+import json
+from datetime import date, datetime, time
+from decimal import Decimal
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
+from flask.json.provider import DefaultJSONProvider
 from config import Config
 from models import db
 
+
+class AlJawharaJSONProvider(DefaultJSONProvider):
+    def default(self, o):
+        if isinstance(o, (date, datetime)):
+            return o.isoformat()
+        if isinstance(o, time):
+            return o.isoformat()
+        if isinstance(o, Decimal):
+            return float(o)
+        return super().default(o)
+
 def create_app():
     app = Flask(__name__, static_folder=None)
+    app.json_provider_class = AlJawharaJSONProvider
+    app.json = AlJawharaJSONProvider(app)
     app.config.from_object(Config)
     
     # CORS for API
