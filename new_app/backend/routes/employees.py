@@ -119,46 +119,51 @@ def get_employee(current_user, emp_id):
 @employees_bp.route('/api/employees', methods=['POST'])
 @token_required
 def create_employee(current_user):
-    data = request.get_json()
-    emp_name = data.get('full_name') or data.get('name', '')
-    if not data or not emp_name:
-        return jsonify({'success': False, 'message': 'الاسم مطلوب'}), 400
+    try:
+        data = request.get_json()
+        emp_name = data.get('full_name') or data.get('name', '')
+        if not data or not emp_name:
+            return jsonify({'success': False, 'message': 'الاسم مطلوب'}), 400
 
-    code = data.get('code', '')
-    card_number = data.get('card_number', '')
-    position = data.get('position') or data.get('job_title', '')
-    phone = data.get('phone', '')
-    address = data.get('address', '')
-    salary = data.get('salary') or data.get('total_salary') or 60000
-    base_salary = data.get('base_salary') or data.get('basic_salary') or 60000
-    is_active = data.get('is_active', True)
-    is_resident = data.get('is_resident', False)
-    company_id = data.get('company_id') if data.get('company_id') else None
-    supervisor_id = data.get('supervisor_id') if data.get('supervisor_id') else None
-    qualification = data.get('qualification', '')
-    specialization = data.get('specialization', '')
-    daily_allowance = data.get('daily_allowance') or 0
-    clothing_allowance = data.get('clothing_allowance') or 0
-    health_card_allowance = data.get('health_card_allowance') or 0
+        code = data.get('code', '') or ''
+        card_number = data.get('card_number', '') or ''
+        position = data.get('position') or data.get('job_title', '') or ''
+        phone = data.get('phone', '') or ''
+        address = data.get('address', '') or ''
+        salary = data.get('salary') or data.get('total_salary') or 60000
+        base_salary = data.get('base_salary') or data.get('basic_salary') or 60000
+        is_active = data.get('is_active', True)
+        is_resident = data.get('is_resident', False)
+        company_id = data.get('company_id') if data.get('company_id') else None
+        supervisor_id = data.get('supervisor_id') if data.get('supervisor_id') else None
+        qualification = data.get('qualification', '') or ''
+        specialization = data.get('specialization', '') or ''
+        daily_allowance = data.get('daily_allowance') or 0
+        clothing_allowance = data.get('clothing_allowance') or 0
+        health_card_allowance = data.get('health_card_allowance') or 0
 
-    with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            """INSERT INTO employees (code, full_name, phone, address, card_number, position, salary, base_salary,
-               is_active, is_resident, company_id, supervisor_id, qualification, specialization,
-               daily_allowance, clothing_allowance, health_card_allowance, created_at)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-               RETURNING id""",
-            (code, emp_name, phone, address, card_number, position, salary, base_salary,
-             is_active, is_resident, company_id, supervisor_id, qualification, specialization,
-             daily_allowance, clothing_allowance, health_card_allowance))
-        emp_id = cur.fetchone()[0]
-        conn.commit()
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """INSERT INTO employees (code, full_name, phone, address, card_number, position, salary, base_salary,
+                   is_active, is_resident, company_id, supervisor_id, qualification, specialization,
+                   daily_allowance, clothing_allowance, health_card_allowance, created_at)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                   RETURNING id""",
+                (code, emp_name, phone, address, card_number, position, salary, base_salary,
+                 is_active, is_resident, company_id, supervisor_id, qualification, specialization,
+                 daily_allowance, clothing_allowance, health_card_allowance))
+            emp_id = cur.fetchone()[0]
+            conn.commit()
 
-    with get_db() as conn:
-        row = fetch_one(conn, f"SELECT {EMPLOYEE_COLUMNS} FROM employees WHERE id=%s", (emp_id,))
+        with get_db() as conn:
+            row = fetch_one(conn, f"SELECT {EMPLOYEE_COLUMNS} FROM employees WHERE id=%s", (emp_id,))
 
-    return jsonify({'success': True, 'data': _emp_to_dict(row), 'message': 'تم إضافة الموظف بنجاح'}), 201
+        return jsonify({'success': True, 'data': _emp_to_dict(row), 'message': 'تم إضافة الموظف بنجاح'}), 201
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 @employees_bp.route('/api/employees/<int:emp_id>', methods=['PUT'])
