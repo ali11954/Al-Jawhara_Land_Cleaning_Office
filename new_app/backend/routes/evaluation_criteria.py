@@ -36,8 +36,8 @@ def create_criterion(current_user):
     if not data or not data.get('name'):
         return jsonify({'success': False, 'message': 'name is required'}), 400
     with get_db() as conn:
-        cid = execute(conn, "INSERT INTO evaluation_criteria (name, job_title, max_score, weight) VALUES (%s,%s,%s,%s) RETURNING id",
-                      (data['name'], data.get('job_title'), data.get('max_score', 10), data.get('weight', 1)))
+        cid = execute(conn, "INSERT INTO evaluation_criteria (name, job_title, max_score, weight, region_id) VALUES (%s,%s,%s,%s,%s) RETURNING id",
+                      (data['name'], data.get('job_title'), data.get('max_score', 5), data.get('weight', 1), data.get('region_id')))
     return jsonify({'success': True, 'data': {'id': cid, **data}, 'message': 'Criterion created'}), 201
 
 
@@ -47,7 +47,7 @@ def update_criterion(current_user, crit_id):
     data = request.get_json()
     with get_db() as conn:
         fields, vals = [], []
-        for f in ['name', 'job_title', 'max_score', 'weight']:
+        for f in ['name', 'job_title', 'max_score', 'weight', 'region_id']:
             if f in data:
                 fields.append(f'{f}=%s')
                 vals.append(data[f])

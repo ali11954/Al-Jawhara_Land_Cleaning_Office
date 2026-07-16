@@ -146,7 +146,7 @@ export default function EvaluationsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">التقييمات ومعايير العمل</h1>
-          <p className="text-gray-500 text-sm mt-1">{evaluations.length} تقييم — {jobTitles.length} وظيفة — {allCriteria.length} معيار</p>
+          <p className="text-gray-500 text-sm mt-1">{evaluations.length} تقييم — {regions.length} منطقة — {allCriteria.length} معيار</p>
         </div>
         <Button onClick={() => { setTab('criteria'); }} variant="outline"><Settings className="w-4 h-4" /> معايير التقييم</Button>
       </div>
@@ -250,7 +250,7 @@ export default function EvaluationsPage() {
       )}
 
       {tab === 'criteria' && (
-        <CriteriaTab jobTitles={jobTitles} allCriteria={allCriteria} loadData={loadData} />
+        <CriteriaTab allCriteria={allCriteria} loadData={loadData} regions={regions} />
       )}
 
       {/* Add Evaluation Modal */}
@@ -340,19 +340,18 @@ export default function EvaluationsPage() {
   );
 }
 
-function CriteriaTab({ jobTitles, allCriteria, loadData }: { jobTitles: string[]; allCriteria: any[]; loadData: () => void }) {
-  const [critForm, setCritForm] = useState({ job_title: '', name: '', description: '', max_score: 5 });
-  const [useExisting, setUseExisting] = useState(true);
+function CriteriaTab({ allCriteria, loadData, regions }: { allCriteria: any[]; loadData: () => void; regions: any[] }) {
+  const [critForm, setCritForm] = useState({ job_title: 'worker', name: '', description: '', max_score: 5, region_id: '' });
   const [saving, setSaving] = useState(false);
   const [editModal, setEditModal] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ job_title: '', name: '', description: '' });
+  const [editForm, setEditForm] = useState({ job_title: 'worker', name: '', description: '', region_id: '' });
 
   const handleAddCriterion = async () => {
-    if (!critForm.job_title || !critForm.name) return alert('أدخل الوظيفة والمعيار');
+    if (!critForm.name || !critForm.region_id) return alert('أدخل اسم المعيار والمنطقة');
     setSaving(true);
     try {
-      await api.post('/evaluation-criteria', { ...critForm, max_score: 5 });
-      setCritForm({ job_title: '', name: '', description: '', max_score: 5 });
+      await api.post('/evaluation-criteria', { ...critForm, max_score: 5, region_id: Number(critForm.region_id) });
+      setCritForm({ job_title: 'worker', name: '', description: '', max_score: 5, region_id: '' });
       loadData();
     } catch (err: any) { alert(err.response?.data?.message || 'حدث خطأ'); }
     finally { setSaving(false); }
@@ -366,54 +365,50 @@ function CriteriaTab({ jobTitles, allCriteria, loadData }: { jobTitles: string[]
 
   const openEdit = (cr: any) => {
     setEditModal(cr);
-    setEditForm({ job_title: cr.job_title, name: cr.name, description: cr.description || '' });
+    setEditForm({ job_title: cr.job_title || 'worker', name: cr.name, description: cr.description || '', region_id: cr.region_id || '' });
   };
 
   const handleEditCriterion = async () => {
-    if (!editForm.job_title || !editForm.name) return alert('أدخل الوظيفة والمعيار');
+    if (!editForm.name) return alert('أدخل اسم المعيار');
     setSaving(true);
     try {
-      await api.put(`/evaluation-criteria/${editModal.id}`, editForm);
+      await api.put(`/evaluation-criteria/${editModal.id}`, { ...editForm, region_id: editForm.region_id ? Number(editForm.region_id) : undefined });
       setEditModal(null);
       loadData();
     } catch (err: any) { alert(err.response?.data?.message || 'حدث خطأ'); }
     finally { setSaving(false); }
   };
 
-  const groupedCriteria = jobTitles.map(jt => ({
-    job_title: jt,
-    criteria: allCriteria.filter(c => c.job_title === jt),
+  const groupedCriteria = regions.map((reg: any) => ({
+    region: reg,
+    criteria: allCriteria.filter((c: any) => c.region_id === reg.id),
   }));
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-2">
-        <button onClick={() => {}} className="px-4 py-2 rounded-lg text-sm font-medium bg-primary-600 text-white">التقييمات</button>
-        <button onClick={() => {}} className="px-4 py-2 rounded-lg text-sm font-medium bg-primary-600 text-white">معايير التقييم</button>
-      </div>
+      <h3 className="font-bold text-gray-900 text-lg">معايير التقييم حسب المنطقة</h3>
 
-      {/* Grouped criteria by job title */}
+      {/* Grouped criteria by region */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {groupedCriteria.map((group) => (
-          <Card key={group.job_title} className="hover:shadow-md transition-shadow">
+          <Card key={group.region.id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-5">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center">
                   <Star className="w-5 h-5 text-primary-600" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900">{group.job_title}</h3>
+                  <h3 className="font-bold text-gray-900">{group.region.name}</h3>
                   <p className="text-xs text-gray-400">{group.criteria.length} معيار</p>
                 </div>
               </div>
               <div className="space-y-2">
-                {group.criteria.map((cr) => (
+                {group.criteria.map((cr: any) => (
                   <div key={cr.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
                     <div className="flex items-center gap-2">
                       <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                       <div>
                         <span className="text-sm font-medium">{cr.name}</span>
-                        {cr.description && <span className="block text-xs text-gray-400">{cr.description}</span>}
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
@@ -439,31 +434,18 @@ function CriteriaTab({ jobTitles, allCriteria, loadData }: { jobTitles: string[]
           <h3 className="font-bold text-gray-900 mb-4">إضافة معيار تقييم جديد</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">الوظيفة *</label>
-              <div className="flex gap-2">
-                {useExisting ? (
-                  <select value={critForm.job_title} onChange={(e) => setCritForm({ ...critForm, job_title: e.target.value })} className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm">
-                    <option value="">اختر وظيفة</option>
-                    {jobTitles.map(jt => <option key={jt} value={jt}>{jt}</option>)}
-                  </select>
-                ) : (
-                  <Input value={critForm.job_title} onChange={(e) => setCritForm({ ...critForm, job_title: e.target.value })} placeholder="أدخل الوظيفة" />
-                )}
-              </div>
-              <button onClick={() => setUseExisting(!useExisting)} className="mt-1 text-xs text-primary-600 hover:underline">
-                {useExisting ? 'كتابة وظيفة جديدة' : 'اختيار من القائمة'}
-              </button>
+              <label className="block text-sm font-medium text-gray-700 mb-1">المنطقة *</label>
+              <select value={critForm.region_id} onChange={(e) => setCritForm({ ...critForm, region_id: e.target.value })} className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm">
+                <option value="">اختر المنطقة</option>
+                {regions.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">اسم المعيار *</label>
-              <Input value={critForm.name} onChange={(e) => setCritForm({ ...critForm, name: e.target.value })} placeholder="مثال: ري النخل" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">الوصف</label>
-              <Input value={critForm.description} onChange={(e) => setCritForm({ ...critForm, description: e.target.value })} placeholder="وصف المعيار (اختياري)" />
+              <Input value={critForm.name} onChange={(e) => setCritForm({ ...critForm, name: e.target.value })} placeholder="مثال: الالتزام بالسلامة" />
             </div>
           </div>
-          <Button onClick={handleAddCriterion} className="mt-4" disabled={saving || !critForm.job_title || !critForm.name}>
+          <Button onClick={handleAddCriterion} className="mt-4" disabled={saving || !critForm.name || !critForm.region_id}>
             <Plus className="w-4 h-4" /> {saving ? 'جاري الإضافة...' : 'إضافة المعيار'}
           </Button>
         </CardContent>
@@ -474,23 +456,19 @@ function CriteriaTab({ jobTitles, allCriteria, loadData }: { jobTitles: string[]
         {editModal && (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">الوظيفة *</label>
-              <select value={editForm.job_title} onChange={(e) => setEditForm({ ...editForm, job_title: e.target.value })} className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm">
-                <option value="">اختر وظيفة</option>
-                {jobTitles.map(jt => <option key={jt} value={jt}>{jt}</option>)}
+              <label className="block text-sm font-medium text-gray-700 mb-1">المنطقة *</label>
+              <select value={editForm.region_id} onChange={(e) => setEditForm({ ...editForm, region_id: e.target.value })} className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm">
+                <option value="">اختر المنطقة</option>
+                {regions.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">اسم المعيار *</label>
-              <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} placeholder="مثال: ري النخل" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">الوصف</label>
-              <Input value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} placeholder="وصف المعيار (اختياري)" />
+              <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} placeholder="مثال: الالتزام بالسلامة" />
             </div>
             <div className="flex justify-end gap-2 pt-4 border-t">
               <Button variant="outline" onClick={() => setEditModal(null)}>إلغاء</Button>
-              <Button onClick={handleEditCriterion} disabled={saving || !editForm.job_title || !editForm.name}>
+              <Button onClick={handleEditCriterion} disabled={saving || !editForm.name}>
                 {saving ? 'جاري الحفظ...' : 'حفظ التعديلات'}
               </Button>
             </div>

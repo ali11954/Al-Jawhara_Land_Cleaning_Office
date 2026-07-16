@@ -1,9 +1,8 @@
 from flask import Blueprint, request, jsonify
 from auth import token_required
-from models import db, Employee, Attendance, FinancialTransaction, Company, Salary, Evaluation
-from sqlalchemy import func
 from datetime import datetime, timedelta
 from db import get_db, fetch_all
+import calendar
 
 reports_bp = Blueprint('reports', __name__)
 
@@ -30,7 +29,8 @@ def reports_dashboard(current_user):
         cur.execute(q2, tuple(params))
         active_employees = cur.fetchone()[0]
 
-        total_companies = Company.query.count() if current_user.role in ('admin', 'owner') else 1
+        cur.execute("SELECT COUNT(*) FROM clean_companies")
+        total_companies = cur.fetchone()[0]
 
         q3 = "SELECT COALESCE(SUM(s.total_salary), 0) FROM salaries s JOIN employees e ON s.employee_id = e.id WHERE 1=1"
         params3 = []
@@ -57,6 +57,34 @@ def reports_dashboard(current_user):
         cur.execute(q4, tuple(params4))
         today_attendance = cur.fetchone()[0]
 
+        cur.execute("SELECT COUNT(*) FROM work_plans")
+        work_plans_total = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM work_plans WHERE status='pending'")
+        work_plans_pending = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM work_plans WHERE status='in_progress'")
+        work_plans_in_progress = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM work_plans WHERE status='completed'")
+        work_plans_completed = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM work_plan_tasks")
+        wp_tasks_total = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM work_plan_tasks WHERE status='completed'")
+        wp_tasks_completed = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM contracts WHERE status='active'")
+        active_contracts = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM financial_transactions WHERE notes IS NULL")
+        pending_transactions = cur.fetchone()[0]
+
+        q5 = """SELECT e.id, e.full_name, e.code, e.job_title, COALESCE(c.name, '') as company_name
+                FROM evaluations ev JOIN employees e ON ev.employee_id = e.id
+                LEFT JOIN clean_companies c ON e.company_id = c.id
+                WHERE ev.id IN (SELECT MAX(id) FROM evaluations GROUP BY employee_id)
+                ORDER BY ev.score DESC LIMIT 5"""
+        cur.execute(q5)
+        top_rows = cur.fetchall()
+        top_employees = [{'id': r[0], 'name': r[1], 'code': r[2], 'job_title': r[3], 'company_name': r[4]} for r in top_rows]
+
     return jsonify({
         'success': True,
         'data': {
@@ -65,6 +93,21 @@ def reports_dashboard(current_user):
             'total_companies': total_companies,
             'total_salaries': float(total_salaries),
             'today_attendance': today_attendance,
+            'pending_salaries': 0,
+            'work_plans_total': work_plans_total,
+            'work_plans_pending': work_plans_pending,
+            'work_plans_in_progress': work_plans_in_progress,
+            'work_plans_completed': work_plans_completed,
+            'work_plan_tasks_total': wp_tasks_total,
+            'work_plan_tasks_completed': wp_tasks_completed,
+            'active_contracts': active_contracts,
+            'pending_transactions': pending_transactions,
+            'total_income': 0,
+            'total_expense': 0,
+            'top_employees': top_employees,
+            'recent_attendance': [],
+            'recent_evaluations': [],
+            'recent_transactions': [],
         }
     })
 
@@ -74,7 +117,10 @@ def reports_dashboard(current_user):
 def reports_employees(current_user):
     with get_db() as conn:
         cur = conn.cursor()
-        q = "SELECT e.id, e.code, e.full_name, e.company_id, c.name as company_name FROM employees e LEFT JOIN companies c ON e.company_id = c.id WHERE e.is_active = true"
+        q = """SELECT e.id, e.full_name, e.code, e.job_title, e.salary, e.company_id,
+               COALESCE(c.name, 'بدون شركة') as company_name
+               FROM employees e LEFT JOIN clean_companies c ON e.company_id = c.id
+               WHERE e.is_active = true"""
         params = []
         if current_user.role == 'supervisor':
             if current_user.company_id:
@@ -83,23 +129,40 @@ def reports_employees(current_user):
             if current_user.employee_id:
                 q += " AND e.supervisor_id = %s"
                 params.append(current_user.employee_id)
+        q += " ORDER BY e.company_id, e.full_name"
         cur.execute(q, tuple(params))
-        employees = cur.fetchall()
+        emp_rows = cur.fetchall()
 
+    employees = []
     by_company = {}
-    for emp in employees:
-        name = emp[4] or 'بدون شركة'
-        if name not in by_company:
-            by_company[name] = 0
-        by_company[name] += 1
+    companies_map = {}
+    total_salary = 0
 
-    by_company_list = [{'name': k, 'count': v} for k, v in by_company.items()]
+    for r in emp_rows:
+        eid, name, code, job, salary, cid, cname = r
+        salary = float(salary or 0)
+        total_salary += salary
+        emp_dict = {'id': eid, 'name': name, 'code': code, 'job_title': job, 'salary': salary, 'company_name': cname}
+        employees.append(emp_dict)
+
+        if cname not in by_company:
+            by_company[cname] = 0
+        by_company[cname] += 1
+
+        if cname not in companies_map:
+            companies_map[cname] = {'company_name': cname, 'count': 0, 'total_salary': 0, 'employees': []}
+        companies_map[cname]['count'] += 1
+        companies_map[cname]['total_salary'] += salary
+        companies_map[cname]['employees'].append(emp_dict)
 
     return jsonify({
         'success': True,
         'data': {
             'total': len(employees),
-            'by_company': by_company_list,
+            'total_salary': total_salary,
+            'by_company': [{'name': k, 'count': v} for k, v in by_company.items()],
+            'employees': employees,
+            'companies': list(companies_map.values()),
         }
     })
 
@@ -107,12 +170,22 @@ def reports_employees(current_user):
 @reports_bp.route('/api/reports/attendance', methods=['GET'])
 @token_required
 def reports_attendance(current_user):
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+
     today = datetime.utcnow().date()
+    if not date_from:
+        date_from = today.strftime('%Y-%m-01')
+    if not date_to:
+        date_to = today.strftime('%Y-%m-%d')
+
     with get_db() as conn:
         cur = conn.cursor()
-        today_str = today.strftime('%Y-%m-%d')
-        q = "SELECT a.status FROM attendance a JOIN employees e ON a.employee_id = e.id WHERE a.date = %s"
-        params = [today_str]
+
+        q = """SELECT a.date, a.status, e.id as emp_id, e.company_id
+               FROM attendance a JOIN employees e ON a.employee_id = e.id
+               WHERE a.date >= %s AND a.date <= %s"""
+        params = [date_from, date_to]
         if current_user.role == 'supervisor':
             if current_user.company_id:
                 q += " AND e.company_id = %s"
@@ -120,8 +193,9 @@ def reports_attendance(current_user):
             if current_user.employee_id:
                 q += " AND e.supervisor_id = %s"
                 params.append(current_user.employee_id)
+        q += " ORDER BY a.date"
         cur.execute(q, tuple(params))
-        statuses = [r[0] for r in cur.fetchall()]
+        att_rows = cur.fetchall()
 
         q2 = "SELECT COUNT(*) FROM employees WHERE is_active = true"
         params2 = []
@@ -135,11 +209,28 @@ def reports_attendance(current_user):
         cur.execute(q2, tuple(params2))
         total_employees = cur.fetchone()[0]
 
-    present = sum(1 for s in statuses if s == 'present')
-    late = sum(1 for s in statuses if s == 'late')
-    sick = sum(1 for s in statuses if s == 'sick')
-    annual_leave = sum(1 for s in statuses if s == 'annual_leave')
-    absent = total_employees - len(statuses)
+    daily = {}
+    all_statuses = []
+    for row in att_rows:
+        dt, status, emp_id, comp_id = row
+        dt_str = dt.strftime('%Y-%m-%d') if hasattr(dt, 'strftime') else str(dt)
+        all_statuses.append(status)
+        if dt_str not in daily:
+            daily[dt_str] = {'date': dt_str, 'present': 0, 'late': 0, 'absent': 0, 'sick': 0, 'annual_leave': 0, 'total': 0}
+        daily[dt_str]['total'] += 1
+        if status in daily[dt_str]:
+            daily[dt_str][status] += 1
+
+    daily_list = list(daily.values())
+
+    present = sum(1 for s in all_statuses if s == 'present')
+    late = sum(1 for s in all_statuses if s == 'late')
+    sick = sum(1 for s in all_statuses if s == 'sick')
+    annual_leave = sum(1 for s in all_statuses if s == 'annual_leave')
+    absent = max(0, total_employees * len(daily_list) - len(all_statuses))
+
+    total_records = len(all_statuses)
+    rate = round((present + late) / total_records * 100, 1) if total_records > 0 else 0
 
     return jsonify({
         'success': True,
@@ -150,7 +241,11 @@ def reports_attendance(current_user):
                 'absent': absent,
                 'sick': sick,
                 'annual_leave': annual_leave,
-            }
+            },
+            'daily': daily_list,
+            'attendance_rate': rate,
+            'period': f'{date_from} إلى {date_to}',
+            'companies': [],
         }
     })
 
@@ -166,12 +261,34 @@ def reports_financial(current_user):
         total_income = cur.fetchone()[0]
         cur.execute(q_expense)
         total_expense = cur.fetchone()[0]
+
+        q_types = """SELECT transaction_type, COALESCE(SUM(amount), 0) as total
+                     FROM financial_transactions GROUP BY transaction_type"""
+        cur.execute(q_types)
+        by_type = [{'type': r[0], 'total': float(r[1])} for r in cur.fetchall()]
+
+        monthly = []
+        cur.execute("""SELECT to_char(date_trunc('month', date), 'YYYY-MM') as month,
+                       SUM(CASE WHEN transaction_type='income' THEN amount ELSE 0 END) as income,
+                       SUM(CASE WHEN transaction_type='expense' THEN amount ELSE 0 END) as expense
+                       FROM financial_transactions
+                       GROUP BY 1 ORDER BY 1 DESC LIMIT 12""")
+        for r in cur.fetchall():
+            month_names = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
+            y, m = r[0].split('-')
+            month_label = f"{month_names[int(m)-1]} {y}"
+            monthly.append({'month': month_label, 'income': float(r[1]), 'expense': float(r[2])})
+
     return jsonify({
         'success': True,
         'data': {
             'total_income': float(total_income),
             'total_expense': float(total_expense),
+            'balance': float(total_income) - float(total_expense),
             'net': float(total_income) - float(total_expense),
+            'by_type': by_type,
+            'monthly': list(reversed(monthly)),
+            'companies': [],
         }
     })
 
@@ -179,10 +296,20 @@ def reports_financial(current_user):
 @reports_bp.route('/api/reports/evaluations', methods=['GET'])
 @token_required
 def reports_evaluations(current_user):
+    month_year = request.args.get('month_year')
+
     with get_db() as conn:
         cur = conn.cursor()
-        q = "SELECT ev.score, ev.employee_id, e.full_name FROM evaluations ev JOIN employees e ON ev.employee_id = e.id WHERE 1=1"
+        q = """SELECT ev.id, ev.score, ev.employee_id, ev.evaluation_type, ev.date, ev.created_at,
+               e.full_name, e.job_title, e.company_id,
+               COALESCE(c.name, '') as company_name
+               FROM evaluations ev JOIN employees e ON ev.employee_id = e.id
+               LEFT JOIN clean_companies c ON e.company_id = c.id
+               WHERE 1=1"""
         params = []
+        if month_year:
+            q += " AND to_char(ev.date, 'YYYY-MM') = %s"
+            params.append(month_year)
         if current_user.role == 'supervisor':
             if current_user.company_id:
                 q += " AND e.company_id = %s"
@@ -190,6 +317,7 @@ def reports_evaluations(current_user):
             if current_user.employee_id:
                 q += " AND e.supervisor_id = %s"
                 params.append(current_user.employee_id)
+        q += " ORDER BY ev.date DESC"
         cur.execute(q, tuple(params))
         rows = cur.fetchall()
 
@@ -202,43 +330,90 @@ def reports_evaluations(current_user):
                 'avg_rating': 'لا توجد تقييمات',
                 'top_employees': [],
                 'rating_distribution': [],
+                'type_distribution': [],
+                'monthly_trend': [],
+                'all_employees': [],
+                'companies': [],
             }
         })
 
     total = len(rows)
-    avg_score = round(sum(r[0] for r in rows) / total, 1)
+    avg_score = round(sum(r[1] for r in rows) / total, 1)
 
-    if avg_score >= 9:
-        avg_rating = 'ممتاز'
-    elif avg_score >= 7:
-        avg_rating = 'جيد جداً'
-    elif avg_score >= 5:
-        avg_rating = 'جيد'
-    else:
-        avg_rating = 'يحتاج تحسين'
+    def get_rating(score):
+        if score >= 90: return 'ممتاز'
+        if score >= 70: return 'جيد جداً'
+        if score >= 50: return 'جيد'
+        if score >= 30: return 'مقبول'
+        return 'ضعيف'
+
+    avg_rating = get_rating(avg_score)
 
     emp_scores = {}
     for r in rows:
-        eid = r[1]
+        eid, score, _, _, _, _, name, job, cid, cname = r
         if eid not in emp_scores:
-            emp_scores[eid] = {'scores': [], 'name': r[2]}
-        emp_scores[eid]['scores'].append(r[0])
+            emp_scores[eid] = {'scores': [], 'name': name, 'job_title': job, 'company_name': cname, 'eval_count': 0}
+        emp_scores[eid]['scores'].append(score)
+        emp_scores[eid]['eval_count'] += 1
 
-    top_employees = []
+    all_employees = []
     for eid, data in emp_scores.items():
-        avg = sum(data['scores']) / len(data['scores'])
-        top_employees.append({
+        avg = round(sum(data['scores']) / len(data['scores']), 1)
+        all_employees.append({
             'employee_id': eid,
-            'employee_name': data['name'],
-            'avg_score': round(avg, 1),
-            'evaluation_count': len(data['scores']),
+            'name': data['name'],
+            'job_title': data['job_title'],
+            'company_name': data['company_name'],
+            'avg_score': avg,
+            'eval_count': data['eval_count'],
+            'rating': get_rating(avg),
         })
-    top_employees.sort(key=lambda x: x['avg_score'], reverse=True)
+    all_employees.sort(key=lambda x: x['avg_score'], reverse=True)
 
-    excellent = sum(1 for r in rows if r[0] >= 9)
-    very_good = sum(1 for r in rows if 7 <= r[0] < 9)
-    good = sum(1 for r in rows if 5 <= r[0] < 7)
-    needs_improvement = sum(1 for r in rows if r[0] < 5)
+    top_employees = all_employees[:10]
+
+    excellent = sum(1 for r in rows if r[1] >= 90)
+    very_good = sum(1 for r in rows if 70 <= r[1] < 90)
+    good = sum(1 for r in rows if 50 <= r[1] < 70)
+    acceptable = sum(1 for r in rows if 30 <= r[1] < 50)
+    weak = sum(1 for r in rows if r[1] < 30)
+
+    type_supervisor = sum(1 for r in rows if r[3] == 'supervisor')
+    type_contractor = sum(1 for r in rows if r[3] == 'contractor')
+
+    monthly_trend = []
+    month_data = {}
+    for r in rows:
+        dt = r[4]
+        dt_str = dt.strftime('%Y-%m') if hasattr(dt, 'strftime') else str(dt)[:7]
+        if dt_str not in month_data:
+            month_data[dt_str] = {'scores': [], 'count': 0}
+        month_data[dt_str]['scores'].append(r[1])
+        month_data[dt_str]['count'] += 1
+    month_names = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
+    for ym in sorted(month_data.keys()):
+        y, m = ym.split('-')
+        month_label = f"{month_names[int(m)-1]} {y}"
+        d = month_data[ym]
+        monthly_trend.append({'month': month_label, 'avg': round(sum(d['scores'])/len(d['scores']), 1), 'count': d['count']})
+
+    companies_data = {}
+    for r in rows:
+        cname = r[8] or 'بدون شركة'
+        if cname not in companies_data:
+            companies_data[cname] = {'scores': [], 'count': 0}
+        companies_data[cname]['scores'].append(r[1])
+        companies_data[cname]['count'] += 1
+    companies_list = []
+    for cname, d in companies_data.items():
+        avg = round(sum(d['scores']) / len(d['scores']), 1)
+        companies_list.append({
+            'company_name': cname,
+            'total_evaluations': d['count'],
+            'avg_score': avg,
+            'avg_rating': get_rating(avg),
+        })
 
     return jsonify({
         'success': True,
@@ -246,13 +421,21 @@ def reports_evaluations(current_user):
             'total_evaluations': total,
             'avg_score': avg_score,
             'avg_rating': avg_rating,
-            'top_employees': top_employees[:10],
+            'top_employees': top_employees,
+            'all_employees': all_employees,
             'rating_distribution': [
                 {'name': 'ممتاز', 'value': excellent},
                 {'name': 'جيد جداً', 'value': very_good},
                 {'name': 'جيد', 'value': good},
-                {'name': 'يحتاج تحسين', 'value': needs_improvement},
+                {'name': 'مقبول', 'value': acceptable},
+                {'name': 'ضعيف', 'value': weak},
             ],
+            'type_distribution': [
+                {'name': 'تقييم مشرف', 'value': type_supervisor},
+                {'name': 'تقييم متعهد', 'value': type_contractor},
+            ],
+            'monthly_trend': monthly_trend,
+            'companies': companies_list,
         }
     })
 
@@ -269,7 +452,6 @@ def reports_attendance_grid(current_user):
         year = today.year
         month = today.month
 
-    import calendar
     days_in_month = calendar.monthrange(year, month)[1]
 
     with get_db() as conn:
@@ -349,5 +531,17 @@ def reports_attendance_grid(current_user):
             'month': month,
             'days_in_month': days_in_month,
             'employees': result,
+        }
+    })
+
+
+@reports_bp.route('/api/reports/contractor-profit', methods=['GET'])
+@token_required
+def reports_contractor_profit(current_user):
+    return jsonify({
+        'success': True,
+        'data': {
+            'employees': [],
+            'summary': {},
         }
     })
