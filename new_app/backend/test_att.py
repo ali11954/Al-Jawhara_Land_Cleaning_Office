@@ -1,32 +1,21 @@
-import requests, json, time
+import psycopg2
+conn = psycopg2.connect('postgresql://postgres.zyicslsosozivkilpylb:ali1993mubark@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require&connect_timeout=15')
+cur = conn.cursor()
 
-print("Waiting 10s...")
-time.sleep(10)
+# Make position have a default if NOT NULL
+try:
+    cur.execute("ALTER TABLE employees ALTER COLUMN position SET DEFAULT 'غير محدد'")
+    print("Set position default")
+except Exception as e:
+    print(f"position default: {e}")
 
-r = requests.post("https://al-jawhara-app.onrender.com/api/auth/login", json={"username": "owner", "password": "owner123"})
-token = r.json()["data"]["token"]
-h = {"Authorization": f"Bearer {token}"}
+# Make salary have a default
+try:
+    cur.execute("ALTER TABLE employees ALTER COLUMN salary SET DEFAULT 0")
+    print("Set salary default")
+except Exception as e:
+    print(f"salary default: {e}")
 
-# Test grid endpoint - check raw text first
-r = requests.get("https://al-jawhara-app.onrender.com/api/reports/attendance-grid?year=2026&month=7", headers=h, timeout=15)
-print(f"Grid status: {r.status_code}")
-print(f"Content-Type: {r.headers.get('content-type')}")
-text = r.text.lstrip('\ufeff')
-print(f"Response preview: {text[:300]}")
-
-# Test create employee
-r2 = requests.post("https://al-jawhara-app.onrender.com/api/employees", json={
-    "name": "test employee",
-    "code": "TST001",
-    "card_number": "111222",
-    "phone": "777",
-    "job_title": "worker",
-    "company_id": 1,
-    "salary": 84000,
-    "base_salary": 60000,
-    "is_active": True,
-    "is_resident": False
-}, headers=h, timeout=15)
-print(f"\nCreate status: {r2.status_code}")
-text2 = r2.text.lstrip('\ufeff')
-print(f"Create response: {text2[:500]}")
+conn.commit()
+conn.close()
+print("Done")

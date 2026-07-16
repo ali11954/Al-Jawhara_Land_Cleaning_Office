@@ -122,26 +122,41 @@ def get_employee(current_user, emp_id):
 def create_employee(current_user):
     try:
         data = request.get_json()
-        emp_name = data.get('full_name') or data.get('name', '')
+        emp_name = (data.get('full_name') or data.get('name', '')).strip()
         if not data or not emp_name:
             return jsonify({'success': False, 'message': 'الاسم مطلوب'}), 400
 
-        code = data.get('code', '') or ''
-        card_number = data.get('card_number', '') or ''
-        position = data.get('position') or data.get('job_title', '') or ''
-        phone = data.get('phone', '') or ''
-        address = data.get('address', '') or ''
-        salary = data.get('salary') or data.get('total_salary') or 60000
-        base_salary = data.get('base_salary') or data.get('basic_salary') or 60000
-        is_active = data.get('is_active', True)
-        is_resident = data.get('is_resident', False)
-        company_id = data.get('company_id') if data.get('company_id') else None
-        supervisor_id = data.get('supervisor_id') if data.get('supervisor_id') else None
-        qualification = data.get('qualification', '') or ''
-        specialization = data.get('specialization', '') or ''
-        daily_allowance = data.get('daily_allowance') or 0
-        clothing_allowance = data.get('clothing_allowance') or 0
-        health_card_allowance = data.get('health_card_allowance') or 0
+        code = str(data.get('code', '') or '')
+        card_number = str(data.get('card_number', '') or '')
+        position = str(data.get('position') or data.get('job_title', '') or '').strip() or 'غير محدد'
+        phone = str(data.get('phone', '') or '')
+        address = str(data.get('address', '') or '')
+        try:
+            salary = float(data.get('salary') or data.get('total_salary') or 0)
+        except (TypeError, ValueError):
+            salary = 0
+        try:
+            base_salary = float(data.get('base_salary') or data.get('basic_salary') or 0)
+        except (TypeError, ValueError):
+            base_salary = 0
+        is_active = bool(data.get('is_active', True))
+        is_resident = bool(data.get('is_resident', False))
+        company_id = int(data['company_id']) if data.get('company_id') else None
+        supervisor_id = int(data['supervisor_id']) if data.get('supervisor_id') else None
+        qualification = str(data.get('qualification', '') or '')
+        specialization = str(data.get('specialization', '') or '')
+        try:
+            daily_allowance = float(data.get('daily_allowance') or 0)
+        except (TypeError, ValueError):
+            daily_allowance = 0
+        try:
+            clothing_allowance = float(data.get('clothing_allowance') or 0)
+        except (TypeError, ValueError):
+            clothing_allowance = 0
+        try:
+            health_card_allowance = float(data.get('health_card_allowance') or 0)
+        except (TypeError, ValueError):
+            health_card_allowance = 0
         hire_date = data.get('hire_date') or datetime.utcnow().strftime('%Y-%m-%d')
 
         with get_db() as conn:
