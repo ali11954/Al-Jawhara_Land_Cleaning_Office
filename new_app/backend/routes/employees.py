@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from auth import token_required
 from db import get_db, fetch_all, fetch_one, execute
+from datetime import datetime
 
 employees_bp = Blueprint('employees', __name__)
 
@@ -141,18 +142,19 @@ def create_employee(current_user):
         daily_allowance = data.get('daily_allowance') or 0
         clothing_allowance = data.get('clothing_allowance') or 0
         health_card_allowance = data.get('health_card_allowance') or 0
+        hire_date = data.get('hire_date') or datetime.utcnow().strftime('%Y-%m-%d')
 
         with get_db() as conn:
             cur = conn.cursor()
             cur.execute(
                 """INSERT INTO employees (code, full_name, phone, address, card_number, position, salary, base_salary,
                    is_active, is_resident, company_id, supervisor_id, qualification, specialization,
-                   daily_allowance, clothing_allowance, health_card_allowance, created_at)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                   daily_allowance, clothing_allowance, health_card_allowance, hire_date, created_at)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                    RETURNING id""",
                 (code, emp_name, phone, address, card_number, position, salary, base_salary,
                  is_active, is_resident, company_id, supervisor_id, qualification, specialization,
-                 daily_allowance, clothing_allowance, health_card_allowance))
+                 daily_allowance, clothing_allowance, health_card_allowance, hire_date))
             emp_id = cur.fetchone()[0]
             conn.commit()
 
