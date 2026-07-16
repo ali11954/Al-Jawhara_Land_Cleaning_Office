@@ -309,16 +309,18 @@ def reports_evaluations(current_user):
     try:
         with get_db() as conn:
             cur = conn.cursor()
-            q = """SELECT ev.id, ev.score, ev.employee_id, ev.evaluation_type, ev.date, ev.created_at,
-                   e.full_name, e.job_title, e.company_id,
+            q = """SELECT ev.id, ev.score, ev.employee_id, ev.evaluation_type,
+                   CAST(ev.date AS TEXT) as eval_date,
+                   CAST(ev.created_at AS TEXT) as eval_created,
+                   e.full_name, e.position, e.company_id,
                    COALESCE(c.name, '') as company_name
                    FROM evaluations ev JOIN employees e ON ev.employee_id = e.id
                    LEFT JOIN clean_companies c ON e.company_id = c.id
                    WHERE 1=1"""
             params = []
             if month_year:
-                q += " AND to_char(ev.date, 'YYYY-MM') = %s"
-                params.append(month_year)
+                q += " AND CAST(ev.date AS TEXT) LIKE %s"
+                params.append(f'{month_year}%')
             if current_user.role == 'supervisor':
                 if current_user.company_id:
                     q += " AND e.company_id = %s"
@@ -362,7 +364,7 @@ def reports_evaluations(current_user):
 
     emp_scores = {}
     for r in rows:
-        eid, score, _, _, _, _, name, job, cid, cname = r
+        eid, score, _, eval_type, eval_date, eval_created, name, job, cid, cname = r
         if eid not in emp_scores:
             emp_scores[eid] = {'scores': [], 'name': name, 'job_title': job, 'company_name': cname, 'eval_count': 0}
         emp_scores[eid]['scores'].append(score)
@@ -396,8 +398,8 @@ def reports_evaluations(current_user):
     monthly_trend = []
     month_data = {}
     for r in rows:
-        dt = r[4]
-        dt_str = dt.strftime('%Y-%m') if hasattr(dt, 'strftime') else str(dt)[:7]
+        eval_date = r[4]
+        dt_str = str(eval_date)[:7] if eval_date else ''
         if dt_str not in month_data:
             month_data[dt_str] = {'scores': [], 'count': 0}
         month_data[dt_str]['scores'].append(r[1])
@@ -411,7 +413,7 @@ def reports_evaluations(current_user):
 
     companies_data = {}
     for r in rows:
-        cname = r[9] or 'بدون شركة'
+        cname = r[9] or 'بدون شركة' if len(r) > 9 else 'بدون شركة'
         if cname not in companies_data:
             companies_data[cname] = {'scores': [], 'count': 0}
         companies_data[cname]['scores'].append(r[1])
