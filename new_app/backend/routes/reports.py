@@ -122,7 +122,7 @@ def reports_employees(current_user):
     try:
         with get_db() as conn:
             cur = conn.cursor()
-            q = """SELECT e.id, e.full_name, e.code, e.job_title, e.salary, e.company_id,
+            q = """SELECT e.id, e.full_name, e.code, e.position, e.salary, e.company_id,
                    COALESCE(c.name, 'بدون شركة') as company_name
                    FROM employees e LEFT JOIN clean_companies c ON e.company_id = c.id
                    WHERE e.is_active = true"""
@@ -144,10 +144,10 @@ def reports_employees(current_user):
         total_salary = 0
 
         for r in emp_rows:
-            eid, name, code, job, salary, cid, cname = r
+            eid, name, code, position, salary, cid, cname = r
             salary = float(salary or 0)
             total_salary += salary
-            emp_dict = {'id': eid, 'name': name, 'code': code, 'job_title': job, 'salary': salary, 'company_name': cname}
+            emp_dict = {'id': eid, 'name': name, 'code': code, 'job_title': position, 'salary': salary, 'company_name': cname}
             employees.append(emp_dict)
 
             if cname not in by_company:
@@ -364,9 +364,9 @@ def reports_evaluations(current_user):
 
     emp_scores = {}
     for r in rows:
-        eid, score, _, eval_type, eval_date, eval_created, name, job, cid, cname = r
+        eid, score, _, eval_type, eval_date, eval_created, name, position, cid, cname = r
         if eid not in emp_scores:
-            emp_scores[eid] = {'scores': [], 'name': name, 'job_title': job, 'company_name': cname, 'eval_count': 0}
+            emp_scores[eid] = {'scores': [], 'name': name, 'job_title': position, 'company_name': cname, 'eval_count': 0}
         emp_scores[eid]['scores'].append(score)
         emp_scores[eid]['eval_count'] += 1
 
