@@ -75,7 +75,7 @@ export default function EvaluationsPage() {
 
   const handleEmployeeSelect = (empId: string) => {
     const emp = employees.find((e: any) => e.id === Number(empId));
-    setForm((f: any) => ({ ...f, employee_id: empId, criteria: [] }));
+    setForm((f: any) => ({ ...f, employee_id: empId, criteria: [], region_id: '', location_id: '' }));
     if (emp?.job_title) loadCriteria(emp.job_title);
   };
 
@@ -123,6 +123,11 @@ export default function EvaluationsPage() {
   };
 
   const filtered = evaluations.filter(e => e.employee_name?.includes(search));
+
+  const selectedEmployee = employees.find((e: any) => e.id === Number(form.employee_id));
+  const companyRegions = selectedEmployee?.company_id
+    ? regions.filter((r: any) => r.company_id === selectedEmployee.company_id)
+    : regions;
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -262,9 +267,9 @@ export default function EvaluationsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">المنطقة</label>
-              <select value={form.region_id} onChange={(e) => setForm({ ...form, region_id: e.target.value })} className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm">
-                <option value="">اختر المنطقة</option>
-                {regions.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
+              <select value={form.region_id} onChange={(e) => setForm({ ...form, region_id: e.target.value, location_id: '' })} className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm">
+                <option value="">{selectedEmployee?.company_id ? 'اختر المنطقة' : 'اختر الموظف أولاً'}</option>
+                {companyRegions.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
             </div>
           </div>
