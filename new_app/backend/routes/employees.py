@@ -246,30 +246,40 @@ def delete_employee(current_user, emp_id):
             return jsonify({'success': False, 'message': 'الموظف غير موجود'}), 404
 
         tables_to_clean = [
-            ("DELETE FROM attendance WHERE employee_id=%s", (emp_id,)),
-            ("DELETE FROM evaluations WHERE employee_id=%s", (emp_id,)),
-            ("DELETE FROM salaries WHERE employee_id=%s", (emp_id,)),
-            ("DELETE FROM financial_transactions WHERE employee_id=%s", (emp_id,)),
-            ("DELETE FROM leave_requests WHERE employee_id=%s", (emp_id,)),
-            ("DELETE FROM penalties WHERE employee_id=%s", (emp_id,)),
-            ("DELETE FROM overtime WHERE employee_id=%s", (emp_id,)),
-            ("DELETE FROM payrolls WHERE employee_id=%s", (emp_id,)),
-            ("DELETE FROM employee_loans WHERE employee_id=%s", (emp_id,)),
-            ("DELETE FROM meal_deductions WHERE employee_id=%s", (emp_id,)),
-            ("DELETE FROM labor_monthly_costs WHERE employee_id=%s", (emp_id,)),
-            ("DELETE FROM cleaning_evaluations WHERE evaluated_employee_id=%s OR evaluator_id=%s", (emp_id, emp_id)),
-            ("DELETE FROM supervisor_evaluations WHERE supervisor_id=%s OR evaluator_id=%s", (emp_id, emp_id)),
-            ("DELETE FROM bank_info WHERE employee_id=%s", (emp_id,)),
-            ("DELETE FROM clean_users WHERE employee_id=%s", (emp_id,)),
-            ("UPDATE employees SET supervisor_id=NULL WHERE supervisor_id=%s", (emp_id,)),
-            ("DELETE FROM employees WHERE id=%s", (emp_id,)),
+            ("attendance", "employee_id"),
+            ("evaluations", "employee_id"),
+            ("salaries", "employee_id"),
+            ("financial_transactions", "employee_id"),
+            ("leave_requests", "employee_id"),
+            ("penalties", "employee_id"),
+            ("overtime", "employee_id"),
+            ("payrolls", "employee_id"),
+            ("employee_loans", "employee_id"),
+            ("meal_deductions", "employee_id"),
+            ("labor_monthly_costs", "employee_id"),
+            ("bank_info", "employee_id"),
+            ("clean_users", "employee_id"),
         ]
-        for sql, params in tables_to_clean:
+        for table, col in tables_to_clean:
             try:
-                cur.execute(sql, params)
+                cur.execute(f"DELETE FROM {table} WHERE {col}=%s", (emp_id,))
             except Exception:
-                conn.rollback()
-                cur = conn.cursor()
+                pass
+
+        try:
+            cur.execute("DELETE FROM cleaning_evaluations WHERE evaluated_employee_id=%s OR evaluator_id=%s", (emp_id, emp_id))
+        except Exception:
+            pass
+        try:
+            cur.execute("DELETE FROM supervisor_evaluations WHERE supervisor_id=%s OR evaluator_id=%s", (emp_id, emp_id))
+        except Exception:
+            pass
+        try:
+            cur.execute("UPDATE employees SET supervisor_id=NULL WHERE supervisor_id=%s", (emp_id,))
+        except Exception:
+            pass
+
+        cur.execute("DELETE FROM employees WHERE id=%s", (emp_id,))
         conn.commit()
     return jsonify({'success': True, 'message': 'تم حذف الموظف بنجاح'})
 

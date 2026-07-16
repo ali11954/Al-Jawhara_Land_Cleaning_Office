@@ -1,38 +1,45 @@
-import psycopg2
-conn = psycopg2.connect('postgresql://postgres.zyicslsosozivkilpylb:ali1993mubark@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require&connect_timeout=15')
-cur = conn.cursor()
+import requests, json, time
 
-# Check all foreign keys referencing employees
-cur.execute("""
-    SELECT tc.table_name, kcu.column_name, ccu.table_name as ref_table, ccu.column_name as ref_column, c.conname
-    FROM information_schema.table_constraints tc
-    JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
-    JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name = tc.constraint_name
-    JOIN pg_constraint c ON c.conname = tc.constraint_name
-    WHERE tc.constraint_type = 'FOREIGN KEY' AND ccu.table_name = 'employees'
-""")
-print("=== Foreign keys referencing employees ===")
-for r in cur.fetchall():
-    print(f"  {r[0]}.{r[1]} -> {r[2]}.{r[3]} (constraint: {r[4]})")
+print("Waiting 40s for Render deploy...")
+time.sleep(40)
 
-# Check what happens when we try to delete employee 1
-# Let's find a test employee first
-cur.execute("SELECT id, full_name FROM employees WHERE full_name LIKE '%تجريبي%' OR full_name LIKE '%test%' LIMIT 5")
-print("\n=== Test employees ===")
-for r in cur.fetchall():
-    print(f"  id={r[0]} name={r[1]}")
+r = requests.post("https://al-jawhara-app.onrender.com/api/auth/login", json={"username": "owner", "password": "owner123"})
+token = r.json()["data"]["token"]
+h = {"Authorization": f"Bearer {token}"}
 
-# Try direct delete on a test employee
-cur.execute("SELECT id FROM employees ORDER BY id DESC LIMIT 1")
-test_id = cur.fetchone()[0]
-print(f"\nTrying to delete employee {test_id}...")
+# Create test employee
+r1 = requests.post("https://al-jawhara-app.onrender.com/api/employees", json={
+    "name": "موظف حذف تجريبي",
+    "code": "DEL001",
+    "card_number": "999",
+    "phone": "777",
+    "job_title": "عامل",
+    "company_id": 1,
+    "salary": 84000,
+    "base_salary": 60000,
+    "is_active": True,
+}, headers=h, timeout=15)
+print(f"CREATE: {r1.status_code}")
+if r1.status_code != 201:
+    print(r1.json())
+    exit()
 
-try:
-    cur.execute("DELETE FROM employees WHERE id = %s", (test_id,))
-    conn.commit()
-    print(f"  SUCCESS - deleted employee {test_id}")
-except Exception as e:
-    conn.rollback()
-    print(f"  FAILED: {e}")
+new_id = r1.json()['data']['id']
+print(f"Created ID: {new_id}")
 
-conn.close()
+# Add attendance for this employee
+r2 = requests.post("https://al-jawhara-app.onrender.com/api/attendance", json={
+    "employee_id": new_id,
+    "date": "2026-07-16",
+    "attendance_status": "present",
+}, headers=h, timeout=15)
+print(f"Add attendance: {r2.status_code}")
+
+# Try DELETE
+r3 = requests.delete(f"https://al-jawhara-app.onrender.com/api/employees/{new_id}", headers=h, timeout=15)
+print(f"\nDELETE: {r3.status_code}")
+print(json.dumps(r3.json(), ensure_ascii=False)[:300])
+
+# Verify deleted
+r4 = requests.get(f"https://al-jawhara-app.onrender.com/api/employees/{new_id}", headers=h, timeout=15)
+print(f"GET after delete: {r4.status_code}")
