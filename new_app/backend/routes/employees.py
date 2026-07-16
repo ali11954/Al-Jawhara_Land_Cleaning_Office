@@ -240,7 +240,37 @@ def update_employee(current_user, emp_id):
 @token_required
 def delete_employee(current_user, emp_id):
     with get_db() as conn:
-        execute(conn, "DELETE FROM employees WHERE id=%s", (emp_id,))
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM employees WHERE id=%s", (emp_id,))
+        if not cur.fetchone():
+            return jsonify({'success': False, 'message': 'الموظف غير موجود'}), 404
+
+        tables_to_clean = [
+            ("DELETE FROM attendance WHERE employee_id=%s", (emp_id,)),
+            ("DELETE FROM evaluations WHERE employee_id=%s", (emp_id,)),
+            ("DELETE FROM salaries WHERE employee_id=%s", (emp_id,)),
+            ("DELETE FROM financial_transactions WHERE employee_id=%s", (emp_id,)),
+            ("DELETE FROM leave_requests WHERE employee_id=%s", (emp_id,)),
+            ("DELETE FROM penalties WHERE employee_id=%s", (emp_id,)),
+            ("DELETE FROM overtime WHERE employee_id=%s", (emp_id,)),
+            ("DELETE FROM payrolls WHERE employee_id=%s", (emp_id,)),
+            ("DELETE FROM employee_loans WHERE employee_id=%s", (emp_id,)),
+            ("DELETE FROM meal_deductions WHERE employee_id=%s", (emp_id,)),
+            ("DELETE FROM labor_monthly_costs WHERE employee_id=%s", (emp_id,)),
+            ("DELETE FROM cleaning_evaluations WHERE evaluated_employee_id=%s OR evaluator_id=%s", (emp_id, emp_id)),
+            ("DELETE FROM supervisor_evaluations WHERE supervisor_id=%s OR evaluator_id=%s", (emp_id, emp_id)),
+            ("DELETE FROM bank_info WHERE employee_id=%s", (emp_id,)),
+            ("DELETE FROM clean_users WHERE employee_id=%s", (emp_id,)),
+            ("UPDATE employees SET supervisor_id=NULL WHERE supervisor_id=%s", (emp_id,)),
+            ("DELETE FROM employees WHERE id=%s", (emp_id,)),
+        ]
+        for sql, params in tables_to_clean:
+            try:
+                cur.execute(sql, params)
+            except Exception:
+                conn.rollback()
+                cur = conn.cursor()
+        conn.commit()
     return jsonify({'success': True, 'message': 'تم حذف الموظف بنجاح'})
 
 
