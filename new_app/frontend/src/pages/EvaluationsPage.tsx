@@ -60,9 +60,9 @@ export default function EvaluationsPage() {
 
   useEffect(() => { loadData(); }, []);
 
-  const loadCriteria = (jobTitle: string) => {
-    if (!jobTitle) { setCriteria([]); return; }
-    api.get(`/evaluation-criteria?job_title=${encodeURIComponent(jobTitle)}`)
+  const loadCriteria = (regionId: number) => {
+    if (!regionId) { setCriteria([]); return; }
+    api.get(`/evaluation-criteria?region_id=${regionId}`)
       .then((r) => {
         const c = r.data.data || [];
         setCriteria(c);
@@ -76,7 +76,13 @@ export default function EvaluationsPage() {
   const handleEmployeeSelect = (empId: string) => {
     const emp = employees.find((e: any) => e.id === Number(empId));
     setForm((f: any) => ({ ...f, employee_id: empId, criteria: [], region_id: '', location_id: '' }));
-    if (emp?.job_title) loadCriteria(emp.job_title);
+    setCriteria([]);
+  };
+
+  const handleRegionSelect = (regionId: string) => {
+    setForm((f: any) => ({ ...f, region_id: regionId, location_id: '', criteria: [] }));
+    setCriteria([]);
+    if (regionId) loadCriteria(Number(regionId));
   };
 
   const updateCriterionScore = (criterionId: number, score: number) => {
@@ -266,9 +272,9 @@ export default function EvaluationsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">المنطقة</label>
-              <select value={form.region_id} onChange={(e) => setForm({ ...form, region_id: e.target.value, location_id: '' })} className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm">
-                <option value="">{selectedEmployee?.company_id ? 'اختر المنطقة' : 'اختر الموظف أولاً'}</option>
+              <label className="block text-sm font-medium text-gray-700 mb-1">المنطقة *</label>
+              <select value={form.region_id} onChange={(e) => handleRegionSelect(e.target.value)} className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm">
+                <option value="">اختر المنطقة</option>
                 {companyRegions.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
             </div>
@@ -287,7 +293,7 @@ export default function EvaluationsPage() {
             <div className="border-t pt-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-medium text-gray-900">
-                  معايير التقييم — {form.employee_id && employees.find((e: any) => e.id === Number(form.employee_id))?.job_title}
+                  معايير التقييم — {regions.find((r: any) => r.id === Number(form.region_id))?.name || ''}
                 </h3>
                 <div className="flex items-center gap-3">
                   <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${allCriteriaScored ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>

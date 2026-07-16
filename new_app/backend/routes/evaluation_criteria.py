@@ -9,8 +9,11 @@ eval_criteria_bp = Blueprint('eval_criteria', __name__)
 @token_required
 def list_criteria(current_user):
     job_title = request.args.get('job_title')
+    region_id = request.args.get('region_id', type=int)
     with get_db() as conn:
-        if job_title:
+        if region_id:
+            rows = fetch_all(conn, "SELECT * FROM evaluation_criteria WHERE region_id=%s ORDER BY id", (region_id,))
+        elif job_title:
             rows = fetch_all(conn, "SELECT * FROM evaluation_criteria WHERE job_title=%s ORDER BY id", (job_title,))
         else:
             rows = fetch_all(conn, "SELECT * FROM evaluation_criteria ORDER BY id")

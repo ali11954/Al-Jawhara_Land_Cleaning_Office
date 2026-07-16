@@ -8,7 +8,7 @@ employees_bp = Blueprint('employees', __name__)
 EMPLOYEE_COLUMNS = """id, code, full_name, phone, address, card_number, position, salary, is_active,
     created_at, updated_at, is_resident, base_salary, daily_allowance, clothing_allowance,
     health_card_allowance, company_id, supervisor_id, qualification, specialization,
-    hire_date, user_id"""
+    hire_date, user_id, region"""
 
 
 def _emp_to_dict(row):
@@ -54,6 +54,7 @@ def _emp_to_dict(row):
         'daily_allowance': row.get('daily_allowance'),
         'clothing_allowance': row.get('clothing_allowance'),
         'health_card_allowance': row.get('health_card_allowance'),
+        'region': row.get('region'),
     }
 
 
@@ -158,18 +159,19 @@ def create_employee(current_user):
         except (TypeError, ValueError):
             health_card_allowance = 0
         hire_date = data.get('hire_date') or datetime.utcnow().strftime('%Y-%m-%d')
+        region = str(data.get('region', '') or '')
 
         with get_db() as conn:
             cur = conn.cursor()
             cur.execute(
                 """INSERT INTO employees (code, full_name, phone, address, card_number, position, salary, base_salary,
                    is_active, is_resident, company_id, supervisor_id, qualification, specialization,
-                   daily_allowance, clothing_allowance, health_card_allowance, hire_date, created_at)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                   daily_allowance, clothing_allowance, health_card_allowance, hire_date, region, created_at)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                    RETURNING id""",
                 (code, emp_name, phone, address, card_number, position, salary, base_salary,
                  is_active, is_resident, company_id, supervisor_id, qualification, specialization,
-                 daily_allowance, clothing_allowance, health_card_allowance, hire_date))
+                 daily_allowance, clothing_allowance, health_card_allowance, hire_date, region))
             emp_id = cur.fetchone()[0]
             conn.commit()
 
