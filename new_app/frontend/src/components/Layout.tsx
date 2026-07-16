@@ -4,7 +4,7 @@ import {
   Home, Users, CalendarCheck, Building2, Star, DollarSign,
   BookOpen, Truck, BarChart3, Settings, LogOut, Menu, X,
   FileText, UserCog, FileCheck, Bell, Search, Plus, ClipboardList, Coins,
-  Calendar, Clock, User
+  Calendar, Clock, User, Grid3x3
 } from 'lucide-react';
 import api from '@/api/client';
 
@@ -12,6 +12,7 @@ const navItems = [
   { path: '/app', label: 'الرئيسية', icon: Home, roles: ['admin', 'owner', 'supervisor', 'accountant', 'viewer'] },
   { path: '/app/employees', label: 'الموظفين', icon: Users, roles: ['admin', 'owner', 'supervisor'] },
   { path: '/app/attendance', label: 'الحضور', icon: CalendarCheck, roles: ['admin', 'owner', 'supervisor'] },
+  { path: '/app/attendance-grid', label: 'التحضير الشجري', icon: Grid3x3, roles: ['admin', 'owner', 'supervisor'] },
   { path: '/app/companies', label: 'الشركات', icon: Building2, roles: ['admin', 'owner', 'supervisor', 'accountant'] },
   { path: '/app/contracts', label: 'العقود', icon: FileCheck, roles: ['admin', 'owner', 'supervisor'] },
   { path: '/app/invoices', label: 'الفواتير', icon: FileText, roles: ['admin', 'owner', 'supervisor', 'accountant'] },

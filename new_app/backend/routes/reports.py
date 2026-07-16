@@ -255,3 +255,99 @@ def reports_evaluations(current_user):
             ],
         }
     })
+
+
+@reports_bp.route('/api/reports/attendance-grid', methods=['GET'])
+@token_required
+def reports_attendance_grid(current_user):
+    year = request.args.get('year', type=int)
+    month = request.args.get('month', type=int)
+    company_id = request.args.get('company_id', type=int)
+
+    if not year or not month:
+        today = datetime.utcnow().date()
+        year = today.year
+        month = today.month
+
+    import calendar
+    days_in_month = calendar.monthrange(year, month)[1]
+
+    with get_db() as conn:
+        cur = conn.cursor()
+
+        q_emp = """SELECT e.id, e.full_name, e.code, e.company_id, COALESCE(c.name, 'بدون شركة') as company_name
+                   FROM employees e LEFT JOIN clean_companies c ON e.company_id = c.id
+                   WHERE e.is_active = true"""
+        params_emp = []
+        if current_user.role == 'supervisor':
+            if current_user.company_id:
+                q_emp += " AND e.company_id = %s"
+                params_emp.append(current_user.company_id)
+            if current_user.employee_id:
+                q_emp += " AND e.supervisor_id = %s"
+                params_emp.append(current_user.employee_id)
+        if company_id and current_user.role in ('admin', 'owner'):
+            q_emp += " AND e.company_id = %s"
+            params_emp.append(company_id)
+        q_emp += " ORDER BY e.company_id, e.full_name"
+        cur.execute(q_emp, tuple(params_emp))
+        employees = cur.fetchall()
+
+        date_from = f"{year}-{month:02d}-01"
+        date_to = f"{year}-{month:02d}-{days_in_month:02d}"
+        cur.execute(
+            """SELECT employee_id, EXTRACT(DAY FROM date)::int as day, status
+               FROM attendance WHERE date >= %s AND date <= %s""",
+            (date_from, date_to))
+        att_rows = cur.fetchall()
+
+    att_map = {}
+    for emp_id, day, status in att_rows:
+        if emp_id not in att_map:
+            att_map[emp_id] = {}
+        att_map[emp_id][day] = status
+
+    result = []
+    for emp in employees:
+        emp_id, full_name, code, emp_company_id, company_name = emp
+        days = {}
+        present_count = 0
+        absent_count = 0
+        late_count = 0
+        leave_count = 0
+        for d in range(1, days_in_month + 1):
+            status = att_map.get(emp_id, {}).get(d)
+            if status:
+                days[d] = status
+                if status == 'present':
+                    present_count += 1
+                elif status == 'late':
+                    late_count += 1
+                elif status in ('annual_leave', 'sick', 'unpaid_leave'):
+                    leave_count += 1
+            else:
+                days[d] = None
+                absent_count += 1
+
+        result.append({
+            'employee_id': emp_id,
+            'employee_name': full_name,
+            'employee_code': code,
+            'company_id': emp_company_id,
+            'company_name': company_name,
+            'days': days,
+            'present_count': present_count,
+            'absent_count': absent_count,
+            'late_count': late_count,
+            'leave_count': leave_count,
+        })
+
+    return jsonify({
+        'success': True,
+        'data': {
+            'year': year,
+            'month': month,
+            'days_in_month': days_in_month,
+            'employees': result,
+        }
+    })
