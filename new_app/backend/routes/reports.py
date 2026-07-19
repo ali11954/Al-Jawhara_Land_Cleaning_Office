@@ -562,6 +562,15 @@ def reports_attendance_detail(current_user):
     if not date_to:
         date_to = today.strftime('%Y-%m-%d')
 
+    dt_from = datetime.strptime(date_from, '%Y-%m-%d').date()
+    dt_to = datetime.strptime(date_to, '%Y-%m-%d').date()
+    working_days = 0
+    d = dt_from
+    while d <= dt_to:
+        if d.weekday() < 5:
+            working_days += 1
+        d += timedelta(days=1)
+
     with get_db() as conn:
         cur = conn.cursor()
 
@@ -639,6 +648,7 @@ def reports_attendance_detail(current_user):
             'employee_id': eid, 'employee_name': name, 'employee_code': code,
             'company_id': cid, 'company_name': cname,
             'total_days': 0, 'present': 0, 'late': 0, 'absent': 0, 'sick': 0, 'leave': 0,
+            'working_days': working_days,
         }
 
     for rec in records:
@@ -655,33 +665,41 @@ def reports_attendance_detail(current_user):
             elif s == 'sick':
                 employees_summary[eid]['sick'] += 1
 
+    for emp in employees_summary.values():
+        emp['absent'] = max(0, working_days - emp['present'] - emp['late'] - emp['sick'] - emp['leave'])
+
     companies_summary = {}
     for emp in employees_summary.values():
         cn = emp['company_name']
         if cn not in companies_summary:
-            companies_summary[cn] = {'company_name': cn, 'employee_count': 0, 'total_present': 0, 'total_late': 0, 'total_absent': 0, 'total_leave': 0}
+            companies_summary[cn] = {'company_name': cn, 'employee_count': 0, 'total_present': 0, 'total_late': 0, 'total_absent': 0, 'total_leave': 0, 'working_days': working_days}
         companies_summary[cn]['employee_count'] += 1
         companies_summary[cn]['total_present'] += emp['present']
         companies_summary[cn]['total_late'] += emp['late']
+        companies_summary[cn]['total_absent'] += emp['absent']
         companies_summary[cn]['total_leave'] += emp['leave']
 
     total_present = sum(e['present'] for e in employees_summary.values())
     total_late = sum(e['late'] for e in employees_summary.values())
     total_leave = sum(e['leave'] for e in employees_summary.values())
+    total_absent = sum(e['absent'] for e in employees_summary.values())
     total_records = len(records)
+    total_employees = len(all_emps)
 
     return jsonify({
         'success': True,
         'data': {
             'date_from': date_from,
             'date_to': date_to,
+            'working_days': working_days,
             'total_records': total_records,
-            'total_employees': len(all_emps),
+            'total_employees': total_employees,
             'summary': {
                 'total_present': total_present,
                 'total_late': total_late,
+                'total_absent': total_absent,
                 'total_leave': total_leave,
-                'attendance_rate': round((total_present + total_late) / total_records * 100, 1) if total_records > 0 else 0,
+                'attendance_rate': round((total_present + total_late) / (total_employees * working_days) * 100, 1) if total_employees * working_days > 0 else 0,
             },
             'employees_summary': list(employees_summary.values()),
             'companies_summary': list(companies_summary.values()),
