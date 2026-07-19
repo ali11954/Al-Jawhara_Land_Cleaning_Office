@@ -75,21 +75,29 @@ export default function AttendanceGridPage() {
 
   const handleExport = () => {
     if (!data) return;
-    let csv = 'الاسم,الكود,الشركة';
-    for (let d = 1; d <= daysInMonth; d++) csv += `,${d}`;
-    csv += ',حضور,غياب,تأخير,إجازات\n';
-    data.employees.forEach((emp: any) => {
-      csv += `${emp.employee_name},${emp.employee_code},${emp.company_name}`;
-      for (let d = 1; d <= daysInMonth; d++) {
-        csv += `,${STATUS_FULL_LABELS[emp.days[d]] || ''}`;
-      }
-      csv += `,${emp.present_count},${emp.absent_count},${emp.late_count},${emp.leave_count}\n`;
+    const headers = ['الاسم', 'الكود', 'الشركة'];
+    for (let d = 1; d <= daysInMonth; d++) headers.push(String(d));
+    headers.push('حضور', 'غياب', 'تأخير', 'إجازات');
+
+    const rows = data.employees.map((emp: any) => {
+      const row: string[] = [emp.employee_name, emp.employee_code, emp.company_name];
+      for (let d = 1; d <= daysInMonth; d++) row.push(STATUS_FULL_LABELS[emp.days[d]] || '—');
+      row.push(String(emp.present_count), String(emp.absent_count), String(emp.late_count), String(emp.leave_count));
+      return row;
     });
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+
+    const ths = headers.map(h => `<th style="background:#059669;color:white;padding:6px 8px;border:1px solid #065f46;font-size:10px;text-align:center;direction:rtl;white-space:nowrap;">${h}</th>`).join('');
+    const trs = rows.map((row, i) => {
+      const bg = i % 2 ? '#f0fdf4' : '#ffffff';
+      const tds = row.map(c => `<td style="padding:4px 6px;border:1px solid #d1d5db;font-size:10px;text-align:center;background:${bg};direction:rtl;white-space:nowrap;">${c}</td>`).join('');
+      return `<tr>${tds}</tr>`;
+    }).join('');
+    const html = `<html dir="rtl"><head><meta charset="UTF-8"><style>table{border-collapse:collapse;}</style></head><body><table border="1" cellpadding="0" cellspacing="0"><tr><td colspan="${headers.length}" style="background:#065f46;color:white;padding:10px;font-size:14px;font-weight:bold;text-align:center;">التحضير الشجري — ${year}/${month}</td></tr><tr>${ths}</tr>${trs}</table></body></html>`;
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `attendance-grid-${year}-${month}.csv`;
+    a.download = `attendance-grid-${year}-${month}.xls`;
     a.click();
     URL.revokeObjectURL(url);
   };

@@ -10,13 +10,30 @@ function fmt(n: number) { return (n || 0).toLocaleString('en'); }
 const STATUS_MAP: Record<string, string> = { present: 'حاضر', late: 'متأخر', absent: 'غائب', sick: 'مرضي', annual_leave: 'إجازة', unpaid_leave: 'إج. بدون راتب' };
 const STATUS_COLORS: Record<string, string> = { present: 'bg-green-100 text-green-700', late: 'bg-yellow-100 text-yellow-700', absent: 'bg-red-100 text-red-700', sick: 'bg-blue-100 text-blue-700', annual_leave: 'bg-purple-100 text-purple-700', unpaid_leave: 'bg-gray-100 text-gray-700' };
 
-function downloadCSV(filename: string, headers: string[], rows: string[][]) {
-  const bom = '\uFEFF';
-  const csvContent = bom + [headers.join(','), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+function downloadExcel(filename: string, title: string, headers: string[], rows: string[][]) {
+  const ths = headers.map(h => `<th style="background:#059669;color:white;padding:8px 12px;border:1px solid #065f46;font-weight:bold;font-size:11px;text-align:right;direction:rtl;">${h}</th>`).join('');
+  const trs = rows.map((row, i) => {
+    const bg = i % 2 ? '#f0fdf4' : '#ffffff';
+    const tds = row.map(c => `<td style="padding:6px 10px;border:1px solid #d1d5db;font-size:11px;text-align:right;background:${bg};direction:rtl;white-space:nowrap;">${c}</td>`).join('');
+    return `<tr>${tds}</tr>`;
+  }).join('');
+  const html = `<html dir="rtl" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+<head><meta charset="UTF-8">
+<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>${title}</x:Name></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+<style>table{border-collapse:collapse;}</style></head>
+<body><table border="1" cellpadding="0" cellspacing="0">
+<tr><td colspan="${headers.length}" style="background:#065f46;color:white;padding:10px;font-size:14px;font-weight:bold;text-align:center;">${title}</td></tr>
+<tr><td colspan="${headers.length}" style="padding:6px;font-size:10px;color:#666;text-align:center;">ارض الجوهرة لخدمات النظافة — التاريخ: ${new Date().toLocaleDateString('ar-EG')} — عدد السجلات: ${rows.length}</td></tr>
+<tr>${ths}</tr>${trs}
+</table></body></html>`;
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
+}
+
+function downloadCSV(filename: string, headers: string[], rows: string[][]) {
+  downloadExcel(filename.replace('.csv', '.xls'), 'تقرير الحضور', headers, rows);
 }
 
 function openPDF(title: string, headers: string[], rows: string[][], summaryItems?: { l: string; v: string; c?: string }[]) {
@@ -117,7 +134,7 @@ export default function AttendanceReportPage() {
     const totalLate = filteredEmployees.reduce((s: number, e: any) => s + e.late, 0);
     const totalLeave = filteredEmployees.reduce((s: number, e: any) => s + e.leave, 0);
     rows.push(['', 'الإجمالي', '', '', String(totalPresent), String(totalLate), String(totalLeave), '', '']);
-    downloadCSV(`attendance_report_${filters.date_from}_${filters.date_to}.csv`, headers, rows);
+    downloadCSV(`attendance_report_${filters.date_from}_${filters.date_to}.xls`, headers, rows);
   };
 
   const exportPDF = () => {

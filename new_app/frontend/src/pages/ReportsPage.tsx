@@ -366,11 +366,19 @@ export default function ReportsPage() {
               <div className="p-4 bg-primary-50 border-b flex items-center justify-between">
                 <h3 className="font-bold text-primary-800">قائمة الموظفين ({employees?.employees?.length || 0})</h3>
                 <Button size="sm" onClick={() => {
-                  const csv = employees?.employees?.map((e: any) => `${e.name},${e.job_title},${e.company_name},${e.salary}`).join('\n') || '';
-                  const blob = new Blob(['الاسم,الوظيفة,الشركة,الراتب\n' + csv], { type: 'text/csv;charset=utf-8;' });
+                  const headers = ['الاسم', 'الوظيفة', 'الشركة', 'الراتب'];
+                  const rows = employees?.employees?.map((e: any) => [e.name, e.job_title || '', e.company_name || '', e.salary ? e.salary.toLocaleString('en') : '']) || [];
+                  const ths = headers.map(h => `<th style="background:#059669;color:white;padding:8px 12px;border:1px solid #065f46;font-weight:bold;font-size:11px;text-align:right;direction:rtl;">${h}</th>`).join('');
+                  const trs = rows.map((row, i) => {
+                    const bg = i % 2 ? '#f0fdf4' : '#ffffff';
+                    const tds = row.map(c => `<td style="padding:6px 10px;border:1px solid #d1d5db;font-size:11px;text-align:right;background:${bg};direction:rtl;white-space:nowrap;">${c}</td>`).join('');
+                    return `<tr>${tds}</tr>`;
+                  }).join('');
+                  const html = `<html dir="rtl" xmlns:o="urn:schemas-microsoft-com:office:office"><head><meta charset="UTF-8"><style>table{border-collapse:collapse;}</style></head><body><table border="1" cellpadding="0" cellspacing="0"><tr><td colspan="4" style="background:#065f46;color:white;padding:10px;font-size:14px;font-weight:bold;text-align:center;">تقرير الموظفين — ارض الجوهرة</td></tr><tr>${ths}</tr>${trs}</table></body></html>`;
+                  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
                   const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a'); a.href = url; a.download = 'employees_report.csv'; a.click();
-                }}><Download className="w-3.5 h-3.5" /> تصدير CSV</Button>
+                  const a = document.createElement('a'); a.href = url; a.download = 'employees_report.xls'; a.click();
+                }}><Download className="w-3.5 h-3.5" /> تصدير Excel</Button>
               </div>
               <div className="overflow-x-auto max-h-96">
                 <table className="w-full text-sm">
