@@ -32,8 +32,8 @@ function downloadExcel(filename: string, title: string, headers: string[], rows:
   URL.revokeObjectURL(url);
 }
 
-function downloadCSV(filename: string, headers: string[], rows: string[][]) {
-  downloadExcel(filename.replace('.csv', '.xls'), 'تقرير الحضور', headers, rows);
+function downloadCSV(filename: string, title: string, headers: string[], rows: string[][]) {
+  downloadExcel(filename.replace('.csv', '.xls'), title, headers, rows);
 }
 
 function openPDF(title: string, headers: string[], rows: string[][], summaryItems?: { l: string; v: string; c?: string }[]) {
@@ -123,41 +123,76 @@ export default function AttendanceReportPage() {
 
   const empDetailRecords = (empId: number) => filteredRecords.filter((r: any) => r.employee_id === empId);
 
+  const STATUS_LABEL: Record<string, string> = { present: 'حاضر', late: 'متأخر', absent: 'غائب', sick: 'مرضي', annual_leave: 'إجازة', unpaid_leave: 'إج. بدون راتب' };
+
   const exportExcel = () => {
-    const headers = ['#', 'الاسم', 'الكود', 'الشركة', 'أيام العمل', 'حضور', 'تأخر', 'إجازة', 'غياب', 'نسبة الحضور'];
-    const rows = filteredEmployees.map((e: any, i: number) => {
-      const rate = e.working_days > 0 ? Math.round((e.present + e.late) / e.working_days * 100) : 0;
-      return [String(i + 1), e.employee_name, e.employee_code, e.company_name,
-        String(e.working_days), String(e.present), String(e.late), String(e.leave), String(e.absent), `${rate}%`];
-    });
-    const totalPresent = filteredEmployees.reduce((s: number, e: any) => s + e.present, 0);
-    const totalLate = filteredEmployees.reduce((s: number, e: any) => s + e.late, 0);
-    const totalLeave = filteredEmployees.reduce((s: number, e: any) => s + e.leave, 0);
-    const totalAbsent = filteredEmployees.reduce((s: number, e: any) => s + e.absent, 0);
-    rows.push(['', 'الإجمالي', '', '', '', String(totalPresent), String(totalLate), String(totalLeave), String(totalAbsent), '']);
-    downloadCSV(`attendance_report_${filters.date_from}_${filters.date_to}.xls`, headers, rows);
+    const title = view === 'summary' ? 'ملخص الحضور حسب الموظف' : 'تفاصيل الحضور اليومية';
+    const filename = view === 'summary'
+      ? `attendance_summary_${filters.date_from}_${filters.date_to}.xls`
+      : `attendance_detail_${filters.date_from}_${filters.date_to}.xls`;
+
+    if (view === 'summary') {
+      const headers = ['#', 'الاسم', 'الكود', 'الشركة', 'أيام العمل', 'حضور', 'تأخر', 'إجازة', 'غياب', 'نسبة الحضور'];
+      const rows = filteredEmployees.map((e: any, i: number) => {
+        const rate = e.working_days > 0 ? Math.round((e.present + e.late) / e.working_days * 100) : 0;
+        return [String(i + 1), e.employee_name, e.employee_code, e.company_name,
+          String(e.working_days), String(e.present), String(e.late), String(e.leave), String(e.absent), `${rate}%`];
+      });
+      const tp = filteredEmployees.reduce((s: number, e: any) => s + e.present, 0);
+      const tl = filteredEmployees.reduce((s: number, e: any) => s + e.late, 0);
+      const tv = filteredEmployees.reduce((s: number, e: any) => s + e.leave, 0);
+      const ta = filteredEmployees.reduce((s: number, e: any) => s + e.absent, 0);
+      rows.push(['', 'الإجمالي', '', '', '', String(tp), String(tl), String(tv), String(ta), '']);
+      downloadCSV(filename, title, headers, rows);
+    } else {
+      const headers = ['#', 'الموظف', 'الكود', 'الشركة', 'التاريخ', 'الحالة', 'الفترة', 'وقت الحضور', 'وقت الانصراف', 'ملاحظات'];
+      const rows = filteredRecords.map((rec: any, i: number) => [
+        String(i + 1), rec.employee_name, rec.employee_code, rec.company_name,
+        rec.date, STATUS_LABEL[rec.status] || rec.status,
+        rec.shift_type === 'morning' ? 'صباحي' : rec.shift_type === 'evening' ? 'مسائي' : rec.shift_type || '—',
+        rec.check_in || '—', rec.check_out || '—', rec.notes || '',
+      ]);
+      downloadCSV(filename, title, headers, rows);
+    }
   };
 
   const exportPDF = () => {
-    const headers = ['#', 'الاسم', 'الكود', 'الشركة', 'أيام العمل', 'حضور', 'تأخر', 'إجازة', 'غياب', 'النسبة'];
-    const rows = filteredEmployees.map((e: any, i: number) => {
-      const rate = e.working_days > 0 ? Math.round((e.present + e.late) / e.working_days * 100) : 0;
-      return [String(i + 1), e.employee_name, e.employee_code, e.company_name,
-        String(e.working_days), String(e.present), String(e.late), String(e.leave), String(e.absent), `${rate}%`];
-    });
-    const totalPresent = filteredEmployees.reduce((s: number, e: any) => s + e.present, 0);
-    const totalLate = filteredEmployees.reduce((s: number, e: any) => s + e.late, 0);
-    const totalLeave = filteredEmployees.reduce((s: number, e: any) => s + e.leave, 0);
-    const totalAbsent = filteredEmployees.reduce((s: number, e: any) => s + e.absent, 0);
-    const summaryItems = [
-      { l: 'أيام العمل', v: String(data?.working_days || 0), c: '#6b7280' },
-      { l: 'إجمالي الحضور', v: fmt(totalPresent), c: '#059669' },
-      { l: 'إجمالي التأخر', v: fmt(totalLate), c: '#d97706' },
-      { l: 'إجمالي الغياب', v: fmt(totalAbsent), c: '#dc2626' },
-      { l: 'إجمالي الإجازات', v: fmt(totalLeave), c: '#7c3aed' },
-      { l: 'نسبة الحضور', v: `${data?.summary?.attendance_rate || 0}%`, c: '#2563eb' },
-    ];
-    openPDF(`تقرير الحضور — ${filters.date_from} إلى ${filters.date_to}`, headers, rows, summaryItems);
+    const title = view === 'summary' ? 'ملخص الحضور حسب الموظف' : 'تفاصيل الحضور اليومية';
+
+    if (view === 'summary') {
+      const headers = ['#', 'الاسم', 'الكود', 'الشركة', 'أيام العمل', 'حضور', 'تأخر', 'إجازة', 'غياب', 'النسبة'];
+      const rows = filteredEmployees.map((e: any, i: number) => {
+        const rate = e.working_days > 0 ? Math.round((e.present + e.late) / e.working_days * 100) : 0;
+        return [String(i + 1), e.employee_name, e.employee_code, e.company_name,
+          String(e.working_days), String(e.present), String(e.late), String(e.leave), String(e.absent), `${rate}%`];
+      });
+      const tp = filteredEmployees.reduce((s: number, e: any) => s + e.present, 0);
+      const tl = filteredEmployees.reduce((s: number, e: any) => s + e.late, 0);
+      const tv = filteredEmployees.reduce((s: number, e: any) => s + e.leave, 0);
+      const ta = filteredEmployees.reduce((s: number, e: any) => s + e.absent, 0);
+      const summaryItems = [
+        { l: 'أيام العمل', v: String(data?.working_days || 0), c: '#6b7280' },
+        { l: 'الحضور', v: fmt(tp), c: '#059669' },
+        { l: 'التأخر', v: fmt(tl), c: '#d97706' },
+        { l: 'الغياب', v: fmt(ta), c: '#dc2626' },
+        { l: 'الإجازات', v: fmt(tv), c: '#7c3aed' },
+        { l: 'نسبة الحضور', v: `${data?.summary?.attendance_rate || 0}%`, c: '#2563eb' },
+      ];
+      openPDF(`تقرير ${title} — ${filters.date_from} إلى ${filters.date_to}`, headers, rows, summaryItems);
+    } else {
+      const headers = ['#', 'الموظف', 'الكود', 'الشركة', 'التاريخ', 'الحالة', 'الفترة', 'وقت الحضور', 'وقت الانصراف', 'ملاحظات'];
+      const rows = filteredRecords.map((rec: any, i: number) => [
+        String(i + 1), rec.employee_name, rec.employee_code, rec.company_name,
+        rec.date, STATUS_LABEL[rec.status] || rec.status,
+        rec.shift_type === 'morning' ? 'صباحي' : rec.shift_type === 'evening' ? 'مسائي' : rec.shift_type || '—',
+        rec.check_in || '—', rec.check_out || '—', rec.notes || '',
+      ]);
+      const summaryItems = [
+        { l: 'إجمالي السجلات', v: String(filteredRecords.length), c: '#2563eb' },
+        { l: 'الفترة', v: `${filters.date_from} إلى ${filters.date_to}`, c: '#6b7280' },
+      ];
+      openPDF(`تقرير ${title} — ${filters.date_from} إلى ${filters.date_to}`, headers, rows, summaryItems);
+    }
   };
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-3 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" /></div>;
