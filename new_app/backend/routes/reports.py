@@ -548,6 +548,149 @@ def reports_attendance_grid(current_user):
     })
 
 
+@reports_bp.route('/api/reports/attendance-detail', methods=['GET'])
+@token_required
+def reports_attendance_detail(current_user):
+    company_id = request.args.get('company_id', type=int)
+    employee_id = request.args.get('employee_id', type=int)
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+
+    today = datetime.utcnow().date()
+    if not date_from:
+        date_from = today.strftime('%Y-%m-01')
+    if not date_to:
+        date_to = today.strftime('%Y-%m-%d')
+
+    with get_db() as conn:
+        cur = conn.cursor()
+
+        q = """SELECT a.id, a.employee_id, CAST(a.date AS TEXT) as att_date, a.status,
+               a.shift_type, a.check_in, a.check_out, a.notes,
+               e.full_name, e.code, e.position,
+               e.company_id, COALESCE(c.name, 'بدون شركة') as company_name
+               FROM attendance a JOIN employees e ON a.employee_id = e.id
+               LEFT JOIN clean_companies c ON e.company_id = c.id
+               WHERE a.date >= %s AND a.date <= %s AND e.is_active = true"""
+        params = [date_from, date_to]
+
+        if current_user.role == 'supervisor':
+            if current_user.company_id:
+                q += " AND e.company_id = %s"
+                params.append(current_user.company_id)
+            if current_user.employee_id:
+                q += " AND e.supervisor_id = %s"
+                params.append(current_user.employee_id)
+        if company_id and current_user.role in ('admin', 'owner'):
+            q += " AND e.company_id = %s"
+            params.append(company_id)
+        if employee_id:
+            q += " AND a.employee_id = %s"
+            params.append(employee_id)
+
+        q += " ORDER BY a.date DESC, e.company_id, e.full_name"
+        cur.execute(q, tuple(params))
+        rows = cur.fetchall()
+
+        emp_q = """SELECT e.id, e.full_name, e.code, e.company_id,
+                   COALESCE(c.name, 'بدون شركة') as company_name
+                   FROM employees e LEFT JOIN clean_companies c ON e.company_id = c.id
+                   WHERE e.is_active = true"""
+        emp_params = []
+        if current_user.role == 'supervisor':
+            if current_user.company_id:
+                emp_q += " AND e.company_id = %s"
+                emp_params.append(current_user.company_id)
+        if company_id and current_user.role in ('admin', 'owner'):
+            emp_q += " AND e.company_id = %s"
+            emp_params.append(company_id)
+        if employee_id:
+            emp_q += " AND e.id = %s"
+            emp_params.append(employee_id)
+        emp_q += " ORDER BY e.full_name"
+        cur.execute(emp_q, tuple(emp_params))
+        all_emps = cur.fetchall()
+
+    records = []
+    for r in rows:
+        records.append({
+            'id': r[0],
+            'employee_id': r[1],
+            'date': r[2],
+            'status': r[3],
+            'shift_type': r[4],
+            'check_in': str(r[5]) if r[5] else None,
+            'check_out': str(r[6]) if r[6] else None,
+            'notes': r[7] or '',
+            'employee_name': r[8],
+            'employee_code': r[9],
+            'position': r[10],
+            'company_id': r[11],
+            'company_name': r[12],
+        })
+
+    status_map = {'present': 'حاضر', 'late': 'متأخر', 'absent': 'غائب', 'sick': 'مرضي',
+                  'annual_leave': 'إجازة', 'unpaid_leave': 'إجازة بدون راتب'}
+
+    employees_summary = {}
+    for emp in all_emps:
+        eid, name, code, cid, cname = emp
+        employees_summary[eid] = {
+            'employee_id': eid, 'employee_name': name, 'employee_code': code,
+            'company_id': cid, 'company_name': cname,
+            'total_days': 0, 'present': 0, 'late': 0, 'absent': 0, 'sick': 0, 'leave': 0,
+        }
+
+    for rec in records:
+        eid = rec['employee_id']
+        if eid in employees_summary:
+            employees_summary[eid]['total_days'] += 1
+            s = rec['status']
+            if s == 'present':
+                employees_summary[eid]['present'] += 1
+            elif s == 'late':
+                employees_summary[eid]['late'] += 1
+            elif s in ('annual_leave', 'unpaid_leave'):
+                employees_summary[eid]['leave'] += 1
+            elif s == 'sick':
+                employees_summary[eid]['sick'] += 1
+
+    companies_summary = {}
+    for emp in employees_summary.values():
+        cn = emp['company_name']
+        if cn not in companies_summary:
+            companies_summary[cn] = {'company_name': cn, 'employee_count': 0, 'total_present': 0, 'total_late': 0, 'total_absent': 0, 'total_leave': 0}
+        companies_summary[cn]['employee_count'] += 1
+        companies_summary[cn]['total_present'] += emp['present']
+        companies_summary[cn]['total_late'] += emp['late']
+        companies_summary[cn]['total_leave'] += emp['leave']
+
+    total_present = sum(e['present'] for e in employees_summary.values())
+    total_late = sum(e['late'] for e in employees_summary.values())
+    total_leave = sum(e['leave'] for e in employees_summary.values())
+    total_records = len(records)
+
+    return jsonify({
+        'success': True,
+        'data': {
+            'date_from': date_from,
+            'date_to': date_to,
+            'total_records': total_records,
+            'total_employees': len(all_emps),
+            'summary': {
+                'total_present': total_present,
+                'total_late': total_late,
+                'total_leave': total_leave,
+                'attendance_rate': round((total_present + total_late) / total_records * 100, 1) if total_records > 0 else 0,
+            },
+            'employees_summary': list(employees_summary.values()),
+            'companies_summary': list(companies_summary.values()),
+            'records': records,
+            'status_map': status_map,
+        }
+    })
+
+
 @reports_bp.route('/api/reports/contractor-profit', methods=['GET'])
 @token_required
 def reports_contractor_profit(current_user):
