@@ -12,7 +12,12 @@ def list_plans(current_user):
     with get_db() as conn:
         plans = fetch_all(conn, "SELECT * FROM work_plans ORDER BY created_at DESC")
         for p in plans:
-            p['tasks'] = fetch_all(conn, "SELECT * FROM work_plan_tasks WHERE plan_id=%s", (p['id'],))
+            tasks = fetch_all(conn, "SELECT * FROM work_plan_tasks WHERE plan_id=%s", (p['id'],))
+            p['tasks'] = tasks
+            total = len(tasks)
+            completed = sum(1 for t in tasks if t.get('is_completed'))
+            p['completed_tasks'] = completed
+            p['progress'] = round((completed / total * 100)) if total > 0 else 0
     return jsonify({'success': True, 'data': plans})
 
 
@@ -102,7 +107,21 @@ def delete_task(current_user, task_id):
 @work_plans_bp.route('/api/work-plans/tasks/<int:task_id>/complete', methods=['POST'])
 @token_required
 def complete_task(current_user, task_id):
+    data = request.get_json() or {}
     with get_db() as conn:
-        execute(conn, "UPDATE work_plan_tasks SET status='completed', completed_at=%s WHERE id=%s",
-                (datetime.utcnow().isoformat(), task_id))
+        cur = conn.cursor()
+        execute(conn,
+            "UPDATE work_plan_tasks SET is_completed=true, completed_at=%s, completed_by=%s, evaluation_score=%s, evaluation_notes=%s WHERE id=%s",
+            (datetime.utcnow().isoformat(), current_user.id, data.get('evaluation_score'), data.get('evaluation_notes', ''), task_id))
+        cur.execute("SELECT plan_id FROM work_plan_tasks WHERE id=%s", (task_id,))
+        row = cur.fetchone()
+        if row:
+            plan_id = row[0]
+            cur.execute("SELECT COUNT(*) FROM work_plan_tasks WHERE plan_id=%s", (plan_id,))
+            total = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM work_plan_tasks WHERE plan_id=%s AND is_completed=true", (plan_id,))
+            done = cur.fetchone()[0]
+            progress = round(done / total * 100) if total > 0 else 0
+            execute(conn, "UPDATE work_plans SET progress=%s, status=%s WHERE id=%s",
+                    (progress, 'completed' if done == total else 'in_progress' if done > 0 else 'pending', plan_id))
     return jsonify({'success': True, 'message': 'Task completed'})
