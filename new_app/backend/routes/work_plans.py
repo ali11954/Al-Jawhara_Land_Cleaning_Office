@@ -24,10 +24,17 @@ def create_plan(current_user):
         return jsonify({'success': False, 'message': 'title is required'}), 400
     with get_db() as conn:
         pid = execute(conn,
-            "INSERT INTO work_plans (title, description, company_id, region_id, location_id, assigned_to, status, created_by) "
-            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
-            (data['title'], data.get('description', ''), data.get('company_id'), data.get('region_id'),
+            "INSERT INTO work_plans (title, description, plan_type, plan_date, company_id, region_id, location_id, assigned_to, status, created_by) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+            (data['title'], data.get('description', ''), data.get('plan_type', 'daily'), data.get('plan_date'),
+             data.get('company_id'), data.get('region_id'),
              data.get('location_id'), data.get('assigned_to'), data.get('status', 'pending'), current_user.id))
+        if pid and data.get('tasks'):
+            for t in data['tasks']:
+                if t.get('title'):
+                    execute(conn,
+                        "INSERT INTO work_plan_tasks (plan_id, title, description, assigned_to, priority) VALUES (%s,%s,%s,%s,%s)",
+                        (pid, t['title'], t.get('description', ''), t.get('assigned_to'), t.get('priority', 'normal')))
     return jsonify({'success': True, 'data': {'id': pid}, 'message': 'Work plan created'}), 201
 
 
