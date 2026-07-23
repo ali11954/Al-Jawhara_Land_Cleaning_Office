@@ -735,7 +735,7 @@ export default function ReportsPage() {
                 <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
                   <CardContent className="p-5 text-center">
                     <TrendingUp className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-green-700">{evaluations.avg_score}/10</p>
+                    <p className="text-2xl font-bold text-green-700">{evaluations.avg_score}/100</p>
                     <p className="text-sm text-green-600">المتوسط — {evaluations.avg_rating}</p>
                     <ChangeBadge current={evaluations.avg_score || 0} prev={evaluationsComp?.avg_score || 0} />
                   </CardContent>
@@ -887,10 +887,10 @@ export default function ReportsPage() {
                             <td className="px-4 py-3 text-center">{emp.eval_count}</td>
                             <td className="px-4 py-3 text-center">
                               <span className={`font-bold ${
-                                emp.avg_score >= 9 ? 'text-green-600' :
-                                emp.avg_score >= 7 ? 'text-blue-600' :
-                                emp.avg_score >= 5 ? 'text-yellow-600' :
-                                emp.avg_score >= 3 ? 'text-orange-600' : 'text-red-600'
+                                emp.avg_score >= 90 ? 'text-green-600' :
+                                emp.avg_score >= 70 ? 'text-blue-600' :
+                                emp.avg_score >= 50 ? 'text-yellow-600' :
+                                emp.avg_score >= 30 ? 'text-orange-600' : 'text-red-600'
                               }`}>
                                 {emp.avg_score}
                               </span>
@@ -929,8 +929,8 @@ export default function ReportsPage() {
                       </div>
                       <div className="flex items-center gap-4">
                         <span className="text-sm text-gray-600">{comp.total_evaluations} تقييم</span>
-                        <span className={`text-sm font-bold ${comp.avg_score >= 7 ? 'text-green-600' : comp.avg_score >= 5 ? 'text-yellow-600' : 'text-red-600'}`}>
-                          المتوسط: {comp.avg_score}/10 — {comp.avg_rating}
+                        <span className={`text-sm font-bold ${comp.avg_score >= 70 ? 'text-green-600' : comp.avg_score >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          المتوسط: {comp.avg_score}/100 — {comp.avg_rating}
                         </span>
                       </div>
                     </div>

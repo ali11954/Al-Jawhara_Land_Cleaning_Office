@@ -78,7 +78,7 @@ def reports_dashboard(current_user):
             work_plans_in_progress = safe_count(cur, "SELECT COUNT(*) FROM work_plans WHERE status='in_progress'")
             work_plans_completed = safe_count(cur, "SELECT COUNT(*) FROM work_plans WHERE status='completed'")
             wp_tasks_total = safe_count(cur, "SELECT COUNT(*) FROM work_plan_tasks")
-            wp_tasks_completed = safe_count(cur, "SELECT COUNT(*) FROM work_plan_tasks WHERE status='completed'")
+            wp_tasks_completed = safe_count(cur, "SELECT COUNT(*) FROM work_plan_tasks WHERE is_completed=true")
 
         return jsonify({
             'success': True,

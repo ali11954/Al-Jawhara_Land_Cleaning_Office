@@ -6,6 +6,9 @@ from datetime import datetime
 work_plans_bp = Blueprint('work_plans', __name__)
 
 
+TYPE_NAMES = {'daily': 'يومي', 'monthly': 'شهري', 'yearly': 'سنوي'}
+STATUS_NAMES = {'pending': 'قيد الانتظار', 'in_progress': 'قيد التنفيذ', 'completed': 'مكتملة', 'cancelled': 'ملغاة'}
+
 @work_plans_bp.route('/api/work-plans', methods=['GET'])
 @token_required
 def list_plans(current_user):
@@ -16,8 +19,11 @@ def list_plans(current_user):
             p['tasks'] = tasks
             total = len(tasks)
             completed = sum(1 for t in tasks if t.get('is_completed'))
+            p['tasks_count'] = total
             p['completed_tasks'] = completed
             p['progress'] = round((completed / total * 100)) if total > 0 else 0
+            p['plan_type_name'] = TYPE_NAMES.get(p.get('plan_type', ''), p.get('plan_type', ''))
+            p['status_name'] = STATUS_NAMES.get(p.get('status', ''), p.get('status', ''))
     return jsonify({'success': True, 'data': plans})
 
 

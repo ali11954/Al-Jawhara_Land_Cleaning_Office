@@ -376,7 +376,7 @@ export default function DashboardPage() {
                   <TrendingUp className="w-5 h-5 text-green-600" />
                 </div>
               </div>
-              <p className="text-2xl font-bold text-green-700">{reportEvaluations.avg_score}/10</p>
+              <p className="text-2xl font-bold text-green-700">{reportEvaluations.avg_score}/100</p>
               <p className="text-sm text-green-600 mt-1">متوسط التقييم — {reportEvaluations.avg_rating}</p>
             </div>
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-100">
