@@ -93,6 +93,50 @@ def create_attendance(current_user):
     return jsonify({'success': True, 'message': 'Attendance recorded'}), 201
 
 
+@attendance_bp.route('/api/attendance/<int:att_id>', methods=['PUT'])
+@token_required
+def update_attendance(current_user, att_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'No data provided'}), 400
+
+    if current_user.role not in ('admin', 'owner'):
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM attendance WHERE id = %s", (att_id,))
+        if not cur.fetchone():
+            return jsonify({'success': False, 'message': 'Record not found'}), 404
+
+        fields = []
+        params = []
+        if 'status' in data or 'attendance_status' in data:
+            fields.append("status = %s")
+            params.append(data.get('status') or data.get('attendance_status'))
+        if 'check_in' in data or 'check_in_time' in data or 'time_in' in data:
+            fields.append("check_in = %s")
+            params.append(data.get('check_in') or data.get('check_in_time') or data.get('time_in'))
+        if 'check_out' in data or 'check_out_time' in data or 'time_out' in data:
+            fields.append("check_out = %s")
+            params.append(data.get('check_out') or data.get('check_out_time') or data.get('time_out'))
+        if 'notes' in data:
+            fields.append("notes = %s")
+            params.append(data.get('notes', ''))
+        if 'shift_type' in data:
+            fields.append("shift_type = %s")
+            params.append(data.get('shift_type'))
+
+        if not fields:
+            return jsonify({'success': False, 'message': 'No fields to update'}), 400
+
+        fields.append("updated_at = NOW()")
+        params.append(att_id)
+        execute(conn, f"UPDATE attendance SET {', '.join(fields)} WHERE id = %s", tuple(params))
+
+    return jsonify({'success': True, 'message': 'Attendance updated'}), 200
+
+
 @attendance_bp.route('/api/attendance/bulk', methods=['POST'])
 @token_required
 def bulk_attendance(current_user):
