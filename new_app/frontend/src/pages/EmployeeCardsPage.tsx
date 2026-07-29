@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { Printer, Upload, User, Search, Download, CreditCard } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import api from '@/api/client';
+import { COMPANY_LOGO_B64 } from '@/lib/companyLogo';
 
 export default function EmployeeCardsPage() {
   const [employees, setEmployees] = useState<any[]>([]);
@@ -53,8 +54,6 @@ export default function EmployeeCardsPage() {
   const filtered = employees.filter(e => e.name?.includes(search));
   const toPrint = employees.filter(e => selectedEmployees.has(e.id));
 
-  const LOGO_B64 = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgNDUwIiBmaWxsPSJub25lIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZ29sZEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjVhNjIzO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjUwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Q0OTQxYztzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojYzg4OTFhO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmx1ZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWEyMzdlO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZDFiNGE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICAKICA8IS0tIE91dGVyIEJsdWUgQ2lyY2xlIC0tPgogIDxjaXJjbGUgY3g9IjIwMCIgY3k9IjE4MCIgcj0iMTU1IiBmaWxsPSJub25lIiBzdHJva2U9InVybCgjYmx1ZUdyYWQpIiBzdHJva2Utd2lkdGg9IjgiLz4KICAKICA8IS0tIEdvbGQgSW5uZXIgQ2lyY2xlIC0tPgogIDxjaXJjbGUgY3g9IjIwMCIgY3k9IjE4MCIgcj0iMTQwIiBmaWxsPSJub25lIiBzdHJva2U9InVybCgjZ29sZEdyYWQpIiBzdHJva2Utd2lkdGg9IjUiLz4KICAKICA8IS0tIEFyYWJpYyBDYWxsaWdyYXBoeSAtINij2LHYtiAtLT4KICA8IS0tIExldHRlciBBbGVmIC0tPgogIDxwYXRoIGQ9Ik0xNjAgMTAwIEwxNjAgMjAwIEwxNzAgMjAwIEwxNzAgMTAwIFoiIGZpbGw9InVybCgjYmx1ZUdyYWQpIi8+CiAgCiAgPCEtLSBMZXR0ZXIgRGFsIC0tPgogIDxwYXRoIGQ9Ik0xNzUgMTQwIFExNzUgMTIwIDIwMCAxMjAgTDIyMCAxMjAgUTIzNSAxMjAgMjM1IDE0MCBMMjM1IDE2MCBRMjM1IDE4MCAyMTAgMTgwIEwxNzUgMTgwIiBmaWxsPSJub25lIiBzdHJva2U9InVybCgjYmx1ZUdyYWQpIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICAKICA8IS0tIExldHRlciBSYSAtLT4KICA8cGF0aCBkPSJNMjQwIDE1MCBRMjYwIDEzMCAyODAgMTQwIFEyOTAgMTUwIDI4MCAxNzAgTDI0MCAyMDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0idXJsKCNibHVlR3JhZCkiIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIAogIDwhLS0gTGV0dGVyIERhZC9EaGFkIGN1cnZlIC0tPgogIDxwYXRoIGQ9Ik0xNTUgMTgwIFExNTUgMjEwIDE4MCAyMTAgUTIwNSAyMTAgMjA1IDE4MCBRMjA1IDE1NSAxODAgMTU1IFExNTUgMTU1IDE1NSAxODAiIGZpbGw9InVybCgjYmx1ZUdyYWQpIi8+CiAgCiAgPCEtLSBEZWNvcmF0aXZlIHN3b29zaCAtLT4KICA8cGF0aCBkPSJNMTIwIDIwMCBRMjAwIDI1MCAyODAgMjAwIiBmaWxsPSJub25lIiBzdHJva2U9InVybCgjZ29sZEdyYWQpIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIAogIDwhLS0gQ2xlYW5pbmcgVG9vbCBJY29uIC0tPgogIDwhLS0gSGFuZGxlIC0tPgogIDxyZWN0IHg9IjIxMCIgeT0iMTAwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4MCIgcng9IjQiIGZpbGw9InVybCgjYmx1ZUdyYWQpIi8+CiAgCiAgPCEtLSBUb29sIEhlYWQgLS0+CiAgPHBhdGggZD0iTTE5NSAxNzUgTDIzNSAxNzUgTDIzMCAyMDAgTDIwMCAyMDAgWiIgZmlsbD0idXJsKCNibHVlR3JhZCkiLz4KICAKICA8IS0tIEJyaXN0bGVzIC0tPgogIDxwYXRoIGQ9Ik0yMDAgMjAwIEwxOTggMjIwIE0yMDUgMjAwIEwyMDUgMjIyIE0yMTAgMjAwIEwyMTIgMjIyIE0yMTUgMjAwIEwyMTggMjIyIE0yMjAgMjAwIEwyMjIgMjIwIE0yMjUgMjAwIEwyMjUgMjE4IiBzdHJva2U9InVybCgjYmx1ZUdyYWQpIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgCiAgPCEtLSBTbWFsbCBzcGFya2xlIGRvdHMgLS0+CiAgPGNpcmNsZSBjeD0iMTQwIiBjeT0iMTMwIiByPSI0IiBmaWxsPSJ1cmwoI2dvbGRHcmFkKSIvPgogIDxjaXJjbGUgY3g9IjI2MCIgY3k9IjEzMCIgcj0iNCIgZmlsbD0idXJsKCNnb2xkR3JhZCkiLz4KICA8Y2lyY2xlIGN4PSIxMzAiIGN5PSIyMDAiIHI9IjMiIGZpbGw9InVybCgjZ29sZEdyYWQpIi8+CiAgPGNpcmNsZSBjeD0iMjcwIiBjeT0iMjAwIiByPSIzIiBmaWxsPSJ1cmwoI2dvbGRHcmFkKSIvPgogIAogIDwhLS0gTWFpbiBUaXRsZSBBcmFiaWMgLS0+CiAgPHRleHQgeD0iMjAwIiB5PSIzNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9InVybCgjZ29sZEdyYWQpIiBmb250LWZhbWlseT0iJ0NhaXJvJywgJ0FyaWFsJywgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI0MiIgZm9udC13ZWlnaHQ9ImJvbGQiIGRpcmVjdGlvbj0icnRsIj7Yo9ix2LYg2KfZhNis2YjZh9ix2Kk8L3RleHQ+CiAgCiAgPCEtLSBTdWJ0aXRsZSBBcmFiaWMgLS0+CiAgPHRleHQgeD0iMjAwIiB5PSI0MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9InVybCgjYmx1ZUdyYWQpIiBmb250LWZhbWlseT0iJ0NhaXJvJywgJ0FyaWFsJywgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjYwMCIgZGlyZWN0aW9uPSJydGwiPtmE2K7Yr9mF2KfYqiDYp9mE2YbYuNin2YHYqTwvdGV4dD4KICAKICA8IS0tIEVuZ2xpc2ggVGV4dCAtLT4KICA8dGV4dCB4PSIyMDAiIHk9IjQzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0idXJsKCNibHVlR3JhZCkiIGZvbnQtZmFtaWx5PSInQXJpYWwnLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNjAwIiBsZXR0ZXItc3BhY2luZz0iMiI+QUwtSkFXSEFSQSBMQU5EIEZPUiBDTEVBTklORyBTRVJWSUNFUzwvdGV4dD4KPC9zdmc+Cg==';
-
   const handlePrint = () => {
     const win = window.open('', '_blank');
     if (!win) return;
@@ -64,7 +63,7 @@ export default function EmployeeCardsPage() {
         <div class="card">
           <div class="card-front">
             <div class="card-top">
-              <img src="${LOGO_B64}" class="logo" />
+              <img src="${COMPANY_LOGO_B64}" class="logo" />
               <div class="top-text">
                 <div class="co-name-ar">أرض الجوهرة لخدمات النظافة</div>
                 <div class="co-name-en">EARTH AL-JAWHARA FOR CLEANING SERVICES</div>
@@ -83,15 +82,8 @@ export default function EmployeeCardsPage() {
               </div>
             </div>
             <div class="card-bottom">
-              <div class="bottom-line"></div>
-              <div class="bottom-info">
-                <span>العنوان: صنعاء - الجمهورية اليمنية</span>
-                <span>|</span>
-                <span>هاتف: 777 123 456</span>
-                <span>|</span>
-                <span>info@al-jawhara.com</span>
-              </div>
-              <div class="card-notes">ملاحظات: هذه البطاقة ملك للشركة ويجب إعادتها عند الانتهاء من العمل. في حالة الفقدان يتم خصم 5000 ريال من الراتب.</div>
+              <div class="bottom-info">صنعاء - الجمهورية اليمنية | هاتف: 777 123 456 | info@al-jawhara.com</div>
+              <div class="card-notes">هذه البطاقة ملك للشركة ويجب إعادتها عند الانتهاء من العمل. في حالة الفقدان يتم خصم 5000 ريال من الراتب. تُستخدم فقط في مكان العمل.</div>
             </div>
           </div>
         </div>`;
@@ -239,31 +231,22 @@ export default function EmployeeCardsPage() {
         /* Bottom */
         .card-bottom {
           border-top: 0.3mm solid #e5e7eb;
-          padding: 1.2mm 3mm;
+          padding: 1mm 3mm;
           background: #f9fafb;
         }
-        .bottom-line {
-          width: 100%;
-          height: 0.4mm;
-          background: linear-gradient(90deg, #059669, #10b981, #059669);
-          border-radius: 1mm;
-          margin-bottom: 1mm;
-        }
         .bottom-info {
-          font-size: 3.8pt;
+          font-size: 3.5pt;
           color: #6b7280;
           text-align: center;
-          display: flex;
-          justify-content: center;
-          gap: 1.5mm;
-          line-height: 1.4;
+          line-height: 1.3;
         }
         .card-notes {
-          font-size: 3pt;
-          color: #9ca3af;
+          font-size: 2.8pt;
+          color: #dc2626;
           text-align: center;
-          margin-top: 0.5mm;
-          line-height: 1.3;
+          margin-top: 0.3mm;
+          line-height: 1.2;
+          font-weight: 600;
         }
       </style></head><body>
       <div class="toolbar no-print">
