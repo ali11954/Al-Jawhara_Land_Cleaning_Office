@@ -56,69 +56,222 @@ export default function EmployeeCardsPage() {
   const handlePrint = () => {
     const win = window.open('', '_blank');
     if (!win) return;
+    const logoUrl = window.location.origin + '/logo.svg';
     const cards = toPrint.map(emp => {
       const photo = photos[emp.id] || '';
       return `
         <div class="card">
-          <div class="card-header">
-            <div class="company-logo">🌍</div>
-            <div class="company-name">ارض الجوهرة لخدمات النظافة</div>
-            <div class="company-sub">EARTH AL-JAWHARA FOR CLEANING SERVICES</div>
-          </div>
-          <div class="card-body">
-            <div class="photo-section">
-              ${photo ? `<img src="${photo}" class="photo" />` : `<div class="photo-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg></div>`}
+          <div class="card-front">
+            <div class="card-top">
+              <img src="${logoUrl}" class="logo" />
+              <div class="top-text">
+                <div class="co-name-ar">أرض الجوهرة لخدمات النظافة</div>
+                <div class="co-name-en">EARTH AL-JAWHARA FOR CLEANING SERVICES</div>
+              </div>
             </div>
-            <div class="info-section">
-              <div class="emp-name">${emp.name || emp.full_name || '—'}</div>
-              <div class="emp-code">الكود: ${emp.code || emp.employee_code || '—'}</div>
-              <div class="emp-detail"><span class="label">الوظيفة:</span> ${emp.position || emp.job_title || '—'}</div>
-              <div class="emp-detail"><span class="label">الشركة:</span> ${emp.company_name || '—'}</div>
-              <div class="emp-detail"><span class="label">الهاتف:</span> ${emp.phone || '—'}</div>
-              ${emp.region ? `<div class="emp-detail"><span class="label">المنطقة:</span> ${emp.region}</div>` : ''}
+            <div class="card-body">
+              <div class="photo-box">
+                ${photo ? `<img src="${photo}" class="photo" />` : `<div class="photo-empty"><svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" width="28" height="28"><path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg></div>`}
+              </div>
+              <div class="details">
+                <div class="emp-name">${emp.name || emp.full_name || '—'}</div>
+                <div class="emp-code">${emp.code || emp.employee_code || '—'}</div>
+                <div class="emp-row"><span class="lbl">الوظيفة:</span> ${emp.position || emp.job_title || '—'}</div>
+                <div class="emp-row"><span class="lbl">الشركة:</span> ${emp.company_name || '—'}</div>
+                <div class="emp-row"><span class="lbl">الهاتف:</span> ${emp.phone || '—'}</div>
+              </div>
             </div>
-          </div>
-          <div class="card-footer">
-            <div class="qr-placeholder">EARTH AL-JAWHARA</div>
+            <div class="card-bottom">
+              <div class="bottom-line"></div>
+              <div class="bottom-info">
+                <span>العنوان: صنعاء - الجمهورية اليمنية</span>
+                <span>|</span>
+                <span>هاتف: 777 123 456</span>
+                <span>|</span>
+                <span>info@al-jawhara.com</span>
+              </div>
+              <div class="card-notes">ملاحظات: هذه البطاقة ملك للشركة ويجب إعادتها عند الانتهاء من العمل. في حالة الفقدان يتم خصم 5000 ريال من الراتب.</div>
+            </div>
           </div>
         </div>`;
     }).join('');
 
     win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>بطاقات عمل الموظفين</title>
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Cairo', Arial, sans-serif; background: #f3f4f6; direction: rtl; }
-        @media print { body { background: white; } .no-print { display: none !important; } .card { break-inside: avoid; page-break-inside: avoid; } }
+        body { font-family: 'Cairo', Arial, sans-serif; background: #e5e7eb; direction: rtl; }
+        @media print {
+          body { background: white; }
+          .no-print { display: none !important; }
+          .card { break-inside: avoid; page-break-inside: avoid; margin: 4mm auto; }
+          .page-note { display: none; }
+        }
         .toolbar { position: fixed; top: 0; left: 0; right: 0; z-index: 9999; background: #1f2937; padding: 10px 20px; display: flex; align-items: center; gap: 10px; direction: rtl; }
         .toolbar button { padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-family: 'Cairo', sans-serif; color: white; font-weight: 600; }
         .btn-print { background: #059669; } .btn-close { background: #dc2626; }
         .toolbar span { color: white; font-size: 13px; margin-right: auto; }
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 60px 20px 20px; max-width: 1200px; margin: 0 auto; }
-        @media print { .grid { padding: 10px; gap: 15px; } }
-        .card { width: 100%; border: 2px solid #059669; border-radius: 16px; overflow: hidden; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        .card-header { background: linear-gradient(135deg, #059669, #10b981); padding: 16px; text-align: center; color: white; }
-        .company-logo { font-size: 32px; margin-bottom: 4px; }
-        .company-name { font-size: 14px; font-weight: 700; }
-        .company-sub { font-size: 9px; opacity: 0.8; margin-top: 2px; letter-spacing: 1px; }
-        .card-body { padding: 20px; display: flex; gap: 16px; align-items: flex-start; }
-        .photo-section { flex-shrink: 0; }
-        .photo { width: 90px; height: 90px; border-radius: 12px; object-fit: cover; border: 3px solid #059669; }
-        .photo-placeholder { width: 90px; height: 90px; border-radius: 12px; border: 2px dashed #d1d5db; display: flex; align-items: center; justify-content: center; color: #9ca3af; background: #f9fafb; }
-        .info-section { flex: 1; min-width: 0; }
-        .emp-name { font-size: 16px; font-weight: 700; color: #111827; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .emp-code { font-size: 11px; color: #6b7280; margin-bottom: 8px; background: #f3f4f6; padding: 2px 8px; border-radius: 4px; display: inline-block; }
-        .emp-detail { font-size: 12px; color: #374151; margin-bottom: 3px; }
-        .emp-detail .label { font-weight: 600; color: #059669; }
-        .card-footer { border-top: 1px solid #e5e7eb; padding: 8px 16px; text-align: center; }
-        .qr-placeholder { font-size: 8px; color: #9ca3af; letter-spacing: 2px; }
+
+        .page-note { text-align: center; padding: 10px; color: #6b7280; font-size: 11px; margin-top: 55px; }
+
+        .cards-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 6mm; padding: 10mm; }
+
+        /* Card: 90mm x 50mm */
+        .card {
+          width: 90mm;
+          height: 50mm;
+          border: 1.2mm solid #059669;
+          border-radius: 3mm;
+          overflow: hidden;
+          background: white;
+          box-shadow: 0 1mm 3mm rgba(0,0,0,0.12);
+          position: relative;
+        }
+
+        .card-front {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+        }
+
+        /* Top bar with logo */
+        .card-top {
+          background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+          padding: 2mm 3mm;
+          display: flex;
+          align-items: center;
+          gap: 2mm;
+          min-height: 10mm;
+        }
+        .logo {
+          width: 8mm;
+          height: 8mm;
+          border-radius: 50%;
+          border: 0.5mm solid rgba(255,255,255,0.5);
+          object-fit: contain;
+          background: white;
+          flex-shrink: 0;
+        }
+        .top-text { flex: 1; min-width: 0; }
+        .co-name-ar {
+          font-size: 7pt;
+          font-weight: 800;
+          color: white;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          line-height: 1.3;
+        }
+        .co-name-en {
+          font-size: 4.5pt;
+          color: rgba(255,255,255,0.8);
+          letter-spacing: 0.3px;
+          line-height: 1.2;
+        }
+
+        /* Body */
+        .card-body {
+          flex: 1;
+          display: flex;
+          gap: 2.5mm;
+          padding: 2mm 3mm;
+          align-items: flex-start;
+          min-height: 0;
+        }
+
+        .photo-box {
+          flex-shrink: 0;
+          width: 16mm;
+          height: 20mm;
+        }
+        .photo {
+          width: 16mm;
+          height: 20mm;
+          border-radius: 2mm;
+          object-fit: cover;
+          border: 0.5mm solid #059669;
+        }
+        .photo-empty {
+          width: 16mm;
+          height: 20mm;
+          border-radius: 2mm;
+          border: 0.4mm dashed #d1d5db;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #f9fafb;
+        }
+
+        .details { flex: 1; min-width: 0; overflow: hidden; }
+        .emp-name {
+          font-size: 7pt;
+          font-weight: 800;
+          color: #111827;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          line-height: 1.4;
+        }
+        .emp-code {
+          font-size: 5pt;
+          color: #6b7280;
+          background: #f3f4f6;
+          padding: 0.3mm 1.5mm;
+          border-radius: 1mm;
+          display: inline-block;
+          margin-bottom: 1mm;
+        }
+        .emp-row {
+          font-size: 5pt;
+          color: #374151;
+          line-height: 1.5;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .emp-row .lbl {
+          font-weight: 700;
+          color: #059669;
+        }
+
+        /* Bottom */
+        .card-bottom {
+          border-top: 0.3mm solid #e5e7eb;
+          padding: 1.2mm 3mm;
+          background: #f9fafb;
+        }
+        .bottom-line {
+          width: 100%;
+          height: 0.4mm;
+          background: linear-gradient(90deg, #059669, #10b981, #059669);
+          border-radius: 1mm;
+          margin-bottom: 1mm;
+        }
+        .bottom-info {
+          font-size: 3.8pt;
+          color: #6b7280;
+          text-align: center;
+          display: flex;
+          justify-content: center;
+          gap: 1.5mm;
+          line-height: 1.4;
+        }
+        .card-notes {
+          font-size: 3pt;
+          color: #9ca3af;
+          text-align: center;
+          margin-top: 0.5mm;
+          line-height: 1.3;
+        }
       </style></head><body>
       <div class="toolbar no-print">
         <button class="btn-print" onclick="window.print()">🖨️ طباعة البطاقات</button>
         <button class="btn-close" onclick="window.close()">✖ إغلاق</button>
-        <span>${toPrint.length} بطاقة عمل — ارض الجوهرة لخدمات النظافة</span>
+        <span>${toPrint.length} بطاقة عمل — مقاس 90×50 مم</span>
       </div>
-      <div class="grid">${cards}</div>
+      <div class="page-note">💡 مقاس البطاقة: 90 × 50 مم (مقاس البطاقة الشخصية القياسي)</div>
+      <div class="cards-container">${cards}</div>
     </body></html>`);
     win.document.close();
   };
