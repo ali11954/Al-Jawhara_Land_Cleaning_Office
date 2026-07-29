@@ -82,7 +82,7 @@ export default function EmployeeCardsPage() {
               </div>
             </div>
             <div class="card-bottom">
-              <div class="bottom-info">صنعاء - الجمهورية اليمنية | هاتف: 777 123 456 | info@al-jawhara.com</div>
+              <div class="bottom-info">الحديدة-مدينة العمال | هاتف: 777 123 456 | info@al-jawhara.com</div>
               <div class="card-notes">هذه البطاقة ملك للشركة ويجب إعادتها عند الانتهاء من العمل. في حالة الفقدان يتم خصم 5000 ريال من الراتب. تُستخدم فقط في مكان العمل.</div>
             </div>
           </div>

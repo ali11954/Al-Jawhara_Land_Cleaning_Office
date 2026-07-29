@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import api from '@/api/client';
 
 export default function SettingsPage() {
-  const [company, setCompany] = useState({ name: 'ارض الجوهرة لخدمات النظافة', email: 'info@aljawhara.com', phone: '777123456', address: 'الحديدة، الجمهورية اليمنية' });
+  const [company, setCompany] = useState({ name: 'ارض الجوهرة لخدمات النظافة', email: 'info@aljawhara.com', phone: '777123456', address: 'الحديدة-مدينة العمال، الجمهورية اليمنية' });
   const [password, setPassword] = useState({ current: '', new_pass: '', confirm: '' });
   const [notifications, setNotifications] = useState({ attendance: true, salary: true, invoices: true, system: false });
   const [saving, setSaving] = useState(false);
