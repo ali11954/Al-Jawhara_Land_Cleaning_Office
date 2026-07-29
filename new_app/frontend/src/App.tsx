@@ -23,6 +23,7 @@ import PeriodsPage from '@/pages/PeriodsPage';
 import LeavesPage from '@/pages/LeavesPage';
 import AttendanceGridPage from '@/pages/AttendanceGridPage';
 import AttendanceReportPage from '@/pages/AttendanceReportPage';
+import EmployeeCardsPage from '@/pages/EmployeeCardsPage';
 import EmployeePortalPage from '@/pages/EmployeePortalPage';
 import ProfilePage from '@/pages/ProfilePage';
 
@@ -85,6 +86,7 @@ export default function App() {
                 <Route path="/attendance" element={<AttendancePage />} />
                 <Route path="/attendance-grid" element={<AttendanceGridPage />} />
                 <Route path="/attendance-report" element={<AttendanceReportPage />} />
+                <Route path="/employee-cards" element={<EmployeeCardsPage />} />
                 <Route path="/companies" element={<CompaniesPage />} />
                 <Route path="/contracts" element={<ContractsPage />} />
                 <Route path="/invoices" element={<InvoicesPage />} />
