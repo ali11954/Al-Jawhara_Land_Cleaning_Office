@@ -1,6 +1,6 @@
 ﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Leaf, Shield, Eye, EyeOff } from 'lucide-react';
+import { Leaf, Shield, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { authAPI } from '@/api/client';
 
 export default function LoginPage() {
@@ -103,7 +103,14 @@ export default function LoginPage() {
           </form>
 
           {/* Footer */}
-          <div className="bg-gray-50 px-8 py-4 text-center border-t border-gray-100">
+          <div className="bg-gray-50 px-8 py-4 text-center border-t border-gray-100 space-y-2">
+            <button
+              onClick={() => navigate('/')}
+              className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-primary-600 transition-colors font-medium"
+            >
+              <ArrowRight className="w-4 h-4" />
+              العودة إلى الصفحة الرئيسية
+            </button>
             <p className="text-xs text-gray-400">
               ارض الجوهرة لخدمات النظافة
             </p>
