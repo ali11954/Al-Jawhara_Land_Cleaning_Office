@@ -58,7 +58,7 @@ export default function AttendancePage() {
       const initial: Record<number, { status: string; notes: string }> = {};
       (eRes.data.data || []).forEach((emp: any) => {
         if (!presentEmpIds.has(emp.id)) {
-          initial[emp.id] = { status: 'absent', notes: '' };
+          initial[emp.id] = { status: 'present', notes: '' };
         }
       });
       setGroupData(initial);
