@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Users, User, Building2, ChevronDown, ChevronUp, UserCheck, UserX, ArrowRight, Star, Calendar, DollarSign, Clock, FileText, Eye, X, Download } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, User, Building2, ChevronDown, ChevronUp, UserCheck, UserX, ArrowRight, Star, Calendar, DollarSign, Clock, FileText, Eye, X, Download, Power } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -232,8 +232,21 @@ export default function EmployeesPage() {
 
   const handleDelete = async (id: number) => {
     if (!confirm('هل أنت متأكد من حذف هذا الموظف؟')) return;
-    await api.delete(`/employees/${id}`);
-    loadData();
+    try {
+      await api.delete(`/employees/${id}`);
+      loadData();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'خطأ في حذف الموظف');
+    }
+  };
+
+  const handleToggleActive = async (id: number) => {
+    try {
+      await api.post(`/employees/${id}/toggle-active`);
+      loadData();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'خطأ في تغيير حالة الموظف');
+    }
   };
 
   const loadEmployeeDetail = async (emp: any) => {
@@ -656,6 +669,7 @@ export default function EmployeesPage() {
                         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                           <button onClick={() => loadEmployeeDetail(emp)} className="p-1.5 rounded-lg hover:bg-green-50 text-green-500"><Eye className="w-4 h-4" /></button>
                           <button onClick={() => openEdit(emp)} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500"><Edit className="w-4 h-4" /></button>
+                          <button onClick={() => handleToggleActive(emp.id)} className={`p-1.5 rounded-lg hover:bg-yellow-50 ${emp.is_active ? 'text-yellow-500' : 'text-green-500'}`} title={emp.is_active ? 'تعطيل' : 'تفعيل'}><Power className="w-4 h-4" /></button>
                           <button onClick={() => handleDelete(emp.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500"><Trash2 className="w-4 h-4" /></button>
                         </div>
                       </td>
@@ -709,6 +723,7 @@ export default function EmployeesPage() {
                               <div className="flex items-center gap-1">
                                 <button onClick={() => loadEmployeeDetail(emp)} className="p-1 rounded hover:bg-green-50 text-green-500"><Eye className="w-3 h-3" /></button>
                                 <button onClick={() => openEdit(emp)} className="p-1 rounded hover:bg-blue-50 text-blue-500"><Edit className="w-3 h-3" /></button>
+                                <button onClick={() => handleToggleActive(emp.id)} className={`p-1 rounded hover:bg-yellow-50 ${emp.is_active ? 'text-yellow-500' : 'text-green-500'}`} title={emp.is_active ? 'تعطيل' : 'تفعيل'}><Power className="w-3 h-3" /></button>
                                 <button onClick={() => handleDelete(emp.id)} className="p-1 rounded hover:bg-red-50 text-red-500"><Trash2 className="w-3 h-3" /></button>
                               </div>
                             </td>
@@ -742,7 +757,11 @@ export default function EmployeesPage() {
                           <td className="px-2 py-2 text-gray-600">{emp.job_title || '—'}</td>
                           <td className="px-2 py-2 font-bold">{formatNum(emp.total_salary || emp.salary || 0)}</td>
                           <td className="px-2 py-2">
-                            <button onClick={() => openEdit(emp)} className="p-1 rounded hover:bg-blue-50 text-blue-500"><Edit className="w-3 h-3" /></button>
+                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                              <button onClick={() => openEdit(emp)} className="p-1 rounded hover:bg-blue-50 text-blue-500"><Edit className="w-3 h-3" /></button>
+                              <button onClick={() => handleToggleActive(emp.id)} className={`p-1 rounded hover:bg-yellow-50 ${emp.is_active ? 'text-yellow-500' : 'text-green-500'}`} title={emp.is_active ? 'تعطيل' : 'تفعيل'}><Power className="w-3 h-3" /></button>
+                              <button onClick={() => handleDelete(emp.id)} className="p-1 rounded hover:bg-red-50 text-red-500"><Trash2 className="w-3 h-3" /></button>
+                            </div>
                           </td>
                         </tr>
                       ))}

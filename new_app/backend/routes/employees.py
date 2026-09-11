@@ -207,7 +207,7 @@ def update_employee(current_user, emp_id):
         'supervisor_id': 'supervisor_id', 'qualification': 'qualification',
         'specialization': 'specialization', 'hire_date': 'hire_date',
         'daily_allowance': 'daily_allowance', 'clothing_allowance': 'clothing_allowance',
-        'health_card_allowance': 'health_card_allowance',
+        'health_card_allowance': 'health_card_allowance', 'region': 'region',
     }
 
     sets = []
@@ -241,6 +241,8 @@ def update_employee(current_user, emp_id):
 @employees_bp.route('/api/employees/<int:emp_id>', methods=['DELETE'])
 @token_required
 def delete_employee(current_user, emp_id):
+    if current_user.role not in ('admin', 'owner'):
+        return jsonify({'success': False, 'message': 'غير مصرح لك بحذف الموظفين'}), 403
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute("SELECT id FROM employees WHERE id=%s", (emp_id,))
@@ -284,6 +286,26 @@ def delete_employee(current_user, emp_id):
         cur.execute("DELETE FROM employees WHERE id=%s", (emp_id,))
         conn.commit()
     return jsonify({'success': True, 'message': 'تم حذف الموظف بنجاح'})
+
+
+@employees_bp.route('/api/employees/<int:emp_id>/toggle-active', methods=['POST'])
+@token_required
+def toggle_employee_active(current_user, emp_id):
+    if current_user.role not in ('admin', 'owner'):
+        return jsonify({'success': False, 'message': 'غير مصرح لك بتعديل حالة الموظف'}), 403
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id, is_active FROM employees WHERE id=%s", (emp_id,))
+        row = cur.fetchone()
+        if not row:
+            return jsonify({'success': False, 'message': 'الموظف غير موجود'}), 404
+        new_status = not row[1]
+        cur.execute("UPDATE employees SET is_active=%s, updated_at=NOW() WHERE id=%s", (new_status, emp_id))
+        conn.commit()
+    with get_db() as conn:
+        emp = fetch_one(conn, f"SELECT {EMPLOYEE_COLUMNS} FROM employees WHERE id=%s", (emp_id,))
+    status_text = 'نشط' if new_status else 'غير نشط'
+    return jsonify({'success': True, 'data': _emp_to_dict(emp), 'message': f'تم تغيير حالة الموظف إلى {status_text}'})
 
 
 @employees_bp.route('/api/employees/<int:emp_id>/bank-info', methods=['GET'])
