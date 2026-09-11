@@ -14,3 +14,5 @@ services:
         value: 3.11.0
       - key: NODE_VERSION
         value: 18.0.0
+      - key: GEMINI_API_KEY
+        sync: false

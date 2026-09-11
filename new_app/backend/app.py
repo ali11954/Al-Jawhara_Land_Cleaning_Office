@@ -56,6 +56,7 @@ def create_app():
     from routes.supplier_invoices import supplier_invoices_bp
     from routes.settings import settings_bp
     from routes.employee_portal import employee_portal_bp
+    from routes.ai_assistant import ai_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(employees_bp)
@@ -79,6 +80,7 @@ def create_app():
     app.register_blueprint(supplier_invoices_bp)
     app.register_blueprint(settings_bp)
     app.register_blueprint(employee_portal_bp)
+    app.register_blueprint(ai_bp)
 
     # Serve frontend build
     frontend_dir = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'dist')

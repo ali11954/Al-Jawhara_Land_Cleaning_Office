@@ -26,6 +26,7 @@ import AttendanceReportPage from '@/pages/AttendanceReportPage';
 import EmployeeCardsPage from '@/pages/EmployeeCardsPage';
 import EmployeePortalPage from '@/pages/EmployeePortalPage';
 import ProfilePage from '@/pages/ProfilePage';
+import AIAssistantPage from '@/pages/AIAssistantPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(true);
@@ -104,6 +105,7 @@ export default function App() {
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/ai-assistant" element={<AIAssistantPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </ProtectedRoute>
