@@ -16,7 +16,7 @@ def _call_gemini(prompt, system_instruction=''):
     import urllib.request
     import urllib.error
 
-    url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}'
+    url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}'
 
     contents = []
     if system_instruction:
