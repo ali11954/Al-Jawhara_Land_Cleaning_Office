@@ -20,7 +20,7 @@ export default function SalariesPage() {
   const loadData = () => {
     Promise.all([
       api.get(`/financial/salaries?month_year=${monthYear}`),
-      api.get('/employees'),
+      api.get('/employees?is_active=true'),
       api.get('/companies'),
     ]).then(([sRes, eRes, cRes]) => {
       setSalaries(sRes.data.data || []);

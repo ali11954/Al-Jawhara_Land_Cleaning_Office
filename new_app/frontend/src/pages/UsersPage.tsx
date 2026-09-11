@@ -33,7 +33,7 @@ export default function UsersPage() {
 
   const loadData = () => {
     api.get('/users').then(res => setUsers(res.data.data || [])).catch(() => {});
-    api.get('/employees').then(res => setEmployees(res.data.data || [])).finally(() => setLoading(false));
+    api.get('/employees?is_active=true').then(res => setEmployees(res.data.data || [])).finally(() => setLoading(false));
   };
   useEffect(() => { loadData(); }, []);
 

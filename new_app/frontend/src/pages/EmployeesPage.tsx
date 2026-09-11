@@ -865,12 +865,12 @@ export default function EmployeesPage() {
               <Input value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="الاسم الكامل" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">كود الموظف *</label>
-              <Input value={form.code || ''} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="كود الموظف (يدوي)" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">كود الموظف</label>
+              <Input value={form.code || ''} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="كود الموظف (يُولّد تلقائياً)" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">رقم البطاقة *</label>
-              <Input value={form.card_number || ''} onChange={(e) => setForm({ ...form, card_number: e.target.value })} placeholder="رقم البطاقة" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">رقم البطاقة</label>
+              <Input value={form.card_number || ''} onChange={(e) => setForm({ ...form, card_number: e.target.value })} placeholder="رقم البطاقة (يُولّد تلقائياً)" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف</label>
@@ -978,7 +978,7 @@ export default function EmployeesPage() {
           </div>
           <div className="flex justify-end gap-2 pt-4 border-t">
             <Button variant="outline" onClick={() => setModalOpen(false)}>إلغاء</Button>
-            <Button onClick={handleSave} disabled={saving || !form.name || !form.card_number}>
+            <Button onClick={handleSave} disabled={saving || !form.name}>
               {saving ? 'جاري الحفظ...' : editItem ? 'تحديث' : 'حفظ'}
             </Button>
           </div>

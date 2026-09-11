@@ -54,7 +54,7 @@ export default function WorkPlansPage() {
   const loadData = () => {
     Promise.all([
       api.get('/work-plans'),
-      api.get('/employees'),
+      api.get('/employees?is_active=true'),
       api.get('/companies'),
       api.get('/regions'),
       api.get('/locations'),

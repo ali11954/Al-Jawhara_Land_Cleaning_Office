@@ -30,7 +30,7 @@ export default function LeavesPage() {
       const [leavesRes, typesRes, empRes] = await Promise.all([
         api.get('/leave-requests' + (filterStatus ? `?status=${filterStatus}` : '')),
         api.get('/leave-types'),
-        api.get('/employees'),
+        api.get('/employees?is_active=true'),
       ]);
       setLeaves(leavesRes.data.data || []);
       setLeaveTypes(typesRes.data.data || []);

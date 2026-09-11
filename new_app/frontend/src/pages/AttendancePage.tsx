@@ -47,7 +47,7 @@ export default function AttendancePage() {
     setLoading(true);
     Promise.all([
       api.get('/attendance', { params: { date } }),
-      api.get('/employees'),
+      api.get('/employees?is_active=true'),
       api.get('/reports/attendance'),
     ]).then(([aRes, eRes, rRes]) => {
       setRecords(aRes.data.data || []);

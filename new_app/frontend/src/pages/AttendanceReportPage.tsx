@@ -96,7 +96,7 @@ export default function AttendanceReportPage() {
 
     Promise.all([
       api.get('/companies').catch(() => ({ data: { data: [] } })),
-      api.get('/employees').catch(() => ({ data: { data: [] } })),
+      api.get('/employees?is_active=true').catch(() => ({ data: { data: [] } })),
       api.get('/reports/attendance-detail', { params }).catch(() => ({ data: { data: null } })),
     ]).then(([cRes, eRes, aRes]) => {
       setCompanies(cRes.data.data || []);

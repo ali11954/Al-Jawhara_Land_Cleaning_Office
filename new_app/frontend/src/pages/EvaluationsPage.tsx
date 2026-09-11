@@ -43,7 +43,7 @@ export default function EvaluationsPage() {
   const loadData = () => {
     Promise.all([
       api.get('/evaluations'),
-      api.get('/employees'),
+      api.get('/employees?is_active=true'),
       api.get('/regions'),
       api.get('/locations'),
       api.get('/evaluation-criteria/job-titles'),

@@ -65,6 +65,7 @@ def list_employees(current_user):
     per_page = request.args.get('per_page', 100, type=int)
     search = request.args.get('search', '')
     company_id = request.args.get('company_id', type=int)
+    is_active_param = request.args.get('is_active', '')
 
     q = f"SELECT {EMPLOYEE_COLUMNS} FROM employees WHERE 1=1"
     params = []
@@ -78,6 +79,11 @@ def list_employees(current_user):
             params.append(current_user.employee_id)
     elif current_user.role not in ('admin', 'owner'):
         return jsonify({'success': False, 'message': 'Access denied'}), 403
+
+    if is_active_param == 'true':
+        q += " AND is_active = true"
+    elif is_active_param == 'false':
+        q += " AND is_active = false"
 
     if search:
         q += " AND (full_name ILIKE %s OR code ILIKE %s)"
@@ -127,8 +133,36 @@ def create_employee(current_user):
         if not data or not emp_name:
             return jsonify({'success': False, 'message': 'الاسم مطلوب'}), 400
 
-        code = str(data.get('code', '') or '')
-        card_number = str(data.get('card_number', '') or '')
+        code = str(data.get('code', '') or '').strip()
+        card_number = str(data.get('card_number', '') or '').strip()
+        if not code:
+            with get_db() as conn:
+                cur = conn.cursor()
+                cur.execute("SELECT code FROM employees WHERE code IS NOT NULL AND code != '' ORDER BY id DESC LIMIT 1")
+                last = cur.fetchone()
+                if last and last[0] and last[0].startswith('EMP'):
+                    try:
+                        num = int(last[0].replace('EMP', '')) + 1
+                    except ValueError:
+                        num = 1
+                else:
+                    cur.execute("SELECT COUNT(*) FROM employees")
+                    num = cur.fetchone()[0] + 1
+                code = f'EMP{num:04d}'
+        if not card_number:
+            with get_db() as conn:
+                cur = conn.cursor()
+                cur.execute("SELECT card_number FROM employees WHERE card_number IS NOT NULL AND card_number != '' ORDER BY id DESC LIMIT 1")
+                last = cur.fetchone()
+                if last and last[0]:
+                    try:
+                        num = int(last[0]) + 1
+                    except ValueError:
+                        num = 1
+                else:
+                    cur.execute("SELECT COUNT(*) FROM employees")
+                    num = cur.fetchone()[0] + 1
+                card_number = str(num)
         position = str(data.get('position') or data.get('job_title', '') or '').strip() or 'غير محدد'
         phone = str(data.get('phone', '') or '')
         address = str(data.get('address', '') or '')
