@@ -574,8 +574,7 @@ def reports_attendance_detail(current_user):
     with get_db() as conn:
         cur = conn.cursor()
 
-        q = """SELECT DISTINCT ON (a.employee_id, a.date)
-               a.id, a.employee_id, CAST(a.date AS TEXT) as att_date, a.status,
+        q = """SELECT a.id, a.employee_id, CAST(a.date AS TEXT) as att_date, a.status,
                a.shift_type, a.check_in, a.check_out, a.notes,
                e.full_name, e.code, e.position,
                e.company_id, COALESCE(c.name, 'بدون شركة') as company_name
@@ -622,7 +621,12 @@ def reports_attendance_detail(current_user):
         all_emps = cur.fetchall()
 
     records = []
+    seen = set()
     for r in rows:
+        key = (r[1], r[2])
+        if key in seen:
+            continue
+        seen.add(key)
         records.append({
             'id': r[0],
             'employee_id': r[1],
