@@ -574,7 +574,8 @@ def reports_attendance_detail(current_user):
     with get_db() as conn:
         cur = conn.cursor()
 
-        q = """SELECT a.id, a.employee_id, CAST(a.date AS TEXT) as att_date, a.status,
+        q = """SELECT DISTINCT ON (a.employee_id, a.date)
+               a.id, a.employee_id, CAST(a.date AS TEXT) as att_date, a.status,
                a.shift_type, a.check_in, a.check_out, a.notes,
                e.full_name, e.code, e.position,
                e.company_id, COALESCE(c.name, 'بدون شركة') as company_name
@@ -654,7 +655,6 @@ def reports_attendance_detail(current_user):
     for rec in records:
         eid = rec['employee_id']
         if eid in employees_summary:
-            employees_summary[eid]['total_days'] += 1
             s = rec['status']
             if s == 'present':
                 employees_summary[eid]['present'] += 1
@@ -666,7 +666,12 @@ def reports_attendance_detail(current_user):
                 employees_summary[eid]['sick'] += 1
 
     for emp in employees_summary.values():
-        emp['absent'] = max(0, working_days - emp['present'] - emp['late'] - emp['sick'] - emp['leave'])
+        counted = emp['present'] + emp['late'] + emp['sick'] + emp['leave']
+        emp['absent'] = max(0, working_days - counted)
+        emp['present'] = min(emp['present'], working_days)
+        emp['late'] = min(emp['late'], working_days - emp['present'])
+        emp['sick'] = min(emp['sick'], working_days - emp['present'] - emp['late'])
+        emp['leave'] = min(emp['leave'], working_days - emp['present'] - emp['late'] - emp['sick'])
 
     companies_summary = {}
     for emp in employees_summary.values():
