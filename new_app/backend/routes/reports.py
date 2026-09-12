@@ -515,7 +515,10 @@ def reports_attendance_grid(current_user):
             day_date = datetime(year, month, d).date()
             is_friday = day_date.weekday() == 4
             status = att_map.get(emp_id, {}).get(d)
-            if status:
+            if is_friday:
+                days[d] = 'weekly_leave'
+                friday_count_g += 1
+            elif status:
                 days[d] = status
                 if status == 'present':
                     present_count += 1
@@ -524,12 +527,8 @@ def reports_attendance_grid(current_user):
                 elif status in ('annual_leave', 'sick', 'unpaid_leave'):
                     leave_count += 1
             else:
-                if is_friday:
-                    days[d] = 'weekly_leave'
-                    friday_count_g += 1
-                else:
-                    days[d] = None
-                    absent_count += 1
+                days[d] = None
+                absent_count += 1
 
         result.append({
             'employee_id': emp_id,
@@ -579,7 +578,7 @@ def reports_attendance_detail(current_user):
         if d.weekday() == 4:
             friday_count += 1
         d += timedelta(days=1)
-    working_days = total_days
+    working_days = total_days - friday_count
 
     with get_db() as conn:
         cur = conn.cursor()
@@ -655,21 +654,27 @@ def reports_attendance_detail(current_user):
 
     status_map = {'present': 'حاضر', 'late': 'متأخر', 'absent': 'غائب', 'sick': 'مرضي',
                   'annual_leave': 'إجازة', 'unpaid_leave': 'إجازة بدون راتب', 'weekly_leave': 'إجازة أسبوعية'}
-
     employees_summary = {}
     for emp in all_emps:
         eid, name, code, cid, cname = emp
         employees_summary[eid] = {
             'employee_id': eid, 'employee_name': name, 'employee_code': code,
             'company_id': cid, 'company_name': cname,
-            'total_days': 0, 'present': 0, 'late': 0, 'absent': 0, 'sick': 0, 'leave': 0, 'friday_leave': friday_count,
+            'total_days': 0, 'present': 0, 'late': 0, 'absent': 0, 'sick': 0, 'leave': 0,
+            'friday_leave': friday_count, 'friday_worked': 0,
             'working_days': working_days, 'friday_count': friday_count,
         }
 
     for rec in records:
         eid = rec['employee_id']
         if eid in employees_summary:
+            rec_date = datetime.strptime(rec['date'], '%Y-%m-%d').date()
+            is_friday = rec_date.weekday() == 4
             s = rec['status']
+            if is_friday:
+                if s in ('present', 'late'):
+                    employees_summary[eid]['friday_worked'] += 1
+                continue
             if s == 'present':
                 employees_summary[eid]['present'] += 1
             elif s == 'late':
@@ -680,8 +685,9 @@ def reports_attendance_detail(current_user):
                 employees_summary[eid]['sick'] += 1
 
     for emp in employees_summary.values():
-        counted = emp['present'] + emp['late'] + emp['sick'] + emp['leave'] + emp['friday_count']
+        counted = emp['present'] + emp['late'] + emp['sick'] + emp['leave']
         emp['absent'] = max(0, working_days - counted)
+        emp['effective_days'] = emp['present'] + emp['late'] + emp['friday_worked']
 
     companies_summary = {}
     for emp in employees_summary.values():
@@ -707,6 +713,7 @@ def reports_attendance_detail(current_user):
             'date_from': date_from,
             'date_to': date_to,
             'working_days': working_days,
+            'total_days': total_days,
             'friday_count': friday_count,
             'total_records': total_records,
             'total_employees': total_employees,

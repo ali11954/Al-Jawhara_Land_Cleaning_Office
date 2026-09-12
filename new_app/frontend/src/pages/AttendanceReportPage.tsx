@@ -125,7 +125,7 @@ export default function AttendanceReportPage() {
 
   const STATUS_LABEL: Record<string, string> = { present: 'حاضر', late: 'متأخر', absent: 'غائب', sick: 'مرضي', annual_leave: 'إجازة', unpaid_leave: 'إج. بدون راتب', weekly_leave: 'إجازة أسبوعية' };
 
-  const calcRate = (emp: any) => emp.working_days > 0 ? Math.min(100, Math.round((emp.present + emp.late) / emp.working_days * 100)) : 0;
+  const calcRate = (emp: any) => emp.working_days > 0 ? Math.min(100, Math.round((emp.effective_days || emp.present + emp.late) / emp.working_days * 100)) : 0;
 
   const exportExcel = () => {
     const title = view === 'summary' ? 'ملخص الحضور حسب الموظف' : 'تفاصيل الحضور اليومية';
@@ -134,17 +134,17 @@ export default function AttendanceReportPage() {
       : `attendance_detail_${filters.date_from}_${filters.date_to}.xls`;
 
     if (view === 'summary') {
-      const headers = ['#', 'الاسم', 'الكود', 'الشركة', 'أيام العمل', 'حضور', 'تأخر', 'إجازة', 'الجمعة', 'غياب', 'نسبة الحضور'];
+      const headers = ['#', 'الاسم', 'الكود', 'الشركة', 'أيام العمل', 'حضور', 'تأخر', 'إجازة', 'جمعة worked', 'غياب', 'نسبة الحضور'];
       const rows = filteredEmployees.map((e: any, i: number) => {
         const rate = calcRate(e);
         return [String(i + 1), e.employee_name, e.employee_code, e.company_name,
-          String(e.working_days), String(e.present), String(e.late), String(e.leave), String(e.friday_count || 0), String(e.absent), `${rate}%`];
+          String(e.working_days), String(e.present), String(e.late), String(e.leave), String(e.friday_worked || 0), String(e.absent), `${rate}%`];
       });
       const tp = filteredEmployees.reduce((s: number, e: any) => s + e.present, 0);
       const tl = filteredEmployees.reduce((s: number, e: any) => s + e.late, 0);
       const tv = filteredEmployees.reduce((s: number, e: any) => s + e.leave, 0);
       const ta = filteredEmployees.reduce((s: number, e: any) => s + e.absent, 0);
-      const tf = filteredEmployees.reduce((s: number, e: any) => s + (e.friday_count || 0), 0);
+      const tf = filteredEmployees.reduce((s: number, e: any) => s + (e.friday_worked || 0), 0);
       rows.push(['', 'الإجمالي', '', '', '', String(tp), String(tl), String(tv), String(tf), String(ta), '']);
       downloadCSV(filename, title, headers, rows);
     } else {
@@ -163,11 +163,11 @@ export default function AttendanceReportPage() {
     const title = view === 'summary' ? 'ملخص الحضور حسب الموظف' : 'تفاصيل الحضور اليومية';
 
     if (view === 'summary') {
-      const headers = ['#', 'الاسم', 'الكود', 'الشركة', 'أيام العمل', 'حضور', 'تأخر', 'إجازة', 'الجمعة', 'غياب', 'النسبة'];
+      const headers = ['#', 'الاسم', 'الكود', 'الشركة', 'أيام العمل', 'حضور', 'تأخر', 'إجازة', 'جمعة worked', 'غياب', 'النسبة'];
       const rows = filteredEmployees.map((e: any, i: number) => {
         const rate = calcRate(e);
         return [String(i + 1), e.employee_name, e.employee_code, e.company_name,
-          String(e.working_days), String(e.present), String(e.late), String(e.leave), String(e.friday_count || 0), String(e.absent), `${rate}%`];
+          String(e.working_days), String(e.present), String(e.late), String(e.leave), String(e.friday_worked || 0), String(e.absent), `${rate}%`];
       });
       const tp = filteredEmployees.reduce((s: number, e: any) => s + e.present, 0);
       const tl = filteredEmployees.reduce((s: number, e: any) => s + e.late, 0);
@@ -284,10 +284,10 @@ export default function AttendanceReportPage() {
               <p className="text-xs text-purple-600">الإجازات</p>
             </CardContent>
           </Card>
-          <Card className="bg-blue-50 border-blue-200">
+          <Card className="bg-sky-50 border-sky-200">
             <CardContent className="p-3 text-center">
-              <p className="text-xl font-bold text-blue-700">{data.friday_count || 0}</p>
-              <p className="text-xs text-blue-600">الجمعة</p>
+              <p className="text-xl font-bold text-sky-700">{data.friday_count || 0}</p>
+              <p className="text-xs text-sky-600">جمعة (الشهر)</p>
             </CardContent>
           </Card>
           <Card className="bg-blue-50 border-blue-200">
@@ -316,7 +316,7 @@ export default function AttendanceReportPage() {
                   <th className="px-4 py-3 text-right font-semibold">الموظف</th>
                   <th className="px-4 py-3 text-right font-semibold">الكود</th>
                   <th className="px-4 py-3 text-right font-semibold">الشركة</th>
-                  <th className="px-4 py-3 text-center font-semibold">أيام العمل</th>
+                  <th className="px-4 py-3 text-center font-semibold">أيام الشهر</th>
                   <th className="px-4 py-3 text-center font-semibold">حضور</th>
                   <th className="px-4 py-3 text-center font-semibold">تأخر</th>
                   <th className="px-4 py-3 text-center font-semibold">إجازة</th>
@@ -337,11 +337,11 @@ export default function AttendanceReportPage() {
                         <td className="px-4 py-3 font-medium">{emp.employee_name}</td>
                         <td className="px-4 py-3 text-gray-600 text-xs">{emp.employee_code}</td>
                         <td className="px-4 py-3"><span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">{emp.company_name}</span></td>
-                        <td className="px-4 py-3 text-center text-gray-600">{emp.working_days}</td>
+                        <td className="px-4 py-3 text-center text-gray-600">{data?.total_days || emp.working_days}</td>
                         <td className="px-4 py-3 text-center"><span className="font-bold text-green-600">{emp.present}</span></td>
                         <td className="px-4 py-3 text-center"><span className="font-bold text-yellow-600">{emp.late}</span></td>
                         <td className="px-4 py-3 text-center"><span className="font-bold text-purple-600">{emp.leave}</span></td>
-                        <td className="px-4 py-3 text-center"><span className="font-bold text-blue-500">{emp.friday_count || 0}</span></td>
+                        <td className="px-4 py-3 text-center"><span className="font-bold text-sky-500">{emp.friday_worked || 0}</span></td>
                         <td className="px-4 py-3 text-center"><span className="font-bold text-red-600">{emp.absent}</span></td>
                         <td className="px-4 py-3 text-center">
                           <span className={`px-2 py-1 rounded-full text-xs font-bold ${rate >= 80 ? 'bg-green-100 text-green-700' : rate >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
