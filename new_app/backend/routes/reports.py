@@ -511,13 +511,22 @@ def reports_attendance_grid(current_user):
         late_count = 0
         leave_count = 0
         friday_count_g = 0
+        friday_worked_g = 0
         for d in range(1, days_in_month + 1):
             day_date = datetime(year, month, d).date()
             is_friday = day_date.weekday() == 4
             status = att_map.get(emp_id, {}).get(d)
             if is_friday:
-                days[d] = 'weekly_leave'
                 friday_count_g += 1
+                if status in ('present', 'late'):
+                    days[d] = status
+                    friday_worked_g += 1
+                    if status == 'present':
+                        present_count += 1
+                    elif status == 'late':
+                        late_count += 1
+                else:
+                    days[d] = None
             elif status:
                 days[d] = status
                 if status == 'present':
@@ -542,6 +551,7 @@ def reports_attendance_grid(current_user):
             'late_count': late_count,
             'leave_count': leave_count,
             'friday_count': friday_count_g,
+            'friday_worked': friday_worked_g,
         })
 
     return jsonify({

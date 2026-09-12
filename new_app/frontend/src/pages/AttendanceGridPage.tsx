@@ -73,7 +73,7 @@ export default function AttendanceGridPage() {
   const isWeekend = (day: number): boolean => {
     const date = new Date(year, month - 1, day);
     const dow = date.getDay();
-    return dow === 5;
+    return dow === 0;
   };
 
   const handleExport = () => {
@@ -151,9 +151,8 @@ export default function AttendanceGridPage() {
         {Object.entries(STATUS_COLORS).filter(([k]) => k !== 'absent' && k !== 'weekly_leave').map(([k, cls]) => (
           <span key={k} className={`px-2 py-1 rounded-full font-medium ${cls}`}>{STATUS_FULL_LABELS[k] || k}</span>
         ))}
-        <span className="px-2 py-1 rounded-full font-medium bg-sky-400 text-white">الجمعة</span>
         <span className="px-2 py-1 rounded-full font-medium bg-red-500 text-white">غياب</span>
-        <span className="px-2 py-1 rounded-full font-medium bg-gray-200 text-gray-500">عطلة</span>
+        <span className="px-2 py-1 rounded-full font-medium bg-gray-200 text-gray-500">عطلة (الأحد)</span>
       </div>
 
       {/* Summary */}
