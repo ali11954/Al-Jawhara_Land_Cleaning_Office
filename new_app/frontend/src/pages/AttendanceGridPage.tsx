@@ -11,6 +11,7 @@ const STATUS_COLORS: Record<string, string> = {
   annual_leave: 'bg-purple-400 text-white',
   unpaid_leave: 'bg-gray-400 text-white',
   absent: 'bg-red-500 text-white',
+  weekly_leave: 'bg-sky-400 text-white',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -20,6 +21,7 @@ const STATUS_LABELS: Record<string, string> = {
   annual_leave: 'إ',
   unpaid_leave: 'غ',
   absent: 'غ',
+  weekly_leave: 'جم',
 };
 
 const STATUS_FULL_LABELS: Record<string, string> = {
@@ -28,6 +30,7 @@ const STATUS_FULL_LABELS: Record<string, string> = {
   sick: 'مرضية',
   annual_leave: 'إجازة مدفوعة',
   unpaid_leave: 'إجازة بدون أجر',
+  weekly_leave: 'إجازة أسبوعية',
 };
 
 const MONTHS = [
@@ -145,9 +148,10 @@ export default function AttendanceGridPage() {
 
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-3 text-xs">
-        {Object.entries(STATUS_COLORS).filter(([k]) => k !== 'absent').map(([k, cls]) => (
+        {Object.entries(STATUS_COLORS).filter(([k]) => k !== 'absent' && k !== 'weekly_leave').map(([k, cls]) => (
           <span key={k} className={`px-2 py-1 rounded-full font-medium ${cls}`}>{STATUS_FULL_LABELS[k] || k}</span>
         ))}
+        <span className="px-2 py-1 rounded-full font-medium bg-sky-400 text-white">الجمعة</span>
         <span className="px-2 py-1 rounded-full font-medium bg-red-500 text-white">غياب</span>
         <span className="px-2 py-1 rounded-full font-medium bg-gray-200 text-gray-500">عطلة</span>
       </div>

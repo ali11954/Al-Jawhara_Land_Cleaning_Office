@@ -8,7 +8,7 @@ import logoB64 from '@/lib/logoBase64';
 function fmt(n: number) { return (n || 0).toLocaleString('en'); }
 
 const STATUS_MAP: Record<string, string> = { present: 'حاضر', late: 'متأخر', absent: 'غائب', sick: 'مرضي', annual_leave: 'إجازة', unpaid_leave: 'إج. بدون راتب' };
-const STATUS_COLORS: Record<string, string> = { present: 'bg-green-100 text-green-700', late: 'bg-yellow-100 text-yellow-700', absent: 'bg-red-100 text-red-700', sick: 'bg-blue-100 text-blue-700', annual_leave: 'bg-purple-100 text-purple-700', unpaid_leave: 'bg-gray-100 text-gray-700' };
+  const STATUS_COLORS: Record<string, string> = { present: 'bg-green-100 text-green-700', late: 'bg-yellow-100 text-yellow-700', absent: 'bg-red-100 text-red-700', sick: 'bg-blue-100 text-blue-700', annual_leave: 'bg-purple-100 text-purple-700', unpaid_leave: 'bg-gray-100 text-gray-700', weekly_leave: 'bg-sky-100 text-sky-700' };
 
 function downloadExcel(filename: string, title: string, headers: string[], rows: string[][]) {
   const ths = headers.map(h => `<th style="background:#059669;color:white;padding:8px 12px;border:1px solid #065f46;font-weight:bold;font-size:11px;text-align:right;direction:rtl;">${h}</th>`).join('');
@@ -123,7 +123,7 @@ export default function AttendanceReportPage() {
 
   const empDetailRecords = (empId: number) => filteredRecords.filter((r: any) => r.employee_id === empId);
 
-  const STATUS_LABEL: Record<string, string> = { present: 'حاضر', late: 'متأخر', absent: 'غائب', sick: 'مرضي', annual_leave: 'إجازة', unpaid_leave: 'إج. بدون راتب' };
+  const STATUS_LABEL: Record<string, string> = { present: 'حاضر', late: 'متأخر', absent: 'غائب', sick: 'مرضي', annual_leave: 'إجازة', unpaid_leave: 'إج. بدون راتب', weekly_leave: 'إجازة أسبوعية' };
 
   const exportExcel = () => {
     const title = view === 'summary' ? 'ملخص الحضور حسب الموظف' : 'تفاصيل الحضور اليومية';
@@ -132,17 +132,18 @@ export default function AttendanceReportPage() {
       : `attendance_detail_${filters.date_from}_${filters.date_to}.xls`;
 
     if (view === 'summary') {
-      const headers = ['#', 'الاسم', 'الكود', 'الشركة', 'أيام العمل', 'حضور', 'تأخر', 'إجازة', 'غياب', 'نسبة الحضور'];
+      const headers = ['#', 'الاسم', 'الكود', 'الشركة', 'أيام العمل', 'حضور', 'تأخر', 'إجازة', 'الجمعة', 'غياب', 'نسبة الحضور'];
       const rows = filteredEmployees.map((e: any, i: number) => {
         const rate = e.working_days > 0 ? Math.round((e.present + e.late) / e.working_days * 100) : 0;
         return [String(i + 1), e.employee_name, e.employee_code, e.company_name,
-          String(e.working_days), String(e.present), String(e.late), String(e.leave), String(e.absent), `${rate}%`];
+          String(e.working_days), String(e.present), String(e.late), String(e.leave), String(e.friday_count || 0), String(e.absent), `${rate}%`];
       });
       const tp = filteredEmployees.reduce((s: number, e: any) => s + e.present, 0);
       const tl = filteredEmployees.reduce((s: number, e: any) => s + e.late, 0);
       const tv = filteredEmployees.reduce((s: number, e: any) => s + e.leave, 0);
       const ta = filteredEmployees.reduce((s: number, e: any) => s + e.absent, 0);
-      rows.push(['', 'الإجمالي', '', '', '', String(tp), String(tl), String(tv), String(ta), '']);
+      const tf = filteredEmployees.reduce((s: number, e: any) => s + (e.friday_count || 0), 0);
+      rows.push(['', 'الإجمالي', '', '', '', String(tp), String(tl), String(tv), String(tf), String(ta), '']);
       downloadCSV(filename, title, headers, rows);
     } else {
       const headers = ['#', 'الموظف', 'الكود', 'الشركة', 'التاريخ', 'الحالة', 'الفترة', 'وقت الحضور', 'وقت الانصراف', 'ملاحظات'];
@@ -160,11 +161,11 @@ export default function AttendanceReportPage() {
     const title = view === 'summary' ? 'ملخص الحضور حسب الموظف' : 'تفاصيل الحضور اليومية';
 
     if (view === 'summary') {
-      const headers = ['#', 'الاسم', 'الكود', 'الشركة', 'أيام العمل', 'حضور', 'تأخر', 'إجازة', 'غياب', 'النسبة'];
+      const headers = ['#', 'الاسم', 'الكود', 'الشركة', 'أيام العمل', 'حضور', 'تأخر', 'إجازة', 'الجمعة', 'غياب', 'النسبة'];
       const rows = filteredEmployees.map((e: any, i: number) => {
         const rate = e.working_days > 0 ? Math.round((e.present + e.late) / e.working_days * 100) : 0;
         return [String(i + 1), e.employee_name, e.employee_code, e.company_name,
-          String(e.working_days), String(e.present), String(e.late), String(e.leave), String(e.absent), `${rate}%`];
+          String(e.working_days), String(e.present), String(e.late), String(e.leave), String(e.friday_count || 0), String(e.absent), `${rate}%`];
       });
       const tp = filteredEmployees.reduce((s: number, e: any) => s + e.present, 0);
       const tl = filteredEmployees.reduce((s: number, e: any) => s + e.late, 0);
@@ -250,7 +251,7 @@ export default function AttendanceReportPage() {
 
       {/* Summary Cards */}
       {data && (
-        <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-3 lg:grid-cols-7 gap-3">
           <Card className="bg-gray-50 border-gray-200">
             <CardContent className="p-3 text-center">
               <p className="text-xl font-bold text-gray-700">{data.working_days || 0}</p>
@@ -283,6 +284,12 @@ export default function AttendanceReportPage() {
           </Card>
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="p-3 text-center">
+              <p className="text-xl font-bold text-blue-700">{data.friday_count || 0}</p>
+              <p className="text-xs text-blue-600">الجمعة</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="p-3 text-center">
               <p className="text-xl font-bold text-blue-700">{data.summary?.attendance_rate || 0}%</p>
               <p className="text-xs text-blue-600">نسبة الحضور</p>
             </CardContent>
@@ -311,6 +318,7 @@ export default function AttendanceReportPage() {
                   <th className="px-4 py-3 text-center font-semibold">حضور</th>
                   <th className="px-4 py-3 text-center font-semibold">تأخر</th>
                   <th className="px-4 py-3 text-center font-semibold">إجازة</th>
+                  <th className="px-4 py-3 text-center font-semibold text-blue-200">الجمعة</th>
                   <th className="px-4 py-3 text-center font-semibold">غياب</th>
                   <th className="px-4 py-3 text-center font-semibold">النسبة</th>
                   <th className="px-4 py-3 text-center font-semibold">تفاصيل</th>
@@ -331,6 +339,7 @@ export default function AttendanceReportPage() {
                         <td className="px-4 py-3 text-center"><span className="font-bold text-green-600">{emp.present}</span></td>
                         <td className="px-4 py-3 text-center"><span className="font-bold text-yellow-600">{emp.late}</span></td>
                         <td className="px-4 py-3 text-center"><span className="font-bold text-purple-600">{emp.leave}</span></td>
+                        <td className="px-4 py-3 text-center"><span className="font-bold text-blue-500">{emp.friday_count || 0}</span></td>
                         <td className="px-4 py-3 text-center"><span className="font-bold text-red-600">{emp.absent}</span></td>
                         <td className="px-4 py-3 text-center">
                           <span className={`px-2 py-1 rounded-full text-xs font-bold ${rate >= 80 ? 'bg-green-100 text-green-700' : rate >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>

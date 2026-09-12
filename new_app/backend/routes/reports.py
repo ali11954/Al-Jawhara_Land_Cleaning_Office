@@ -510,7 +510,10 @@ def reports_attendance_grid(current_user):
         absent_count = 0
         late_count = 0
         leave_count = 0
+        friday_count_g = 0
         for d in range(1, days_in_month + 1):
+            day_date = datetime(year, month, d).date()
+            is_friday = day_date.weekday() == 4
             status = att_map.get(emp_id, {}).get(d)
             if status:
                 days[d] = status
@@ -521,8 +524,12 @@ def reports_attendance_grid(current_user):
                 elif status in ('annual_leave', 'sick', 'unpaid_leave'):
                     leave_count += 1
             else:
-                days[d] = None
-                absent_count += 1
+                if is_friday:
+                    days[d] = 'weekly_leave'
+                    friday_count_g += 1
+                else:
+                    days[d] = None
+                    absent_count += 1
 
         result.append({
             'employee_id': emp_id,
@@ -535,6 +542,7 @@ def reports_attendance_grid(current_user):
             'absent_count': absent_count,
             'late_count': late_count,
             'leave_count': leave_count,
+            'friday_count': friday_count_g,
         })
 
     return jsonify({
@@ -565,9 +573,12 @@ def reports_attendance_detail(current_user):
     dt_from = datetime.strptime(date_from, '%Y-%m-%d').date()
     dt_to = datetime.strptime(date_to, '%Y-%m-%d').date()
     working_days = 0
+    friday_count = 0
     d = dt_from
     while d <= dt_to:
-        if d.weekday() < 5:
+        if d.weekday() == 4:
+            friday_count += 1
+        elif d.weekday() != 6:
             working_days += 1
         d += timedelta(days=1)
 
@@ -644,7 +655,7 @@ def reports_attendance_detail(current_user):
         })
 
     status_map = {'present': 'حاضر', 'late': 'متأخر', 'absent': 'غائب', 'sick': 'مرضي',
-                  'annual_leave': 'إجازة', 'unpaid_leave': 'إجازة بدون راتب'}
+                  'annual_leave': 'إجازة', 'unpaid_leave': 'إجازة بدون راتب', 'weekly_leave': 'إجازة أسبوعية'}
 
     employees_summary = {}
     for emp in all_emps:
@@ -652,8 +663,8 @@ def reports_attendance_detail(current_user):
         employees_summary[eid] = {
             'employee_id': eid, 'employee_name': name, 'employee_code': code,
             'company_id': cid, 'company_name': cname,
-            'total_days': 0, 'present': 0, 'late': 0, 'absent': 0, 'sick': 0, 'leave': 0,
-            'working_days': working_days,
+            'total_days': 0, 'present': 0, 'late': 0, 'absent': 0, 'sick': 0, 'leave': 0, 'friday_leave': friday_count,
+            'working_days': working_days, 'friday_count': friday_count,
         }
 
     for rec in records:
@@ -701,6 +712,7 @@ def reports_attendance_detail(current_user):
             'date_from': date_from,
             'date_to': date_to,
             'working_days': working_days,
+            'friday_count': friday_count,
             'total_records': total_records,
             'total_employees': total_employees,
             'summary': {
