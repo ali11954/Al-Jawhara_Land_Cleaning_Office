@@ -73,7 +73,7 @@ export default function AttendanceGridPage() {
   const isWeekend = (day: number): boolean => {
     const date = new Date(year, month - 1, day);
     const dow = date.getDay();
-    return dow === 0;
+    return dow === 5;
   };
 
   const handleExport = () => {
