@@ -683,10 +683,6 @@ def reports_attendance_detail(current_user):
     for emp in employees_summary.values():
         counted = emp['present'] + emp['late'] + emp['sick'] + emp['leave']
         emp['absent'] = max(0, working_days - counted)
-        emp['present'] = min(emp['present'], working_days)
-        emp['late'] = min(emp['late'], working_days - emp['present'])
-        emp['sick'] = min(emp['sick'], working_days - emp['present'] - emp['late'])
-        emp['leave'] = min(emp['leave'], working_days - emp['present'] - emp['late'] - emp['sick'])
 
     companies_summary = {}
     for emp in employees_summary.values():

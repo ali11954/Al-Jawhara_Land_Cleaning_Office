@@ -125,6 +125,8 @@ export default function AttendanceReportPage() {
 
   const STATUS_LABEL: Record<string, string> = { present: 'حاضر', late: 'متأخر', absent: 'غائب', sick: 'مرضي', annual_leave: 'إجازة', unpaid_leave: 'إج. بدون راتب', weekly_leave: 'إجازة أسبوعية' };
 
+  const calcRate = (emp: any) => emp.working_days > 0 ? Math.min(100, Math.round((emp.present + emp.late) / emp.working_days * 100)) : 0;
+
   const exportExcel = () => {
     const title = view === 'summary' ? 'ملخص الحضور حسب الموظف' : 'تفاصيل الحضور اليومية';
     const filename = view === 'summary'
@@ -134,7 +136,7 @@ export default function AttendanceReportPage() {
     if (view === 'summary') {
       const headers = ['#', 'الاسم', 'الكود', 'الشركة', 'أيام العمل', 'حضور', 'تأخر', 'إجازة', 'الجمعة', 'غياب', 'نسبة الحضور'];
       const rows = filteredEmployees.map((e: any, i: number) => {
-        const rate = e.working_days > 0 ? Math.round((e.present + e.late) / e.working_days * 100) : 0;
+        const rate = calcRate(e);
         return [String(i + 1), e.employee_name, e.employee_code, e.company_name,
           String(e.working_days), String(e.present), String(e.late), String(e.leave), String(e.friday_count || 0), String(e.absent), `${rate}%`];
       });
@@ -163,7 +165,7 @@ export default function AttendanceReportPage() {
     if (view === 'summary') {
       const headers = ['#', 'الاسم', 'الكود', 'الشركة', 'أيام العمل', 'حضور', 'تأخر', 'إجازة', 'الجمعة', 'غياب', 'النسبة'];
       const rows = filteredEmployees.map((e: any, i: number) => {
-        const rate = e.working_days > 0 ? Math.round((e.present + e.late) / e.working_days * 100) : 0;
+        const rate = calcRate(e);
         return [String(i + 1), e.employee_name, e.employee_code, e.company_name,
           String(e.working_days), String(e.present), String(e.late), String(e.leave), String(e.friday_count || 0), String(e.absent), `${rate}%`];
       });
@@ -326,7 +328,7 @@ export default function AttendanceReportPage() {
               </thead>
               <tbody>
                 {filteredEmployees.map((emp: any, i: number) => {
-                  const rate = emp.working_days > 0 ? Math.round((emp.present + emp.late) / emp.working_days * 100) : 0;
+                  const rate = calcRate(emp);
                   const isExpanded = expandedEmp === emp.employee_id;
                   return (
                     <>
