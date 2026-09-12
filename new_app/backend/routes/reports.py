@@ -572,15 +572,14 @@ def reports_attendance_detail(current_user):
 
     dt_from = datetime.strptime(date_from, '%Y-%m-%d').date()
     dt_to = datetime.strptime(date_to, '%Y-%m-%d').date()
-    working_days = 0
+    total_days = (dt_to - dt_from).days + 1
     friday_count = 0
     d = dt_from
     while d <= dt_to:
         if d.weekday() == 4:
             friday_count += 1
-        elif d.weekday() != 6:
-            working_days += 1
         d += timedelta(days=1)
+    working_days = total_days
 
     with get_db() as conn:
         cur = conn.cursor()
@@ -681,7 +680,7 @@ def reports_attendance_detail(current_user):
                 employees_summary[eid]['sick'] += 1
 
     for emp in employees_summary.values():
-        counted = emp['present'] + emp['late'] + emp['sick'] + emp['leave']
+        counted = emp['present'] + emp['late'] + emp['sick'] + emp['leave'] + emp['friday_count']
         emp['absent'] = max(0, working_days - counted)
 
     companies_summary = {}
